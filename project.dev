@@ -1,7 +1,7 @@
 [Project]
 FileName=project.dev
 Name=rmcgirr83.org minichat client
-UnitCount=10
+UnitCount=12
 Type=1
 Ver=1
 ObjFiles=
@@ -43,7 +43,7 @@ BuildCmd=$(CC) -c minichatclient.c -o minichatclient.o $(CFLAGS)
 Major=0
 Minor=1
 Release=1
-Build=236
+Build=282
 LanguageID=1033
 CharsetID=1252
 CompanyName=cLx
@@ -146,4 +146,24 @@ Link=1
 Priority=1000
 OverrideBuildCmd=0
 BuildCmd=$(CC) -c parsehtml.c -o parsehtml.o $(CFLAGS)
+
+[Unit11]
+FileName=entities.h
+CompileCpp=0
+Folder=rmcgirr83.org minichat client
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit12]
+FileName=entities.c
+CompileCpp=0
+Folder=rmcgirr83.org minichat client
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
 
