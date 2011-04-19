@@ -1,7 +1,7 @@
 // Ce truc est une sorte declient http afin de servir depasserelle vers le minichat rmcgirr83.org pour phpbb.
 // pourquoi toujours utiliser les trucs les moins compatibles possibles ?
 //
-// Sous windows, il faut passer
+// pour compiler utiliser "gcc client-chat-FF.c". Sous windows, il faut passer
 // -lws2_32 au linker (nous utilisons aussi gcc).
 //
 // Changelog:
@@ -12,7 +12,7 @@
 // 08/04/11 : cLx       Découpage en differents objets. Traitement des cookies de façon automatique.
 // 08/04/11 : Nejaa     Minimes modification pour compiler sans warnings et fonction d'attente (provisoire) portabilité a tester
 // 15/04/11 : cLx       Une machines à états pour faire un semblant de parsage sur l'HTML
-// 17/04/11 : cLx       La fonction de decodage fait maintenant quelque chose de propre ! :D 
+// 17/04/11 : cLx       La fonction de decodage fait maintenant quelque chose de propre ! :D
 //
 // Todo:
 // [x] réseau, compatibilité windows, fonctions http de bases (get et post)
@@ -26,11 +26,21 @@
 // Licence: Au cas où ça se révélerait indispensable, la GPL ?
 // Garantie: Aucune. Timmy, si quelqu'un crashe ton serveur avec ce truc, c'est pas notre faute ! ^^
 
+///// CONFIG
+#define USERAGENT "Pas Firefox, ni IE, ni Chrome, ni Opera et encore moins Safari !"
+#define HOST "forum.francefurs.org"
+#define PORT 80
+#define ATTENTE 4 // temps d'attente, en secondes (granulosité : 0.25s)
+//#define TESTMSG "%7Bmessage+sended+with+mchatclient.exe+(cc-by-nc+cLx+2011)&7D"
+#define TESTMSG "%7Bmeeeooow%7D"
 #include "userconfig.h" // le login est mot de passe sont là bas !
+
+///// FIN de la config
 
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 
 #if defined (linux)
     #include <sys/socket.h>
@@ -58,7 +68,7 @@ FILE *f;
 /*
 void parse_minichat_mess(char *buf, unsigned int bytes){
      fwrite(buf, bytes, 1, stdout); // debug vers console
-     fwrite(buf, bytes, 1, f); // envoi vers fichier     
+     fwrite(buf, bytes, 1, f); // envoi vers fichier
 }
 */
 
@@ -67,8 +77,23 @@ void parse_minichat_mess(char *buf, unsigned int bytes){
 
 
 void minichat_message(char* username, char* message, char *usericonurl, char *userprofileurl){
-    fprintf(stdout, "<%s> %s\n", username, message);
-    
+    char h[3], m[3], s[3];
+    time_t secondes=time(NULL);
+    struct tm temps;
+    temps=*localtime(&secondes);
+
+    fprintf(stdout, "%d:%d:%d <%s> %s\n", temps.tm_hour, temps.tm_min, temps.tm_sec, username, message);
+
+    itoa(temps.tm_hour, h, 10);
+    itoa(temps.tm_min, m, 10);
+    itoa(temps.tm_sec, s, 10);
+
+    fwrite(&h, strlen(h), 1, f);
+    fwrite(":", 1, 1, f);
+    fwrite(&m, strlen(m), 1, f);
+    fwrite(":", 1, 1, f);
+    fwrite(&s, strlen(s), 1, f);
+    fwrite(" ", 1, 1, f);
     fwrite("<", 1, 1, f);
     fwrite(username, strlen(username), 1, f);
     fwrite("> ", 2, 1, f);
@@ -142,7 +167,7 @@ int main(void) {
         			http_get(s, "/ucp.php?mode=login", HOST, NULL, NULL, USERAGENT, NULL);
         			k=1;
         			while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                        if(k) parsehttpheadersforgettingcookies(cookies, buf); 
+                        if(k) parsehttpheadersforgettingcookies(cookies, buf);
                         k=0;
         			}
         			state = SUBMIT_AUTHENTIFICATION;
@@ -164,7 +189,7 @@ int main(void) {
 
                 k=1;
     			while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) parsehttpheadersforgettingcookies(cookies, buf); 
+                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
                     k=0;
     			}
     			state = GET_THE_BACKLOG;
@@ -229,7 +254,7 @@ int main(void) {
                                                 //mode=add&message=meowwmeow&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23
                 k=1;
                 while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) parsehttpheadersforgettingcookies(cookies, buf); 
+                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
     				fwrite(buf, bytes, 1, stdout); // envoi vers console
     				fwrite(buf, bytes, 1, f); // envoi vers fichier
     				k=0;
