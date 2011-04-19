@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "entities.h"
 #include "parsehtml.h"
 
 typedef enum {
@@ -33,12 +35,19 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
     unsigned int i = 0;
     static int j;
     static tstate state;
+    //char *ptmp = NULL;
         
     char str1[] = "<div id=\"mess";
     char str2[] = "<a href=\".";
     char str3[] = "<img src=\".";
     char str4[] = "<div class=\"avatarMessage mChatMessage\">";
     char str5[] = "</div>";
+
+    //// html entities decoding call
+    //msgdst = malloc(strlen(message)+1);
+    //decode_html_entities_utf8(ptmp, message);
+    //free(msgdst);
+
     
     //static char *username = NULL, *message = NULL, *usericonurl = NULL, *userprofileurl = NULL;
     static unsigned int o = 0;
@@ -106,8 +115,9 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                 if (input[i] == '\"'){
                     buffer[o] = '\0';
                     FREE(msg->usericonurl)
-                    msg->usericonurl = malloc((o)*sizeof(char)+1);
-                    strcpy(msg->usericonurl, buffer);
+                    msg->usericonurl = malloc((o+1)*sizeof(char));
+                    //strcpy(msg->usericonurl, buffer);
+                    decode_html_entities_utf8(msg->usericonurl, buffer);
                     state = LOOKING_FOR_PROFILE_URL;
                 }
                 else {
@@ -130,8 +140,9 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                 if (input[i] == '"') {
                     buffer[o] = '\0';
                     FREE(msg->userprofileurl)
-                    msg->userprofileurl = malloc((o)*sizeof(char)+1);
-                    strcpy(msg->userprofileurl, buffer);
+                    msg->userprofileurl = malloc((o+1)*sizeof(char));
+                    //strcpy(msg->userprofileurl, buffer);
+                    decode_html_entities_utf8(msg->userprofileurl, buffer);
                     state = LOOKING_FOR_USERNAME;
                 }
                 else {
@@ -140,25 +151,26 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                 break;
                 
             case LOOKING_FOR_USERNAME:
-                 if (input[i] == '>'){
-                     o=0;
-                     state = IN_USERNAME;
-                 }
-                 break;
+                if (input[i] == '>'){
+                    o=0;
+                    state = IN_USERNAME;
+                }
+                break;
                  
             case IN_USERNAME:
-                 if (input[i] == '<'){
-                     buffer[o] = '\0';
-                     FREE(msg->username)
-                     msg->username = malloc((o)*sizeof(char)+1);
-                     strcpy(msg->username, buffer);
-                     state = LOOKING_FOR_MESSAGE;
-                 }
-                 else {
-                     buffer[o++] = input[i];
-                     //printf("%c", input[i]);
-                 }
-                 break;
+                if (input[i] == '<'){
+                    buffer[o] = '\0';
+                    FREE(msg->username)
+                    msg->username = malloc((o+1)*sizeof(char));
+                    //strcpy(msg->username, buffer);
+                    decode_html_entities_utf8(msg->username, buffer);
+                    state = LOOKING_FOR_MESSAGE;
+                }
+                else {
+                    buffer[o++] = input[i];
+                    //printf("%c", input[i]);
+                }
+                break;
                                  
             case LOOKING_FOR_MESSAGE:
                 if (input[i] == str4[j++]) { 
@@ -178,8 +190,9 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                         o-=strlen(str5);
                         buffer[o] = '\0';
                         FREE(msg->message)
-                        msg->message = malloc((o)*sizeof(char)+1);
-                        strcpy(msg->message, buffer);
+                        msg->message = malloc((o+1)*sizeof(char));
+                        //strcpy(msg->message, buffer);
+                        decode_html_entities_utf8(msg->message, buffer);
                         minichat_message(msg->username, msg->message, msg->usericonurl, msg->userprofileurl);
                         state = READY;
                     }
