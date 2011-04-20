@@ -6,16 +6,16 @@
 */
 
 // server informations
-#define HOST                 "forum.somewhere.org"
+#define HOST                 "rmcgirr83.org"
 #define PATH                 "/"
 #define PORT                 80
 
-// user and password if we want to login.
-#define USER                 "YourUsername"
+// put your username and password here if we want to login.
+#define USER                 ""
 #define PASSWORD             ""
 
 // waiting time between pooling minichat (granulosity : 250ms)
-#define WAITING_TIME         4 
+#define WAITING_TIME         5 
 
 // a test message to send :) will not be used if empty.
 #define TESTMSG              ""
