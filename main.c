@@ -77,10 +77,10 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
 
     lt = time(NULL);
     ptm = localtime(&lt);
-    
+
     if (ptm->tm_mday != day){
         fprintf(stdout, "*** %04u-%02u-%02u ***\n",   ptm->tm_year+1900, ptm->tm_mon, ptm->tm_mday);
-        fprintf(f     , "*** %04u-%02u-%02u ***\r\n", ptm->tm_year+1900, ptm->tm_mon, ptm->tm_mday);    
+        fprintf(f     , "*** %04u-%02u-%02u ***\r\n", ptm->tm_year+1900, ptm->tm_mon, ptm->tm_mday);
         day = ptm->tm_mday;
     }
 
@@ -122,9 +122,9 @@ int main(void) {
 	int bytes;
 	int k; // flag for any use
 	int t;
-    int b=0; 
+    int b=0;
 
-	tstate oldstate; 
+	tstate oldstate;
 
     // on garde un peu de place pour stocker les cookies
     cookie_t cookies[MAXCOOKIES];
@@ -149,7 +149,7 @@ int main(void) {
     // Si la plateforme est Windows
     ws_init();
 
-    if (USER != "") { state = LOADING_LOGIN_PAGE; }
+    if (USER[0] != '\0') { state = LOADING_LOGIN_PAGE; }
     else { state = GET_THE_BACKLOG; }
 
     for(;;){
