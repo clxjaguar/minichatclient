@@ -149,7 +149,9 @@ int main(void) {
     // Si la plateforme est Windows
     ws_init();
 
-    state = LOADING_LOGIN_PAGE;
+    if (USER != "") { state = LOADING_LOGIN_PAGE; }
+    else { state = GET_THE_BACKLOG; }
+
     for(;;){
     	switch(state){
     		case LOADING_LOGIN_PAGE:
