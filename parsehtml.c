@@ -39,7 +39,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
         
     char str1[] = "<div id=\"mess";
     char str2[] = "<a href=\".";
-    char str3[] = "<img src=\".";
+    char str3[] = "<img src=\"";
     char str4[] = "<div class=\"avatarMessage mChatMessage\">";
     char str5[] = "</div>";
 
@@ -52,7 +52,10 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
     //static char *username = NULL, *message = NULL, *usericonurl = NULL, *userprofileurl = NULL;
     static unsigned int o = 0;
     static char buffer[4000];
-    
+#ifdef DEBUG
+    static tstate oldstate = READY;
+#endif
+
     if (reset) { 
         state = READY;
         j=0; 
@@ -70,7 +73,13 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 
     for (i=0; i<bytes; i++){
         
-        if (DEBUG) { fprintf(stderr, "%c", input[i]); }
+        if (DEBUG) { 
+            if (state != oldstate) {
+                fprintf(stderr, "[S%u=>S%u]", oldstate, state); 
+                oldstate = state;
+            }
+            fprintf(stderr, "%c", input[i]); 
+        }
         
         if (input[i] == '\r') { continue; }
         if (input[i] == '\n') { continue; }
@@ -129,7 +138,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                 if (input[i] == str2[j++]) {
                     if (j >= strlen(str2)) { 
                         j=0; 
-                        o=0;
+                        o=0; buffer[o++] = '.';
                         state = IN_PROFILE_URL; 
                     }
                 }
