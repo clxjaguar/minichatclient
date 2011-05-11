@@ -14,6 +14,7 @@
 // 17/04/11 : cLx       La fonction de decodage fait maintenant quelque chose de propre ! :D
 // 18/04/11 : Nejaa     Ajout du marquage de l'heure
 // 19/04/11 : cLx       Corrections sur l'horodatage / entites html / un peu plein de petits trucs partout
+// 11/05/11 : cLx       Correction d'un bug a la con dans le parseur html (en cas de usericon sur d'autres serveurs que le forum)
 //
 // Todo:
 // [x] réseau, compatibilité windows, fonctions http de bases (get et post)
@@ -34,6 +35,7 @@
 // Garantie: Aucune. Timmy, si quelqu'un crashe ton serveur avec ce truc, c'est pas notre faute ! ^^
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
@@ -74,30 +76,42 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
     struct tm *ptm;
     time_t lt;
     static unsigned int day;
+    char *p = NULL;
 
     lt = time(NULL);
     ptm = localtime(&lt);
 
     if (ptm->tm_mday != day){
         fprintf(stdout, "*** %04u-%02u-%02u ***\n",   ptm->tm_year+1900, ptm->tm_mon, ptm->tm_mday);
-        fprintf(f     , "*** %04u-%02u-%02u ***\r\n", ptm->tm_year+1900, ptm->tm_mon, ptm->tm_mday);
+        //fprintf(f     , "*** %04u-%02u-%02u ***\r\n", ptm->tm_year+1900, ptm->tm_mon, ptm->tm_mday);
         day = ptm->tm_mday;
     }
 
-    fprintf(stderr, "[icon url] http://"HOST""PATH"%s\n[profile url] http://"HOST""PATH"%s\n", usericonurl+1, userprofileurl+1);
+    // gere si la user icon est sur le serveur (avec une adresse relative ./)
+    // (ne pas oublier d'alouer pour "http://", ":00000" et \0)
+    if (usericonurl[0] == '.' && usericonurl[1] == '/') {
+        p = malloc(strlen(HOST)+strlen(PATH)+strlen(usericonurl)+20);
+        sprintf(p, "http://%s:%d%s%s", HOST, PORT, PATH, &usericonurl[2]);
+        usericonurl = p;
+    }
+    fprintf(stderr, "[icon url    = %s ]\n", usericonurl);
+    fprintf(stderr, "[profile url = http://"HOST""PATH"%s ]\n", &userprofileurl[2]);
     if (state == GET_THE_BACKLOG){
-        fprintf(stdout, "[BKLOG] ");
-        fprintf(f     , "[BKLOG] ");
+        fprintf(f     , "[    BACK-LOG    ] "); //4+1+2+1+2+1+2+1+2 = 16
+        fprintf(stdout, "[BKLOG] "); 
     }
     else {
+        fprintf(f     , "[%04u-%02u-%02u", ptm->tm_year+1900, ptm->tm_mon, ptm->tm_mday);
+        fprintf(f     , " %02u:%02u] ", ptm->tm_hour, ptm->tm_min);
         fprintf(stdout, "[%02u:%02u] ", ptm->tm_hour, ptm->tm_min);
-        fprintf(f     , "[%02u:%02u] ", ptm->tm_hour, ptm->tm_min);
     }
 
     // display the message
-    fprintf(stdout, "<%s> %s\n",   username, message);
+    fprintf(stdout, "<%s> %s\n\n", username, message);
     fprintf(f     , "<%s> %s\r\n", username, message);
     fflush(f);
+
+    if (p) { free(p); p = NULL; }
 }
 
 void minichat_users_at_this_moment(char *string){
@@ -110,12 +124,40 @@ wprofile&amp;u=1027">Rey</a>, <a href="./memberlist.php?mode=viewprofile&amp;u=1
 e&amp;u=1184">Teobryn</a>, <a href="./memberlist.php?mode=viewprofile&amp;u=5">cLx</a></span></div>"*/
 }
 
+#define MAXBUF 2000
+
+// permet de parser un fichier contenant le code html pour tester le parsage 
+// plutot que de se connecter sur le serveur a chaque fois !
+int test_html_parser(char *filename){
+    char buf[MAXBUF+1];
+    int bytes;
+    int k;
+    FILE *ftmp;
+    tstate bkstate;
+    message_t msg;
+    memset(&msg, 0, sizeof(msg));
+    
+    ftmp = fopen(filename, "r");    
+	if (!ftmp){
+		fprintf(stderr, "Can't open file for reading !\n");
+        return 1;
+	}
+    bkstate = state;
+    state = GET_THE_BACKLOG;
+    k=1;
+    while ((bytes=fread(buf, 1, sizeof(buf), ftmp)) > 0) {
+        parse_minichat_mess(buf, bytes, &msg, k);
+        k=0;
+    }
+
+    state = bkstate;
+    return 0;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// ENTRY POINT /////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
-#define MAXBUF 2000
 int main(void) {
 	int s; //socket descriptor
 	char buf[MAXBUF+1], buf2[MAXBUF+1];
@@ -145,6 +187,9 @@ int main(void) {
 	if (!f){
 		fprintf(stderr, "Can't open file for writing !\n");
 	}
+
+    //decommenter la ligne qui suit si on veut faire du debug sur le parseur html !
+    //test_html_parser("sample.html"); return 0;
 
     // Si la plateforme est Windows
     ws_init();
