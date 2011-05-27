@@ -218,85 +218,94 @@ int main(void) {
     		case SUBMIT_AUTHENTIFICATION:
                 // on s'identifie sur cette même page
     			s = maketcpconnexion(HOST, PORT);
-
-                // génération de ce que l'en va envoyer en POST pour se logger
-                strncpy(buf, "username=",  MAXBUF);strncat(buf, USER,     MAXBUF);
-                strncat(buf, "&password=", MAXBUF);strncat(buf, PASSWORD, MAXBUF);
-                strncat(buf, "&redirect=index.php&login=Connexion",       MAXBUF);
-
-                generate_cookies_string(cookies, buf2, MAXBUF);
-                http_post(s, PATH"ucp.php?mode=login", HOST, buf, "http://"HOST""PATH"ucp.php?mode=login", buf2, USERAGENT, NULL);
-
-                k=1;
-    			while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
-                    k=0;
-    			}
-    			state = GET_THE_BACKLOG;
+                if (s) {
+                    // génération de ce que l'en va envoyer en POST pour se logger
+                    strncpy(buf, "username=",  MAXBUF);strncat(buf, USER,     MAXBUF);
+                    strncat(buf, "&password=", MAXBUF);strncat(buf, PASSWORD, MAXBUF);
+                    strncat(buf, "&redirect=index.php&login=Connexion",       MAXBUF);
+    
+                    generate_cookies_string(cookies, buf2, MAXBUF);
+                    http_post(s, PATH"ucp.php?mode=login", HOST, buf, "http://"HOST""PATH"ucp.php?mode=login", buf2, USERAGENT, NULL);
+    
+                    k=1;
+        			while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+                        if(k) parsehttpheadersforgettingcookies(cookies, buf);
+                        k=0;
+        			}
+        			state = GET_THE_BACKLOG;
+                }
     			close(s);
     			break;
 
     		case GET_THE_BACKLOG:
                 // ça, c'est pour récupérer le texte de la conversation déjà écrite comme le fait le navigateur
     			s = maketcpconnexion(HOST, PORT);
-    			generate_cookies_string(cookies, buf, MAXBUF);
-                http_get(s, PATH"mchat.php", HOST, "http://"HOST""PATH"ucp.php?mode=login", buf, USERAGENT, NULL);
-    			k=1;
-                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
-    				parse_minichat_mess(buf, bytes, &msg, k);
-    				k=0;
+                if (s) {
+        			generate_cookies_string(cookies, buf, MAXBUF);
+                    http_get(s, PATH"mchat.php", HOST, "http://"HOST""PATH"ucp.php?mode=login", buf, USERAGENT, NULL);
+        			k=1;
+                    while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+                        if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
+        				parse_minichat_mess(buf, bytes, &msg, k);
+        				k=0;
+                    }
+        			state = RETRIEVING_THE_LIST_OF_USERS;
                 }
-    			state = RETRIEVING_THE_LIST_OF_USERS;
     			close(s);
     			break;
 
      	    case WATCHING_NEW_MESSAGES:
                 // ... et ça, c'est pour récupérer ce qui se passe en temps réel !
     			s = maketcpconnexion(HOST, PORT);
-    			generate_cookies_string(cookies, buf, MAXBUF);
-    			// => id dernier message reçu à récupérer et renvoyer
-    			strncpy(buf2, "mode=read&message_last_id=", sizeof(buf2));
-    			strncat(buf2, msg.msgid, sizeof(buf2));
-                http_post(s, PATH"mchat.php", HOST, buf2, "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
-    			k=1;
-                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
-    				parse_minichat_mess(buf, bytes, &msg, k);
-                    fwrite(buf, bytes, 1, stderr); // envoi vers console
-    				k=0;
-    			}
-    			state = WAIT_BEFORE_WATCHING_NEW_MESSAGES;
+                if (s) {
+        			generate_cookies_string(cookies, buf, MAXBUF);
+        			// => id dernier message reçu à récupérer et renvoyer
+        			strncpy(buf2, "mode=read&message_last_id=", sizeof(buf2));
+        			strncat(buf2, msg.msgid, sizeof(buf2));
+                    http_post(s, PATH"mchat.php", HOST, buf2, "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
+        			k=1;
+                    while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+                        if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
+        				parse_minichat_mess(buf, bytes, &msg, k);
+                        fwrite(buf, bytes, 1, stderr); // envoi vers console
+        				k=0;
+        			}
+        			state = WAIT_BEFORE_WATCHING_NEW_MESSAGES;
+                }
     			close(s);
     			break;
 
             case RETRIEVING_THE_LIST_OF_USERS:
                 // de temps en temps, on peut regarder qui est là.
                 s = maketcpconnexion(HOST, PORT);
-                generate_cookies_string(cookies, buf, MAXBUF);
-                http_post(s, PATH"mchat.php", HOST, "mode=stats", "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
-                k=1;
-                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
-   				    parse_minichat_mess(buf, bytes, &msg, k);
-   				    k=0;
+                if (s) {
+                    generate_cookies_string(cookies, buf, MAXBUF);
+                    http_post(s, PATH"mchat.php", HOST, "mode=stats", "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
+                    k=1;
+                    while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+                        if(k) parsehttpheadersforgettingcookies(cookies, buf);
+       				    parse_minichat_mess(buf, bytes, &msg, k);
+       				    k=0;
+                    }
+        			state = WAIT_BEFORE_WATCHING_NEW_MESSAGES;
                 }
-    			state = WAIT_BEFORE_WATCHING_NEW_MESSAGES;
     			close(s);
                 break;
 
     		case POSTING_A_MESSAGE:
                 // et enfin, ça, c'est pour y poster quelque chose. faire gaffe de ne pas flooder sinon Timmy va se fâcher.
     			s = maketcpconnexion(HOST, PORT);
-                storecookie(cookies, "mChatShowUserList", "yes");
-                generate_cookies_string(cookies, buf, MAXBUF);
-    			http_post(s, PATH"mchat.php", HOST, "mode=add&message="TESTMSG"&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23", "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
-                k=1;
-                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
-    				fwrite(buf, bytes, 1, stderr); // envoi vers console
-    				k=0;
-    			}
+                if (s) {
+                    storecookie(cookies, "mChatShowUserList", "yes");
+                    generate_cookies_string(cookies, buf, MAXBUF);
+        			http_post(s, PATH"mchat.php", HOST, "mode=add&message="TESTMSG"&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23", "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
+                    k=1;
+                    while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+                        if(k) parsehttpheadersforgettingcookies(cookies, buf);
+        				fwrite(buf, bytes, 1, stderr); // envoi vers console
+        				k=0;
+        			}
+                }
     			close(s);
     			state = WATCHING_NEW_MESSAGES; // le changement d'état est important ;)
     			break;
