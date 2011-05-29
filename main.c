@@ -15,6 +15,7 @@
 // 18/04/11 : Nejaa     Ajout du marquage de l'heure
 // 19/04/11 : cLx       Corrections sur l'horodatage / entites html / un peu plein de petits trucs partout
 // 11/05/11 : cLx       Correction d'un bug a la con dans le parseur html (en cas de usericon sur d'autres serveurs que le forum)
+// 29/05/11 : cLx       Amelioration du comportement en cas de problemes de connexion 
 //
 // Todo:
 // [x] réseau, compatibilité windows, fonctions http de bases (get et post)
@@ -63,7 +64,7 @@ typedef enum {
     WATCHING_NEW_MESSAGES,
     RETRIEVING_THE_LIST_OF_USERS,
     POSTING_A_MESSAGE,
-    WAIT_BEFORE_WATCHING_NEW_MESSAGES
+    WAIT
 } tstate;
 
 // quelques variables globales
@@ -86,7 +87,6 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
         //fprintf(f     , "*** %04u-%02u-%02u ***\r\n", ptm->tm_year+1900, ptm->tm_mon, ptm->tm_mday);
         day = ptm->tm_mday;
     }
-
     // gere si la user icon est sur le serveur (avec une adresse relative ./)
     // (ne pas oublier d'alouer pour "http://", ":00000" et \0)
     if (usericonurl[0] == '.' && usericonurl[1] == '/') {
@@ -164,9 +164,11 @@ int main(void) {
 	int bytes;
 	int k; // flag for any use
 	int t;
-    int b=0;
+    //int b=0;
 
-	tstate oldstate;
+    unsigned int nberr = 0;
+    unsigned int wait_time = 10;
+	tstate oldstate, futurestate;
 
     // on garde un peu de place pour stocker les cookies
     cookie_t cookies[MAXCOOKIES];
@@ -198,119 +200,125 @@ int main(void) {
     else { state = GET_THE_BACKLOG; }
 
     for(;;){
+        // on se connecte sur le serveur pour tout les cas sauf attentes
+        if (state != WAIT) {
+            s = maketcpconnexion(HOST, PORT);
+            if (!s) { //
+                nberr++;
+                if (nberr == 2) {
+                    fprintf(f, "Unable to connect to the server anymore !\r\n");
+                    fflush(f);
+                }
+                wait_time = 10;
+                futurestate = state;
+                state = WAIT;
+            }
+            else { 
+                if (nberr >= 2) {
+                    fprintf(f, "The server seem to be back now !\r\n");
+                    if (nberr >= 30) { // 5' ? reconnect from beginning.
+                        state = LOADING_LOGIN_PAGE;
+                    }
+                    fflush(f);
+                }
+                nberr = 0; 
+            }
+        }
+
+        // now here is the main finite state machine
     	switch(state){
     		case LOADING_LOGIN_PAGE:
     			// première étape, on se connecte sur la page de login pour aller chercher un sid
                 // (attention, il ne va fonctionner qu'avec l'user-agent spécifié, faut plus le changer !)
-    			s = maketcpconnexion(HOST, PORT);
-    			if (s) {
-        			http_get(s, PATH"ucp.php?mode=login", HOST, NULL, NULL, USERAGENT, NULL);
-        			k=1;
-        			while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                        if(k) parsehttpheadersforgettingcookies(cookies, buf);
-                        k=0;
-        			}
-        			state = SUBMIT_AUTHENTIFICATION;
-                }
-    			close(s);
+        		http_get(s, PATH"ucp.php?mode=login", HOST, NULL, NULL, USERAGENT, NULL);
+        		k=1;
+        		while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
+                    k=0;
+        		}
+        		state = SUBMIT_AUTHENTIFICATION;
     			break;
 
     		case SUBMIT_AUTHENTIFICATION:
-                // on s'identifie sur cette même page
-    			s = maketcpconnexion(HOST, PORT);
-                if (s) {
-                    // génération de ce que l'en va envoyer en POST pour se logger
-                    strncpy(buf, "username=",  MAXBUF);strncat(buf, USER,     MAXBUF);
-                    strncat(buf, "&password=", MAXBUF);strncat(buf, PASSWORD, MAXBUF);
-                    strncat(buf, "&redirect=index.php&login=Connexion",       MAXBUF);
+                // on s'identifie sur cette même page.
+                // génération de ce que l'en va envoyer en POST pour se logger
+                strncpy(buf, "username=",  MAXBUF);strncat(buf, USER,     MAXBUF);
+                strncat(buf, "&password=", MAXBUF);strncat(buf, PASSWORD, MAXBUF);
+                strncat(buf, "&redirect=index.php&login=Connexion",       MAXBUF);
     
-                    generate_cookies_string(cookies, buf2, MAXBUF);
-                    http_post(s, PATH"ucp.php?mode=login", HOST, buf, "http://"HOST""PATH"ucp.php?mode=login", buf2, USERAGENT, NULL);
+                generate_cookies_string(cookies, buf2, MAXBUF);
+                http_post(s, PATH"ucp.php?mode=login", HOST, buf, "http://"HOST""PATH"ucp.php?mode=login", buf2, USERAGENT, NULL);
     
-                    k=1;
-        			while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                        if(k) parsehttpheadersforgettingcookies(cookies, buf);
-                        k=0;
-        			}
-        			state = GET_THE_BACKLOG;
-                }
-    			close(s);
+                k=1;
+        	    while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
+                    k=0;
+        		}
+        		state = GET_THE_BACKLOG;
     			break;
 
     		case GET_THE_BACKLOG:
                 // ça, c'est pour récupérer le texte de la conversation déjà écrite comme le fait le navigateur
-    			s = maketcpconnexion(HOST, PORT);
-                if (s) {
-        			generate_cookies_string(cookies, buf, MAXBUF);
-                    http_get(s, PATH"mchat.php", HOST, "http://"HOST""PATH"ucp.php?mode=login", buf, USERAGENT, NULL);
-        			k=1;
-                    while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                        if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
-        				parse_minichat_mess(buf, bytes, &msg, k);
-        				k=0;
-                    }
-        			state = RETRIEVING_THE_LIST_OF_USERS;
+        		generate_cookies_string(cookies, buf, MAXBUF);
+                http_get(s, PATH"mchat.php", HOST, "http://"HOST""PATH"ucp.php?mode=login", buf, USERAGENT, NULL);
+        		k=1;
+                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+                    if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
+        			parse_minichat_mess(buf, bytes, &msg, k);
+        			k=0;
                 }
-    			close(s);
+        		state = RETRIEVING_THE_LIST_OF_USERS;
     			break;
 
      	    case WATCHING_NEW_MESSAGES:
                 // ... et ça, c'est pour récupérer ce qui se passe en temps réel !
-    			s = maketcpconnexion(HOST, PORT);
-                if (s) {
-        			generate_cookies_string(cookies, buf, MAXBUF);
-        			// => id dernier message reçu à récupérer et renvoyer
-        			strncpy(buf2, "mode=read&message_last_id=", sizeof(buf2));
-        			strncat(buf2, msg.msgid, sizeof(buf2));
-                    http_post(s, PATH"mchat.php", HOST, buf2, "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
-        			k=1;
-                    while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                        if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
-        				parse_minichat_mess(buf, bytes, &msg, k);
-                        fwrite(buf, bytes, 1, stderr); // envoi vers console
-        				k=0;
-        			}
-        			state = WAIT_BEFORE_WATCHING_NEW_MESSAGES;
-                }
-    			close(s);
+        		generate_cookies_string(cookies, buf, MAXBUF);
+        		// => id dernier message reçu à récupérer et renvoyer
+        		strncpy(buf2, "mode=read&message_last_id=", sizeof(buf2));
+        		strncat(buf2, msg.msgid, sizeof(buf2));
+                http_post(s, PATH"mchat.php", HOST, buf2, "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
+        		k=1;
+                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+                    if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
+        			parse_minichat_mess(buf, bytes, &msg, k);
+                    fwrite(buf, bytes, 1, stderr); // envoi vers console
+        			k=0;
+        		}
+                wait_time = WAITING_TIME;
+                futurestate = WATCHING_NEW_MESSAGES;
+        		state = WAIT;
     			break;
 
             case RETRIEVING_THE_LIST_OF_USERS:
                 // de temps en temps, on peut regarder qui est là.
-                s = maketcpconnexion(HOST, PORT);
-                if (s) {
-                    generate_cookies_string(cookies, buf, MAXBUF);
-                    http_post(s, PATH"mchat.php", HOST, "mode=stats", "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
-                    k=1;
-                    while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                        if(k) parsehttpheadersforgettingcookies(cookies, buf);
-       				    parse_minichat_mess(buf, bytes, &msg, k);
-       				    k=0;
-                    }
-        			state = WAIT_BEFORE_WATCHING_NEW_MESSAGES;
+                generate_cookies_string(cookies, buf, MAXBUF);
+                http_post(s, PATH"mchat.php", HOST, "mode=stats", "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
+                k=1;
+                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
+       				parse_minichat_mess(buf, bytes, &msg, k);
+       				k=0;
                 }
-    			close(s);
+                wait_time = WAITING_TIME;
+                futurestate = WATCHING_NEW_MESSAGES;
+        		state = WAIT;
                 break;
 
     		case POSTING_A_MESSAGE:
                 // et enfin, ça, c'est pour y poster quelque chose. faire gaffe de ne pas flooder sinon Timmy va se fâcher.
-    			s = maketcpconnexion(HOST, PORT);
-                if (s) {
-                    storecookie(cookies, "mChatShowUserList", "yes");
-                    generate_cookies_string(cookies, buf, MAXBUF);
-        			http_post(s, PATH"mchat.php", HOST, "mode=add&message="TESTMSG"&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23", "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
-                    k=1;
-                    while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                        if(k) parsehttpheadersforgettingcookies(cookies, buf);
-        				fwrite(buf, bytes, 1, stderr); // envoi vers console
-        				k=0;
-        			}
-                }
-    			close(s);
+                storecookie(cookies, "mChatShowUserList", "yes");
+                generate_cookies_string(cookies, buf, MAXBUF);
+        	    http_post(s, PATH"mchat.php", HOST, "mode=add&message="TESTMSG"&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23", "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
+                k=1;
+                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
+        			fwrite(buf, bytes, 1, stderr); // envoi vers console
+        			k=0;
+        		}
     			state = WATCHING_NEW_MESSAGES; // le changement d'état est important ;)
     			break;
 
-   			case WAIT_BEFORE_WATCHING_NEW_MESSAGES:
+   			case WAIT:
                 // on attends un peu entre chaque refresh pour ne pas saturer le serveur
                 if (state != oldstate) {
                     t = 0;
@@ -318,14 +326,15 @@ int main(void) {
                 }
                 else {
                     t++;
-                    if (t>=WAITING_TIME*4){
-                        // Niark ! :)
-                        if (b++ == 5 && TESTMSG[0] != '\0'){ state = POSTING_A_MESSAGE; }
-                        else { state = WATCHING_NEW_MESSAGES; }
-                        fprintf(stderr, "\r                                              ");
+                    if (t<wait_time*4){ //4 * 250ms = 1s
+                        fprintf(stderr, ".");
                     }
                     else {
-                        fprintf(stderr, ".");
+                        //// Niark ! :)
+                        //if (b++ == 5 && TESTMSG[0] != '\0'){ state = POSTING_A_MESSAGE; }
+                        //else { state = WATCHING_NEW_MESSAGES; }
+                        state = futurestate;
+                        fprintf(stderr, "\r                                              ");
                     }
                 }
 
@@ -333,6 +342,12 @@ int main(void) {
                 oldstate = state;
                 break;
     	}
+     
+        // if a TCP connexion to the server is present, terminate it !
+        if (s) {
+            close(s);
+            s = 0;
+        }
     }
 	fclose(f);
 	freecookies(cookies);
