@@ -52,6 +52,15 @@ void cstring_addx(cstring *self, int source);
 void cstring_addX(cstring *self, int source);
 
 /**
+ * Add a number to the given cstring, in the given format.
+ * self: the cstring
+ * source: is the number to add
+ * radix: 8, 10 or 16 (the radix of the number to add -- anything above 10 will be assigned a letter from a to z (then, kaboom))
+ * cap: capitalize (upper case) the letters if any, 0 = no, 1 = yes
+ */
+void cstring_addn(cstring *self, int source, int radix, int cap);
+
+/**
  * Reverse the given cstring.
  */
 void cstring_reverse(cstring *self);
