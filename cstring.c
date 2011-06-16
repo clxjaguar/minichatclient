@@ -31,6 +31,19 @@ void free_cstring(cstring *string) {
 	free(string);
 }
 
+char *cstring_convert(cstring *self) {
+	char *string;
+	
+	if (self == NULL)
+		return NULL;
+	
+	free(self->data);
+	string = (self->string);
+	free(self);
+	
+	return string;
+}
+
 void cstring_clear(cstring *self) {
 	self->length = 0;
 	self->string[0] = '\0';
@@ -97,6 +110,22 @@ void cstring_addn(cstring *self, int source, int radix, int cap) {
 	cstring_reverse(string);
 	cstring_add(self, string);
 	free_cstring(string);
+}
+
+void cstring_addns(cstring *self, char *source, int n) {
+	int i;
+	char *tmp;
+	
+	for (i = 0 ; i<=n && source[i] != '\0' ; i++);
+	if (source[i] == '\0') {
+		cstring_adds(self, source);
+	} else {
+		tmp = (char *)malloc(sizeof(char) * (n + 1));
+		strncpy(tmp, source, n);
+		tmp[n] = '\0';
+		cstring_adds(self, tmp);
+		free(tmp);
+	}
 }
 
 void cstring_adds(cstring *self, char *source) {

@@ -37,6 +37,11 @@ void cstring_addc(cstring *self, char source);
 void cstring_adds(cstring *self, char *source);
 
 /**
+ * Add a string (a sequence of char that MAY end with '\0') at the end of the given cstring, up to N.
+ */
+void cstring_addns(cstring *self, char *source, int n);
+
+/**
  * Add an int at the end of the given cstring.
  */
 void cstring_addi(cstring *self, int source);
@@ -69,5 +74,11 @@ void cstring_reverse(cstring *self);
  * Clear (truncate to 0) the given cstring.
  */
 void cstring_clear(cstring *self);
+
+/**
+ * Convert this cstring into a string (this means that you MUST NOT call free_cstring nor use the cstring anymore).
+ * NULL will return NULL.
+ */
+char *cstring_convert(cstring *self);
 
 #endif

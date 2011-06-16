@@ -11,34 +11,48 @@
 #include <string.h>
 #include "ini.h"
 #include "ini_p.h"
+#include "cstring.h"
 
 attribute_t **read_ini_file(FILE *file) {
+	attribute_t *att;
 	attribute_t **atts;
-	char buffer[80];
-	int size;
-	char *tmp;
-	int alloc;
+	char buffer[81];
+	size_t size;
+	int full_line;
+	cstring *string;
 	
 	atts = NULL;
+	string = new_cstring();
+	buffer[80] = '\0'; // just in case
 	
 	if (file != NULL) {
 		while (!feof(file)) {
-			fgets(buffer, 80, file);
+			buffer[0]='\0';
+			fgets(buffer, 3, file);
 			size = strlen(buffer);
-			// We got the whole content in one pass
-			if (feof(file) || buffer[size-1] == '\n') {
-				alloc = 0;
-				tmp = buffer;
-			}
+			full_line = (feof(file) || buffer[size-1] == '\n');
+			remove_crlf(buffer, size);
+			
 			// No luck, we need to continue getting data
-			else {
-				alloc = 1;
-				tmp = strcpy(tmp, buffer);
-				//TODO!!
+			if (!full_line) {
+				cstring_clear(string);
+				cstring_adds(string, buffer);
+				while (!full_line) {
+					fgets(buffer, 2, file);
+					size = strlen(buffer);
+					full_line = (feof(file) || buffer[size-1] == '\n');
+					remove_crlf(buffer, size);
+					cstring_adds(string, buffer);
+				}
+				full_line = 0;
 			}
 			
 			// get the attribute, and add it if it is not a comment
-			attribute_t *att = get_attribute(tmp);
+			if (full_line)
+				att = get_attribute(buffer);
+			else
+				att = get_attribute(string->string);
+			
 			if (att != NULL) {
 				if (att->name[0] != '#')
 					atts = attribute_add_to_list(atts, att);
@@ -46,60 +60,41 @@ attribute_t **read_ini_file(FILE *file) {
 					free_attribute(att);
 			}
 			//
-			
-			if (alloc)
-				free(tmp);
 		}
 	}
 	
+	free_cstring(string);
 	return atts;
 }
 
 attribute_t *get_attribute(char data[]) {
 	int i, len;
-	char *key, *value, *tmp;
+	cstring *key, *value;
 	attribute_t *att;
+	cstring *line;
 	
-	for (i = 0 ; data[i] != '\0' && data[i] != '=' && data[i] != '\n' ; i++);
+	line = new_cstring();
+	cstring_adds(line, data);
+	att = NULL;
+	key = NULL;
+	value = NULL;
 	
-	if (data[i] == '=') {
-		key = malloc(sizeof(char) * (i + 1));
-		strncpy(key, data, i);
-		key[i] = '\0';
+	if (line->length > 0) {
+		for (i = 0 ; data[i] != '\0' && data[i] != '=' ; i++);
 		
-		tmp = data + (i + 1);
-		// discard the ending line if found
-		len = strlen(tmp);
-		if (tmp[len - 1] == '\n')
-			len--;
-		//
-		value = malloc(sizeof(char) * (len + 1));
-		strncpy(value, tmp, len);
-		value[len] = '\0';
-	} else {
-		// discard the ending line if found
-		len = strlen(data);
-		if (data[len - 1] == '\n')
-			len--;
-		//
-		
-		if (len > 0) {
-			key = malloc(sizeof(char) * (len + 1));
-			strncpy(key, data, len);
-			key[len] = '\0';
+		if (data[i] == '=') {
+			key = new_cstring();
+			cstring_addns(key, data, i);
+			value = new_cstring();
+			cstring_adds(value, (data + (i+1)));
 		} else {
-			key = NULL;
+			key = new_cstring();
+			cstring_adds(key, data);
 		}
 		
-		value = NULL;
-	}
-	
-	if (key != NULL) {
 		att = malloc(sizeof(attribute_t));
-		att->name = key;
-		att->value = value;
-	} else {
-		att = NULL;
+		att->name = cstring_convert(key);
+		att->value = cstring_convert(value);
 	}
 	
 	return att;
@@ -146,4 +141,13 @@ attribute_t **attribute_add_to_list(attribute_t **list, attribute_t *att) {
 	list[i + 1] = NULL;
 	
 	return list;
+}
+
+void remove_crlf(char data[], int size) {
+	// do not store the \n, convert CRLF to LF
+	if (size > 0 && data[size-1] == '\n') {
+		data[size-1] = '\0';
+		if (size > 1 && data[size-2] == '\r')
+			data[size-2] = '\0';
+	}
 }

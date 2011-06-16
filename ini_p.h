@@ -24,4 +24,9 @@ attribute_t **attribute_add_to_list(attribute_t **list, attribute_t *att);
  */
 attribute_t *get_attribute(char data[]);
 
+/**
+ * Remove a trailing LN, or CRLN, and replace it by '\0'.
+ */
+void remove_crlf(char data[], int length);
+
 #endif
