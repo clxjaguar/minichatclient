@@ -28,7 +28,7 @@ attribute_t **read_ini_file(FILE *file) {
 	if (file != NULL) {
 		while (!feof(file)) {
 			buffer[0]='\0';
-			fgets(buffer, 3, file);
+			fgets(buffer, 80, file);
 			size = strlen(buffer);
 			full_line = (feof(file) || buffer[size-1] == '\n');
 			remove_crlf(buffer, size);
@@ -38,7 +38,7 @@ attribute_t **read_ini_file(FILE *file) {
 				cstring_clear(string);
 				cstring_adds(string, buffer);
 				while (!full_line) {
-					fgets(buffer, 2, file);
+					fgets(buffer, 80, file);
 					size = strlen(buffer);
 					full_line = (feof(file) || buffer[size-1] == '\n');
 					remove_crlf(buffer, size);
