@@ -29,6 +29,9 @@ int main (int argc, char **argv) {
 	printf("You should see String 2: %s\n", string->string);
 	
 	cstring_clear(string);
+	cstring_addns(string, "1234567890", 4);
+	printf("You should see 1234: %s\n", string->string);
+	cstring_clear(string);
 	cstring_addi(string, 12);
 	printf("You should see 12: %s\n", string->string);
 	cstring_addx(string, 0xFF2);
