@@ -14,9 +14,9 @@ TEST_EXECUTABLES=cookies-test cstring-test ini-test
 ### Active targets
 
 # 'all' and 'clean' and 'test' are not files
-.PHONY : all clean rebuild test love
+.PHONY : all clean rebuild test install love
 
-all: $(MSOURCES) $(SOURCES) $(EXECUTABLE)
+all: $(EXECUTABLE)
 
 clean:
 	@echo ---
@@ -28,6 +28,9 @@ clean:
 rebuild: clean all
 
 test: $(TEST_EXECUTABLES)
+
+install: all
+	cp $(EXECUTABLE) /usr/bin
 
 love:
 	@echo "... not war ?"
