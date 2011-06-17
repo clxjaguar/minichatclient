@@ -83,8 +83,7 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
     ptm = localtime(&lt);
 
     if (ptm->tm_mday != day){
-        fprintf(stdout, "*** %04u-%02u-%02u ***\n",   ptm->tm_year+1900, ptm->tm_mon, ptm->tm_mday);
-        //fprintf(f     , "*** %04u-%02u-%02u ***\r\n", ptm->tm_year+1900, ptm->tm_mon, ptm->tm_mday);
+        fprintf(stdout, "*** %04u-%02u-%02u ***\n",   ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
         day = ptm->tm_mday;
     }
     // gere si la user icon est sur le serveur (avec une adresse relative ./)
@@ -101,7 +100,7 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
         fprintf(stdout, "[BKLOG] "); 
     }
     else {
-        fprintf(f     , "[%04u-%02u-%02u", ptm->tm_year+1900, ptm->tm_mon, ptm->tm_mday);
+        fprintf(f     , "[%04u-%02u-%02u", ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
         fprintf(f     , " %02u:%02u] ", ptm->tm_hour, ptm->tm_min);
         fprintf(stdout, "[%02u:%02u] ", ptm->tm_hour, ptm->tm_min);
     }
