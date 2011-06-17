@@ -1,84 +1,49 @@
-################################
-#### MINICHATCLIENT MAKEFILE ###
-################################
+SOURCES=main.c cookies.c cstring.c ini.c entities.c network.c parsehtml.c
+OBJECTS=$(SOURCES:.c=.o)
+EXECUTABLE=minichatclient
 
-all: mchatclient
+tests = cookies-test.c cstring-test.c ini-test.c
+bintests = cookie-test ini-test cstring-test
 
-rebuild: mrproper all
+# 'all' and 'clean' and 'test' are not files
+.PHONY : all clean test
 
-mchatclient: main.o cookies.o network.o parsehtml.o entities.o
-	@echo "*** Linking all main objects files..."
-	@gcc cookies.o network.o main.o parsehtml.o entities.o -o mchatclient
+# Default goal, invoked by "make" without parameters
+all: $(SOURCES) $(EXECUTABLE)
 
-#### USED OBJECTS ####
+rebuild: clean all
 
-main.o: main.c userconfig.h network.h cookies.h parsehtml.h 
-	@echo "*** Compiling main.o"
-	@gcc -c main.c -o main.o
+$(EXECUTABLE): $(OBJECTS)
+	@echo --- 
+	@echo - Linking final executable $(EXECUTABLE)...
+	@echo --- 
+	@$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
-network.o: network.c
-	@echo "*** Compiling network.o"
-	@gcc -c network.c -o network.o
+# Use those ".d" makefiles -- the "-" before inlude is there
+# so it won't print an error message if the .d file is still
+# not created
+-include $(SOURCES:.c=.d)
 
-cookies.o: cookies.c cookies.h
-	@echo "*** Compiling cookies.o"
-	@gcc -c cookies.c -o cookies.o
+# Compile the test executables
+test: $(bintests)
 
-parsehtml.o: parsehtml.c parsehtml.h entities.h
-	@echo "*** Compiling parsehtml.o"
-	@gcc -c parsehtml.c -o parsehtml.o
-
-entities.o: entities.c entities.h
-	@echo "*** Compiling entities.o"
-	@gcc -c entities.c -o entities.o
-
-parser.o: parser.c parser.h parser_p.h
-	@echo "*** Compiling parser.o"
-	@gcc -c parser.c -o parser.o
-
-ini.o: ini.c ini.h ini_p.h
-	@echo "*** Compiling ini.o"
-	@gcc -c ini.c -o ini.o
-
-cstring.o: cstring.c cstring.h cstring_p.h
-	@echo "*** Compiling cstring.o"
-	@gcc -c cstring.c -o cstring.o
-
-#### TESTS #### 
-
-cookies-test: cookies.o cookies-test.o
-	@echo "*** Linking cookies-test executable..."
-	@gcc cookies.o cookies-test.o -o cookies-test
-
-cookies-test.o: cookies-test.c
-	@echo "*** Compiling cookies-test.o"
-	@gcc -c cookies-test.c -o cookies-test.o
-
-ini-test: ini.o ini-test.o
-	@echo "*** Linking ini-test executable..."
-	@gcc ini.o ini-test.o -o ini-test
-
-ini-test.o: ini-test.c
-	@echo "*** Compilling ini-test.o"
-	@gcc -c ini-test.c -o ini-test.o
-
-cstring-test: cstring.o cstring-test.o
-	@echo "*** Linking cstring-test executable..."
-	@gcc cstring.o cstring-test.o -o cstring-test
-
-cstring-test.o: cstring-test.c
-	@echo "*** Compiling cstring-test.o"
-	@gcc -c cstring-test.c -o cstring-test.o
-
-#### MISC. STUFF #### 
-
+# Clean the temporary files
 clean:
-	@echo "*** Erasing objects files and test executables..."
-	@rm -f *.o cookies-test ini-test cstring-test
+	@echo ---
+	@echo - Cleaning the build directory...
+	@echo --- 
+	@rm *.o *.d $(EXECUTABLE) 2>/dev/null || true
 
-mrproper: clean
-	@echo "*** Erasing main executable file..."
-	@rm -f mchatclient
+# create a ".d" makefile for each C source file
+# with its required dependencies
+%.d: %.c
+	@set -e; rm -f $@; \
+	$(CC) -MM $(CPPFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o \1 $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
 
-love:
-	@echo "... not war ?"
+# Private headers support
+%.c: %_p.h
+%.o: %_p.h
+
+
