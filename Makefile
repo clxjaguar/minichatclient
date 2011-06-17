@@ -22,7 +22,7 @@ clean:
 	@echo ---
 	@echo - Cleaning the build directory...
 	@echo --- 
-	@rm *.o *.d $(EXECUTABLE) $(TEST_EXECUTABLES) 2>/dev/null || true
+	@rm *.o $(EXECUTABLE) $(TEST_EXECUTABLES) 2>/dev/null || true
 
 
 rebuild: clean all
