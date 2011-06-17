@@ -4,12 +4,12 @@ MSOURCES=main.c parsehtml.c
 MOBJECTS=$(MSOURCES:.c=.o)
 EXECUTABLE=minichatclient
 
-SOURCES=cookies.c cstring.c ini.c entities.c network.c
+SOURCES=cookies.c cstring.c ini.c entities.c network.c parser.c
 OBJECTS=$(SOURCES:.c=.o)
 
-TEST_SOURCES=cookies-test.c cstring-test.c ini-test.c
+TEST_SOURCES=cookies-test.c cstring-test.c ini-test.c parser-test.c
 TEST_OBJECTS=$(TEST_SOURCES:.c=.o)
-TEST_EXECUTABLES=cookies-test cstring-test ini-test
+TEST_EXECUTABLES=cookies-test cstring-test ini-test parser-test
 
 ### Active targets
 

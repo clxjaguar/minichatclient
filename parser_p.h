@@ -7,13 +7,13 @@ int TYPE_MESSAGE = 0;
 int TYPE_OPENING_TAG = 1;
 int TYPE_CLOSING_TAG = 2;
 
+typedef struct message_part message_part_t;
 struct message_part {
 	int type; // (0 or 1 or 2: 0 is text, 1 is <>, 2 is </>)
 	char *data;
 	message_part_t *link; // (NULL for text)
 	attribute_t **attributes; // (NULL for text)
 };
-typedef struct message_part message_part_t;
 
 char *get_date();
 message_part_t **get_parts(char *message);

@@ -26,6 +26,7 @@ end-tag=*
 context=span
 tag=style
 value="font-weight: bold"
+use=*
 tag=style
 value="font-???: italic"
 use=_
@@ -43,12 +44,6 @@ loop: link each tag with its corresponding off-tag
 
 
 */
-
-int main(int argc, char *argv[]) {
-	char *test = parse_html_for_output(argv[1]);
-	printf("%s\n", test);
-	return 0;
-}
 
 
 char *get_text(message_part_t *message) {
