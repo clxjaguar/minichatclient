@@ -1,3 +1,5 @@
+### Definitions
+
 MSOURCES=main.c parsehtml.c
 MOBJECTS=$(MSOURCES:.c=.o)
 EXECUTABLE=minichatclient
@@ -9,13 +11,28 @@ TEST_SOURCES=cookies-test.c cstring-test.c ini-test.c
 TEST_OBJECTS=$(TEST_SOURCES:.c=.o)
 TEST_EXECUTABLES=cookies-test cstring-test ini-test
 
-# 'all' and 'clean' and 'test' are not files
-.PHONY : all clean test
+### Active targets
 
-# Default goal, invoked by "make" without parameters
+# 'all' and 'clean' and 'test' are not files
+.PHONY : all clean rebuild test love
+
 all: $(MSOURCES) $(SOURCES) $(EXECUTABLE)
 
+clean:
+	@echo ---
+	@echo - Cleaning the build directory...
+	@echo --- 
+	@rm *.o *.d $(EXECUTABLE) $(TEST_EXECUTABLES) 2>/dev/null || true
+
+
 rebuild: clean all
+
+test: $(TEST_EXECUTABLES)
+
+love:
+	@echo "... not war ?"
+
+### Dependencies
 
 $(EXECUTABLE): $(OBJECTS) $(MOBJECTS)
 	@echo --- 
@@ -23,26 +40,11 @@ $(EXECUTABLE): $(OBJECTS) $(MOBJECTS)
 	@echo --- 
 	$(CC) $(LDFLAGS) $(OBJECTS) $(MOBJECTS) -o $@
 
-# Compile the test executables
-test: $(TEST_EXECUTABLES)
-
 $(TEST_EXECUTABLES): $(TEST_SOURCES) $(TEST_OBJECTS) $(OBJECTS)
 	@echo --- 
 	@echo - Linking test executable $@...
 	@echo --- 
 	$(CC) $(LDFLAGS) $@.o $(OBJECTS) -o $@
-
-# Use those ".d" makefiles -- the "-" before inlude is there
-# so it won't print an error message if the .d file is still
-# not created
--include $(MSOURCES:.c=.d) $(SOURCES:.c=.d)
-
-# Clean the temporary files
-clean:
-	@echo ---
-	@echo - Cleaning the build directory...
-	@echo --- 
-	@rm *.o *.d $(EXECUTABLE) $(TEST_EXECUTABLES) 2>/dev/null || true
 
 # create a ".d" makefile for each C source file
 # with its required dependencies
@@ -52,10 +54,9 @@ clean:
 	sed 's,\($*\)\.o[ :]*,\1.o \1 $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
-# Private headers support
-%.c: %_p.h
-%.o: %_p.h
+# Use those ".d" makefiles -- the "-" before inlude is there
+# so it won't print an error message if the .d file is still
+# not created
+-include $(MSOURCES:.c=.d) $(SOURCES:.c=.d)
 
-love:
-	@echo "... not war ?"
 
