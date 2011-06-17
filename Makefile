@@ -9,7 +9,7 @@ OBJECTS=$(SOURCES:.c=.o)
 
 TEST_SOURCES=cookies-test.c cstring-test.c ini-test.c parser-test.c
 TEST_OBJECTS=$(TEST_SOURCES:.c=.o)
-TEST_EXECUTABLES=cookies-test cstring-test ini-test parser-test
+TEST_EXECUTABLES=$(TEST_SOURCES:.c=)
 
 ### Active targets
 
