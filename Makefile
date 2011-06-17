@@ -46,4 +46,6 @@ clean:
 %.c: %_p.h
 %.o: %_p.h
 
+love:
+	@echo "... not war ?"
 
