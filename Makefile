@@ -46,17 +46,3 @@ $(TEST_EXECUTABLES): $(TEST_SOURCES) $(TEST_OBJECTS) $(OBJECTS)
 	@echo --- 
 	$(CC) $(LDFLAGS) $@.o $(OBJECTS) -o $@
 
-# create a ".d" makefile for each C source file
-# with its required dependencies
-%.d: %.c
-	@set -e; rm -f $@; \
-	$(CC) -MM $(CPPFLAGS) $< > $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,\1.o \1 $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
-
-# Use those ".d" makefiles -- the "-" before inlude is there
-# so it won't print an error message if the .d file is still
-# not created
--include $(MSOURCES:.c=.d) $(SOURCES:.c=.d)
-
-
