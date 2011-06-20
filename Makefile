@@ -13,8 +13,8 @@ TEST_EXECUTABLES=$(TEST_SOURCES:.c=)
 
 ### Active targets
 
-# 'all' and 'clean' and 'test' are not files
-.PHONY : all clean rebuild test install love
+# The active targets are not actual files
+.PHONY : all clean mrproper mrpropre rebuild test install love
 
 all: $(EXECUTABLE)
 
@@ -22,14 +22,24 @@ clean:
 	@echo ---
 	@echo - Cleaning the build directory...
 	@echo --- 
-	@rm *.o $(EXECUTABLE) $(TEST_EXECUTABLES) 2>/dev/null || true
+	@rm -f *.o
 
+mrpropre: mrproper
 
-rebuild: clean all
+mrproper:
+	@echo ---
+	@echo - *CLEANING* the build directory '(EXEs included)'...
+	@echo --- 
+	@rm -f *.o $(EXECUTABLE) $(TEST_EXECUTABLES)
+
+rebuild: mrproper all
 
 test: $(TEST_EXECUTABLES)
 
 install: all
+	@echo ---
+	@echo - Installing the programme into /usr/bin...
+	@echo --- 
 	cp $(EXECUTABLE) /usr/bin
 
 love:
