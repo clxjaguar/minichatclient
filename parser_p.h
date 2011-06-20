@@ -1,11 +1,31 @@
 #ifndef PARSER_P_H
 #define PARSER_P_H
 #include "parser.h"
-#include "ini.h"
 
-int TYPE_MESSAGE = 0;
-int TYPE_OPENING_TAG = 1;
-int TYPE_CLOSING_TAG = 2;
+#define TYPE_MESSAGE      0
+#define TYPE_OPENING_TAG  1
+#define TYPE_CLOSING_TAG  2
+
+/**
+ * This is an attribute (a key-value pair).
+ * You should use attribute_t instead of this struct.
+ * Note that the name cannot be NULL, but the value can.
+ * Edit (cLx) : 
+ * [NOTE : THIS SECTION HAS BEEN COPIED FROM INI.H]
+ */
+struct attribute {
+	char *name;
+	char *value;
+};
+
+/**
+ * This is an attribute (a key-value pair).
+ */
+typedef struct attribute attribute_t;
+
+/*
+[END OF THE COPY'D SECTION]
+*/
 
 typedef struct message_part message_part_t;
 struct message_part {
