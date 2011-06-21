@@ -1,7 +1,7 @@
 [Project]
 FileName=project.dev
 Name=rmcgirr83.org minichat client
-UnitCount=21
+UnitCount=23
 Type=1
 Ver=1
 ObjFiles=
@@ -10,7 +10,7 @@ Libs=
 PrivateResource=project_private.rc
 ResourceIncludes=
 MakeIncludes=
-Compiler=-Wall_@@_
+Compiler=-Wall_@@_-fshort-enums_@@_
 CppCompiler=
 Linker=-lws2_32_@@_
 IsCpp=0
@@ -43,7 +43,7 @@ BuildCmd=$(CC) -c minichatclient.c -o minichatclient.o $(CFLAGS)
 Major=0
 Minor=1
 Release=1
-Build=364
+Build=428
 LanguageID=1033
 CharsetID=1252
 CompanyName=cLx
@@ -251,6 +251,26 @@ BuildCmd=
 FileName=parser.h
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit22]
+FileName=conf.c
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit23]
+FileName=conf.h
+CompileCpp=0
+Folder=
 Compile=1
 Link=1
 Priority=1000
