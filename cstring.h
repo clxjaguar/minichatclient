@@ -5,7 +5,7 @@
 
 typedef struct cstring_struct cstring;
 struct cstring_struct {
-	struct cstring_private_struct *data;
+	cstring_private *private;
 	size_t length;
 	char *string;
 };
