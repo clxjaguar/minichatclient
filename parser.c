@@ -59,7 +59,8 @@ CHANGED : j'ai supprimé le timestamp, il ne doit pas être mis ici, et j'ai rajou
 
 ****
 
-"@ <span ....>XX</span>, FF"
+<aa> @ <span ....>XX</span>, FF
+	from: aa
 	to: XX
 	mess: FF
 
@@ -105,15 +106,21 @@ char *get_text(message_part_t *message) {
 		result = (char *)malloc(sizeof(char) * 2);
 		result[0] = '*';
 		result[1] = '\0';
-	} else if (strcmp(message->data, "/strong") == 0) {
+	} 
+	else if (strcmp(message->data, "/strong") == 0) {
 		result = (char *)malloc(sizeof(char) * 2);
 		result[0] = '*';
 		result[1] = '\0';
-	} else if (strcmp(message->data, "span") == 0) {
+	} 
+	/* // cLx
+	else if (strcmp(message->data, "span") == 0) {
 		//TODO: check attributes
-	} else if (strcmp(message->data, "/span") == 0) {
+	} 
+	else if (strcmp(message->data, "/span") == 0) {
 		//TODO: check linked message
-	} else {
+	} 
+	*/
+	else {
 		result = (char *)malloc(sizeof(char));
 		result[0] = '\0';
 	}
@@ -135,26 +142,27 @@ char *parse_html_for_output(char *message) {
 	parts = get_parts(message);
 	for (ptr = 0; parts[ptr] != NULL ; ptr++) {
 		char *text = NULL;
-		if (parts[ptr]->type == TYPE_MESSAGE)
+		if (parts[ptr]->type == TYPE_MESSAGE) {
 			text = parts[ptr]->data;
-		else
+		}
+		else {
 			text = get_text(parts[ptr]);
-			
+		}	
 		if (!out) { 
 			out = malloc(sizeof(char) + strlen(text) + 1);
-            strcpy(out, text);
+			strcpy(out, text);
 		}
 		else {
 			out = realloc(out, sizeof(char) * (strlen(out) + strlen(text) + 1));
 			out = strcat(out, text);
 		}
-		
-		if (parts[ptr]->type != TYPE_MESSAGE)
+		if (parts[ptr]->type != TYPE_MESSAGE) {
+			printf("* Line %d : free(text)\n", __LINE__);
 			free(text);
 			text = NULL;
+		}
 	}
 	free_message_parts(parts);
-	
 	return out;
 }
 
@@ -182,21 +190,24 @@ message_part_t **get_parts(char *message) {
 			list = message_part_add_to_list(list, process_part(prev_data, 1));
 			prev_data = malloc(sizeof(char) * 1);
 			prev_data[0] = '\0';
-		} else if (bracket && car == '>') {
+		} 
+		else if (bracket && car == '>') {
 			bracket = 0;
 			list = message_part_add_to_list(list, process_part(prev_data, 0));
 			prev_data = malloc(sizeof(char) * 1);
 			prev_data[0] = '\0';
-		} else {	
+		} 
+		else {	
 			prev_data = add_char(prev_data, car);
 		}
 	}
 	
-	if (!bracket) 
+	if (!bracket) {
 		list = message_part_add_to_list(list, process_part(prev_data, 1));
-	else
+	}
+	else {
 		list = message_part_add_to_list(list, process_part(prev_data, 0));
-	
+	}
 	return list;
 }
 
@@ -204,6 +215,7 @@ void free_message_part(message_part_t* message) {
 	int i;
 	
 	if (message->data != NULL) {
+		printf("* Line %d : free(message->data)\n", __LINE__);
 		free(message->data);
 		message->data = NULL;
 	}
@@ -211,16 +223,18 @@ void free_message_part(message_part_t* message) {
 		for (i = 0 ; message->attributes[i] != NULL ; i++) {
 			attribute_t *attribute = message->attributes[i];
 			if (attribute->name != NULL) {
+				printf("* Line %d : free(attribute->name)\n", __LINE__);
 				free(attribute->name);
 				attribute->name = NULL;
 			}
 			if (attribute->value != NULL) {
+				printf("* Line %d : free(attribute->value)\n", __LINE__);
 				free(attribute->value);
 				attribute->value = NULL;
 			}
 		}
 	}
-	
+	printf("* Line %d : free(message)\n", __LINE__);
 	free(message);
 	message = NULL;
 }
@@ -234,7 +248,8 @@ void free_message_parts(message_part_t ** messages) {
 			free_message_part(message);
 		}
 	}
-	
+
+	printf("* Line %d : free(message)\n", __LINE__);
 	free(messages);
 	messages = NULL;
 }
