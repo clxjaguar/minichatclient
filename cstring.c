@@ -16,9 +16,9 @@ cstring *new_cstring() {
 	cstring *string;
 	
 	string = malloc(sizeof(cstring));
-	string->data = malloc(sizeof(struct cstring_private_struct));
+	string->private = malloc(sizeof(struct cstring_private_struct));
 	string->length = 0;
-	string->data->buffer_length = BUFFER_SIZE;
+	string->private->buffer_length = BUFFER_SIZE;
 	string->string = malloc(sizeof(char) * BUFFER_SIZE);
 	string->string[0] = '\0';
 	
@@ -26,7 +26,7 @@ cstring *new_cstring() {
 }
 
 void free_cstring(cstring *string) {
-	free(string->data);
+	free(string->private);
 	free(string->string);
 	free(string);
 }
@@ -37,7 +37,7 @@ char *cstring_convert(cstring *self) {
 	if (self == NULL)
 		return NULL;
 	
-	free(self->data);
+	free(self->private);
 	string = (self->string);
 	free(self);
 	
@@ -132,9 +132,9 @@ void cstring_adds(cstring *self, char *source) {
 	size_t ss, ptr;
 	
 	ss = strlen(source);
-	while ((self->length + ss) > (self->data->buffer_length)) {
-		self->data->buffer_length += BUFFER_SIZE;
-		self->string = (char *)realloc(self->string, sizeof(char) * self->data->buffer_length);
+	while ((self->length + ss) > (self->private->buffer_length)) {
+		self->private->buffer_length += BUFFER_SIZE;
+		self->string = (char *)realloc(self->string, sizeof(char) * self->private->buffer_length);
 	}
 	
 	for (ptr = self->length ; ptr <= (self->length + ss) ; ptr++) {

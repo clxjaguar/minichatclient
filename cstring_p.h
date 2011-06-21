@@ -12,6 +12,7 @@
 
 #define BUFFER_SIZE 81
 
+typedef struct cstring_private_struct cstring_private;
 struct cstring_private_struct {
 	size_t buffer_length;
 };

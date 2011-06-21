@@ -221,7 +221,7 @@ void free_message_part(message_part_t* message) {
 	}
 	if (message->attributes != NULL) {
 		for (i = 0 ; message->attributes[i] != NULL ; i++) {
-			attribute_t *attribute = message->attributes[i];
+			attribute *attribute = message->attributes[i];
 			if (attribute->name != NULL) {
 				printf("* Line %d : free(attribute->name)\n", __LINE__);
 				free(attribute->name);

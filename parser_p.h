@@ -8,12 +8,12 @@
 
 /**
  * This is an attribute (a key-value pair).
- * You should use attribute_t instead of this struct.
+ * You should use attribute instead of this struct.
  * Note that the name cannot be NULL, but the value can.
  * Edit (cLx) : 
  * [NOTE : THIS SECTION HAS BEEN COPIED FROM INI.H]
  */
-struct attribute {
+struct attribute_struct {
 	char *name;
 	char *value;
 };
@@ -21,7 +21,7 @@ struct attribute {
 /**
  * This is an attribute (a key-value pair).
  */
-typedef struct attribute attribute_t;
+typedef struct attribute_struct attribute;
 
 /*
 [END OF THE COPY'D SECTION]
@@ -32,7 +32,7 @@ struct message_part {
 	int type; // (0 or 1 or 2: 0 is text, 1 is <>, 2 is </>)
 	char *data;
 	message_part_t *link; // (NULL for text)
-	attribute_t **attributes; // (NULL for text)
+	attribute **attributes; // (NULL for text)
 };
 
 char *get_date();
