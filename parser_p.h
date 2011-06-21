@@ -1,6 +1,5 @@
 #ifndef PARSER_P_H
 #define PARSER_P_H
-#include "parser.h"
 
 #define TYPE_MESSAGE      0
 #define TYPE_OPENING_TAG  1
