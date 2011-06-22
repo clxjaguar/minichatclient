@@ -21,6 +21,7 @@
     #define close(s) closesocket(s)
 #else
     #include <stdio.h>
+    #include <unistd.h>
     #include <arpa/inet.h>
     #include <sys/types.h>
     #include <sys/socket.h>
