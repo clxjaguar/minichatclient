@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "cstring.h"
+#include "clist.h"
 #include "parser.h"
 #include "parser_p.h"
 
@@ -37,7 +39,7 @@ Todo :
 
 Bref:
 
-(10:20:36) cLx: est ce que vous pouvez cliquer sur cette URL (http://perdu.com) ?
+(10:20:36) cLx: est ce que vous pouvezprocess_part(prev_data, 1) cliquer sur cette URL (http://perdu.com) ?
 (10:20:48) cLx: sans que ça prenne les parenthèses dans l'adresse ?
 (10:21:34) niki: oui
 (10:21:41) cLx: parce que c'est assez classe comme façon de sortir "<!-- m --><a class="postlink" href="http://perdu.com">URL</a><!-- m --> ?"
@@ -98,19 +100,17 @@ loop: link each tag with its corresponding off-tag
 */
 
 
-char *get_text(message_part_t *message) {
+char *get_text(message_part *message) {
 	// TODO
-	char *result;
+	cstring *result;
+	
+	result = new_cstring();
 	
 	if (strcmp(message->data, "strong") == 0) {
-		result = (char *)malloc(sizeof(char) * 2);
-		result[0] = '*';
-		result[1] = '\0';
+		cstring_addc(result, '*');
 	} 
 	else if (strcmp(message->data, "/strong") == 0) {
-		result = (char *)malloc(sizeof(char) * 2);
-		result[0] = '*';
-		result[1] = '\0';
+		cstring_addc(result, '*');
 	} 
 	/* // cLx
 	else if (strcmp(message->data, "span") == 0) {
@@ -121,11 +121,10 @@ char *get_text(message_part_t *message) {
 	} 
 	*/
 	else {
-		result = (char *)malloc(sizeof(char));
-		result[0] = '\0';
+		// Nothing to add
 	}
 	
-	return result;
+	return cstring_convert(result);
 }
 
 void configure() {
@@ -133,53 +132,45 @@ void configure() {
 }
 
 char *parse_html_for_output(char *message) {
-	message_part_t **parts;
-	int ptr;
-	char *out = NULL;
+	clist *parts;
+	clist_node *ptr;
+	message_part *part;
+	cstring *out;
+	char *tmp;
 	
 	configure();
 	
+	out = new_cstring();
 	parts = get_parts(message);
-	for (ptr = 0; parts[ptr] != NULL ; ptr++) {
-		char *text = NULL;
-		if (parts[ptr]->type == TYPE_MESSAGE) {
-			text = parts[ptr]->data;
+	for (ptr = parts->first ; ptr != NULL ; ptr = ptr->next) {
+		part = (message_part *)ptr->data;
+		
+		if (part->type == TYPE_MESSAGE) {
+			cstring_adds(out, part->data);
 		}
 		else {
-			text = get_text(parts[ptr]);
-		}	
-		if (!out) { 
-			out = malloc(sizeof(char) + strlen(text) + 1);
-			strcpy(out, text);
-		}
-		else {
-			out = realloc(out, sizeof(char) * (strlen(out) + strlen(text) + 1));
-			out = strcat(out, text);
-		}
-		if (parts[ptr]->type != TYPE_MESSAGE) {
-			printf("* Line %d : free(text)\n", __LINE__);
-			free(text);
-			text = NULL;
+			tmp = get_text(part);
+			cstring_adds(out, tmp);
+			free(tmp);
 		}
 	}
-	free_message_parts(parts);
-	return out;
+	
+	free_clist(parts);
+	return cstring_convert(out);
 }
 
-message_part_t **get_parts(char *message) {
-	message_part_t **list;
+clist *get_parts(char *message) {
+	clist *list;
 	int i_list;
-	char *prev_data;
+	cstring *prev_data;
 	int bracket;
 	int i;
 	char car;
 	
-	list = malloc(sizeof(message_part_t *) * 1);
-	i_list = 0;
-	list[i_list] = NULL;
+	//free_message_part_node
 	
-	prev_data = malloc(sizeof(char) * 1);
-	prev_data[0] = '\0';
+	list = new_clist();
+	prev_data = new_cstring();
 	
 	bracket = 0;
 	i = 0;
@@ -187,116 +178,72 @@ message_part_t **get_parts(char *message) {
 	for (car = message[i] ; car != '\0' ; car = message[++i]) {
 		if (!bracket && car == '<') {
 			bracket = 1;
-			list = message_part_add_to_list(list, process_part(prev_data, 1));
-			prev_data = malloc(sizeof(char) * 1);
-			prev_data[0] = '\0';
+			clist_add(list, process_part(cstring_convert(prev_data), 1));
+			prev_data = new_cstring();
 		} 
 		else if (bracket && car == '>') {
 			bracket = 0;
-			list = message_part_add_to_list(list, process_part(prev_data, 0));
-			prev_data = malloc(sizeof(char) * 1);
-			prev_data[0] = '\0';
+			clist_add(list, process_part(cstring_convert(prev_data), 0));
+			prev_data = new_cstring();
 		} 
-		else {	
-			prev_data = add_char(prev_data, car);
+		else {
+			cstring_addc(prev_data, car);
 		}
 	}
 	
 	if (!bracket) {
-		list = message_part_add_to_list(list, process_part(prev_data, 1));
+		clist_add(list, process_part(cstring_convert(prev_data), 1));
 	}
 	else {
-		list = message_part_add_to_list(list, process_part(prev_data, 0));
+		clist_add(list, process_part(cstring_convert(prev_data), 0));
 	}
+	
 	return list;
 }
 
-void free_message_part(message_part_t* message) {
-	int i;
+void free_message_part_node(clist_node* node) {
+	if(node->data != NULL) {
+		free_message_part((message_part *)node->data);
+	}
+	free(node);
+}
+
+void free_message_part(message_part* message) {
+	clist_node *node;
+	clist_node *next;
+	attribute *att;
 	
 	if (message->data != NULL) {
-		printf("* Line %d : free(message->data)\n", __LINE__);
 		free(message->data);
-		message->data = NULL;
 	}
-	if (message->attributes != NULL) {
-		for (i = 0 ; message->attributes[i] != NULL ; i++) {
-			attribute *attribute = message->attributes[i];
-			if (attribute->name != NULL) {
-				printf("* Line %d : free(attribute->name)\n", __LINE__);
-				free(attribute->name);
-				attribute->name = NULL;
-			}
-			if (attribute->value != NULL) {
-				printf("* Line %d : free(attribute->value)\n", __LINE__);
-				free(attribute->value);
-				attribute->value = NULL;
-			}
-		}
-	}
-	printf("* Line %d : free(message)\n", __LINE__);
-	free(message);
-	message = NULL;
-}
-
-void free_message_parts(message_part_t ** messages) {
-	int i;
 	
-	if (messages != NULL) {
-		for (i = 0 ; messages[i] != NULL ; i++) {
-			message_part_t *message = messages[i];
-			free_message_part(message);
+	if (message->attributes != NULL) {
+		for (node = message->attributes->first ; node != NULL ; ) {
+			next = node->next;
+			free_clist_node(node);
+			node = next;
 		}
 	}
-
-	printf("* Line %d : free(message)\n", __LINE__);
-	free(messages);
-	messages = NULL;
+	
+	free(message);
 }
 
-message_part_t *process_part(char *data, int text) {
-	message_part_t *part;
-	part = malloc(sizeof(message_part_t));
+clist_node *process_part(char *data, int text) {
+	message_part *part;
+	clist_node *node;
+	
+	part = malloc(sizeof(message_part));
 
 	//TODO
-	part->type = text?TYPE_MESSAGE:TYPE_OPENING_TAG;
+	part->type = text ? TYPE_MESSAGE : TYPE_OPENING_TAG;
 	part->data = data;
 	part->link = NULL;
 	part->attributes = NULL;
 	
-	return part;
+	node = new_clist_node();
+	node->free_node = free_message_part_node;
+	node->data = part;
+	
+	return node;
 }
-
-message_part_t **message_part_add_to_list(message_part_t **list, message_part_t *part) {
-	int i;
-	message_part_t *ptr;
-	
-	ptr = NULL;
-	i = 0;
-	
-	if (list != NULL)
-		for (ptr = list[i] ; ptr != NULL ; ptr = list[++i]);
-	else {
-		list = malloc(sizeof(message_part_t *));
-		list[0] = NULL;
-	}
-	
-	list[i] = part;
-	list = (message_part_t **)realloc(list, sizeof(message_part_t *) * (i + 2));
-	list[i + 1] = NULL;
-	
-	return list;
-}
-
-char *add_char(char *dest, char car) {
-	int i;
-	
-	i = strlen(dest);
-	dest = (char *)realloc(dest, sizeof(char) * (i + 2));
-	dest[i] = car;
-	dest[i + 1] = '\0';
-	
-	return dest;
-}
-
 
