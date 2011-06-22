@@ -10,15 +10,17 @@
 #include <stdio.h>
 #include <string.h>
 #include "ini.h"
-#include "ini_p.h"
+#include "clist.h"
+#include "attribute.h"
 
 /**
  * Unit test for ini.
  */
 int main (int argc, char *argv[]) {
-	attribute_t ** atts;
+	clist *atts;
 	FILE *file;
-	attribute_t *att;
+	clist_node *node;
+	attribute *att;
 	int i;
 	char *name, *value;
 	
@@ -34,25 +36,25 @@ int main (int argc, char *argv[]) {
 		return 2;
 	}
 	
-	atts = read_ini_file(file);
+	atts = ini_get_all(file, NULL);
+	rewind(file);
+	printf("%s -- %s\n", "key", ini_get(file, "key"));
 	
 	//just print the attributes on screen (test)
-	if (atts != NULL) {
-		for (i = 0 ; atts[i] != NULL ; i++) {
-			att = atts[i];
+	for (node = atts->first ; node != NULL ; node = node->next) {
+		att = (attribute *)node->data;
 		
-			name = "";
-			value = "";
-			if (att->name != NULL)
-				name = att->name;
-			if (att->value != NULL)
-				value = att->value;
-		
-			printf("%s -- %s\n", name, value);
-		}
+		name = "";
+		value = "";
+		if (att->name != NULL)
+			name = att->name;
+		if (att->value != NULL)
+			value = att->value;
+	
+		printf("%s -- %s\n", name, value);
 	}
 	
-	free_attributes(atts);
+	free_clist(atts);
 	fclose(file);
 	return 0;
 }

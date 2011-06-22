@@ -12,16 +12,36 @@
 #include "ini.h"
 #include "ini_p.h"
 #include "cstring.h"
+#include "clist.h"
+#include "attribute.h"
 
-attribute_t **read_ini_file(FILE *file) {
-	attribute_t *att;
-	attribute_t **atts;
+char *ini_get(FILE *file, char name[]) {
+	clist *list;
+	attribute *att;
+	cstring *out;
+	
+	out = NULL;
+	list = ini_get_all(file, name);
+	
+	if (list->last != NULL) {
+		out = new_cstring();
+		att = (attribute *)list->last->data;
+		cstring_adds(out, (att)->value);
+	}
+	
+	free(list);
+	return cstring_convert(out);
+}
+
+clist *ini_get_all(FILE *file, char mask[]) {
+	clist *atts;
+	attribute *att;
 	char buffer[81];
 	size_t size;
 	int full_line;
 	cstring *string;
 	
-	atts = NULL;
+	atts = new_clist();
 	string = new_cstring();
 	buffer[80] = '\0'; // just in case
 	
@@ -54,10 +74,12 @@ attribute_t **read_ini_file(FILE *file) {
 				att = get_attribute(string->string);
 			
 			if (att != NULL) {
-				if (att->name[0] != '#')
-					atts = attribute_add_to_list(atts, att);
-				else
+				if (att->name[0] != '#' && match(att, mask)) {
+					attribute_add_to_clist(atts, att);
+				}
+				else {
 					free_attribute(att);
+				}
 			}
 			//
 		}
@@ -67,10 +89,19 @@ attribute_t **read_ini_file(FILE *file) {
 	return atts;
 }
 
-attribute_t *get_attribute(char data[]) {
+int match(attribute *att, char mask[]) {
+	//TODO: allow real masks instead of exact match?
+	if (mask == NULL) {
+		return 1;
+	} else {
+		return !strcmp(att->name, mask);
+	}
+}
+
+attribute *get_attribute(char data[]) {
 	int i, len;
 	cstring *key, *value;
-	attribute_t *att;
+	attribute *att;
 	cstring *line;
 	
 	line = new_cstring();
@@ -86,61 +117,18 @@ attribute_t *get_attribute(char data[]) {
 			key = new_cstring();
 			cstring_addns(key, data, i);
 			value = new_cstring();
-			cstring_adds(value, (data + (i+1)));
+			cstring_adds(value, (data + (i + 1)));
 		} else {
 			key = new_cstring();
 			cstring_adds(key, data);
 		}
 		
-		att = malloc(sizeof(attribute_t));
+		att = new_attribute();
 		att->name = cstring_convert(key);
 		att->value = cstring_convert(value);
 	}
 	
 	return att;
-}
-
-void free_attribute(attribute_t* attribute) {
-	if (attribute->name != NULL)
-		free(attribute->name);
-	if (attribute->value != NULL)
-		free(attribute->value);
-	
-	free(attribute);
-}
-
-void free_attributes(attribute_t** attributes) {
-	int i, ii;
-	
-	if (attributes != NULL) {
-		for (i = 0 ; attributes[i] != NULL ; i++) {
-			attribute_t *attribute = attributes[i];
-			free_attribute(attribute);
-		}
-	}
-	
-	free(attributes);
-}
-
-attribute_t **attribute_add_to_list(attribute_t **list, attribute_t *att) {
-	int i;
-	attribute_t *ptr;
-	
-	ptr = NULL;
-	i = 0;
-	
-	if (list != NULL)
-		for (ptr = list[i] ; ptr != NULL ; ptr = list[++i]);
-	else {
-		list = malloc(sizeof(attribute_t *));
-		list[0] = NULL;
-	}
-	
-	list[i] = att;
-	list = (attribute_t **)realloc(list, sizeof(attribute_t *) * (i + 2));
-	list[i + 1] = NULL;
-	
-	return list;
 }
 
 void remove_crlf(char data[], int size) {
