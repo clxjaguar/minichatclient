@@ -127,8 +127,67 @@ char *get_text(message_part *message) {
 	return cstring_convert(result);
 }
 
-void configure() {
-	// TODO
+int filter_config(attribute *att) {
+	return (!strcmp(att->name, "context") || !strcmp(att->name, "tag") || !strcmp(att->name, "value") || !strcmp(att->name, "use") || !strcmp(att->name, "end-tag"));
+}
+
+clist *configure(FILE *file) {
+	clist *groups;
+	clist *atts;
+	attribute *att;
+	clist_node *node;
+	rule_group *group;
+	rule *rul;
+	cstring *tmp;
+	
+	rul = NULL;
+	group = NULL;
+	groups = new_clist();
+	atts = ini_get_select(file, filter_config);
+	
+	for (node = atts->first ; node != NULL ; node = node->next) {
+		att = (attribute *)node->data;
+		if(!strcmp(att->name, "context")) {
+			group = (rule_group *)malloc(sizeof(rule_group));
+			group->rules = new_clist();
+			add_group_node(groups, group);
+			
+			tmp = new_cstring();
+			cstring_adds(tmp, att->value);
+			group->context = cstring_convert(tmp);
+		} else {
+			// group can be NULL if bad INI
+			if (group != NULL) {
+				if(!strcmp(att->name, "tag")) {
+					rul = (rule *)malloc(sizeof(rule));
+					add_rule_node(group, rul);
+					
+					tmp = new_cstring();
+					cstring_adds(tmp, att->value);
+					rul->tag = cstring_convert(tmp);
+				} else {
+					// rule can be NULL if bad INI
+					if (rul != NULL) {
+						if(!strcmp(att->name, "value")) {
+							tmp = new_cstring();
+							cstring_adds(tmp, att->value);
+							rul->value = cstring_convert(tmp);
+						} else if(!strcmp(att->name, "start")) {
+							tmp = new_cstring();
+							cstring_adds(tmp, att->value);
+							rul->start = cstring_convert(tmp);
+						} else if(!strcmp(att->name, "stop")) {
+							tmp = new_cstring();
+							cstring_adds(tmp, att->value);
+							rul->stop = cstring_convert(tmp);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return groups;
 }
 
 char *parse_html_for_output(char *message) {
@@ -137,8 +196,12 @@ char *parse_html_for_output(char *message) {
 	message_part *part;
 	cstring *out;
 	char *tmp;
+	clist *groups;
 	
-	configure();
+	FILE *file = fopen("parser.ini", "r");
+	groups = configure(file);
+	free_clist(groups);
+	fclose(file);
 	
 	out = new_cstring();
 	parts = get_parts(message);
@@ -245,5 +308,65 @@ clist_node *process_part(char *data, int text) {
 	node->data = part;
 	
 	return node;
+}
+
+clist_node *add_rule_node(rule_group *group, rule *rule) {
+	clist_node *node;
+	
+	node = new_clist_node();
+	node->data = rule;
+	node->free_node = free_rule_node;
+	clist_add(group->rules, node);
+	
+	return node;
+}
+
+clist_node *add_group_node(clist *list, rule_group *group) {
+	clist_node *node;
+	
+	node = new_clist_node();
+	node->data = group;
+	node->free_node = free_group_node;
+	clist_add(list, node);
+	
+	return node;
+}
+
+void free_rule_node(clist_node *node) {
+	rule *rul;
+	
+	if (node->data != NULL) {
+		rul = (rule *)node->data;
+		if (rul->tag != NULL) {
+			free(rul->tag);
+		}
+		if (rul->value != NULL) {
+			free(rul->value);
+		}
+		if (rul->start != NULL) {
+			free(rul->start);
+		}
+		if (rul->stop != NULL) {
+			free(rul->stop);
+		}
+	}
+	
+	free(node);
+}
+
+void free_group_node(clist_node *node) {
+	rule_group *group;
+	
+	if (node->data != NULL) {
+		group = (rule_group *)node->data;
+		if (group->context != NULL) {
+			free(group->context);
+		}
+		if (group->rules != NULL) {
+			free_clist(group->rules);
+		}
+		
+	}
+	free(node);
 }
 

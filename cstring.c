@@ -116,7 +116,7 @@ void cstring_addns(cstring *self, char *source, int n) {
 	int i;
 	char *tmp;
 	
-	for (i = 0 ; i<=n && source[i] != '\0' ; i++);
+	for (i = 0 ; i<n && source[i] != '\0' ; i++);
 	if (source[i] == '\0') {
 		cstring_adds(self, source);
 	} else {
@@ -131,14 +131,16 @@ void cstring_addns(cstring *self, char *source, int n) {
 void cstring_adds(cstring *self, char *source) {
 	size_t ss, ptr;
 	
-	ss = strlen(source);
-	while ((self->length + ss) > (self->private->buffer_length)) {
-		self->private->buffer_length += BUFFER_SIZE;
-		self->string = (char *)realloc(self->string, sizeof(char) * self->private->buffer_length);
-	}
+	if (source != NULL) {
+		ss = strlen(source);
+		while ((self->length + ss) > (self->private->buffer_length)) {
+			self->private->buffer_length += BUFFER_SIZE;
+			self->string = (char *)realloc(self->string, sizeof(char) * self->private->buffer_length);
+		}
 	
-	for (ptr = self->length ; ptr <= (self->length + ss) ; ptr++) {
-		self->string[ptr] = source[ptr - self->length];
+		for (ptr = self->length ; ptr <= (self->length + ss) ; ptr++) {
+			self->string[ptr] = source[ptr - self->length];
+		}
+		self->length += ss;
 	}
-	self->length += ss;
 }

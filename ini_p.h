@@ -25,6 +25,7 @@ attribute *get_attribute(char data[]);
  */
 void remove_crlf(char data[], int length);
 
-int match(attribute *att, char mask[]);
+char *mmask;
+int match(attribute *att);
 
 #endif

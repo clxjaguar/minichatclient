@@ -34,6 +34,25 @@ char *ini_get(FILE *file, char name[]) {
 }
 
 clist *ini_get_all(FILE *file, char mask[]) {
+	clist *list;
+
+	mmask = mask;
+	list = ini_get_select(file, match);
+	mmask = NULL;
+
+	return list;
+}
+
+int match(attribute *att) {
+	//TODO: allow real masks instead of exact match?
+	if (mmask == NULL) {
+		return 1;
+	} else {
+		return !strcmp(att->name, mmask);
+	}
+}
+
+clist *ini_get_select(FILE *file, int (*filter)(attribute *att)) {
 	clist *atts;
 	attribute *att;
 	char buffer[81];
@@ -74,7 +93,7 @@ clist *ini_get_all(FILE *file, char mask[]) {
 				att = get_attribute(string->string);
 			
 			if (att != NULL) {
-				if (att->name[0] != '#' && match(att, mask)) {
+				if (att->name[0] != '#' && (filter == NULL || filter(att))) {
 					attribute_add_to_clist(atts, att);
 				}
 				else {
@@ -87,15 +106,6 @@ clist *ini_get_all(FILE *file, char mask[]) {
 	
 	free_cstring(string);
 	return atts;
-}
-
-int match(attribute *att, char mask[]) {
-	//TODO: allow real masks instead of exact match?
-	if (mask == NULL) {
-		return 1;
-	} else {
-		return !strcmp(att->name, mask);
-	}
 }
 
 attribute *get_attribute(char data[]) {
