@@ -13,6 +13,9 @@ int main(int argc, char *argv[]) {
 	test = parse_html_for_output(argv[1]);
 	printf("%s\n", test);
 
-	free(test); test = NULL;
+	if (test != NULL) {
+		free(test);
+	}
+	
 	return 0;
 }
