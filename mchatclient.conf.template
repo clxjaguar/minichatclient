@@ -1,0 +1,26 @@
+############################################
+## MinichatClient main configuration file ##
+## http://minichatclient.sourceforge.net/ ##
+############################################
+
+# Server configuration
+host		rmcgirr83.org
+port		80
+path		/
+
+# User informations
+#username	YourUserName
+#password	Yourpassword
+
+# Misc. parameters
+useragent	MiniChatClient
+
+# Waiting time for pooling the server (in seconds)
+# idling => max ; in a conversation => min ; when you're active => awake.
+# The polling time will be adjusted between theses values depending of the situation.
+# If you do not understand, please don't touch theses values.
+wait_time_maxi	30
+wait_time_mini	4
+wait_time_awake	2
+
+# caution: many of these parameters and all key names are case sensitive !
