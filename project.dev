@@ -1,7 +1,7 @@
 [Project]
 FileName=project.dev
 Name=rmcgirr83.org minichat client
-UnitCount=23
+UnitCount=13
 Type=1
 Ver=1
 ObjFiles=
@@ -43,7 +43,7 @@ BuildCmd=$(CC) -c minichatclient.c -o minichatclient.o $(CFLAGS)
 Major=0
 Minor=1
 Release=1
-Build=428
+Build=536
 LanguageID=1033
 CharsetID=1252
 CompanyName=cLx
@@ -97,27 +97,7 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
 
-[Unit6]
-FileName=cookies-test.c
-CompileCpp=0
-Folder=rmcgirr83.org minichat client
-Compile=1
-Link=0
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=$(CC) -c cookies-test.c -o cookies-test.o $(CFLAGS)
-
 [Unit7]
-FileName=project_private.h
-CompileCpp=0
-Folder=rmcgirr83.org minichat client
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit8]
 FileName=userconfig.h
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
@@ -127,7 +107,7 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
 
-[Unit9]
+[Unit8]
 FileName=parsehtml.h
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
@@ -137,7 +117,7 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
 
-[Unit10]
+[Unit9]
 FileName=parsehtml.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
@@ -147,7 +127,7 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=$(CC) -c parsehtml.c -o parsehtml.o $(CFLAGS)
 
-[Unit11]
+[Unit10]
 FileName=entities.h
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
@@ -157,7 +137,7 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
 
-[Unit12]
+[Unit11]
 FileName=entities.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
@@ -167,58 +147,8 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
 
-[Unit13]
-FileName=parser_p.h
-CompileCpp=0
-Folder=rmcgirr83.org minichat client
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit14]
-FileName=ini.h
-CompileCpp=0
-Folder=rmcgirr83.org minichat client
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit15]
-FileName=parser.c
-CompileCpp=0
-Folder=rmcgirr83.org minichat client
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit16]
-FileName=ini_p.h
-CompileCpp=0
-Folder=rmcgirr83.org minichat client
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit17]
-FileName=ini.c
-CompileCpp=0
-Folder=rmcgirr83.org minichat client
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
 [Unit18]
-FileName=cstring.h
+FileName=parser.h
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -228,9 +158,9 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit19]
-FileName=cstring.c
+FileName=conf.c
 CompileCpp=0
-Folder=rmcgirr83.org minichat client
+Folder=
 Compile=1
 Link=1
 Priority=1000
@@ -238,9 +168,9 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit20]
-FileName=cstring_p.h
+FileName=conf.h
 CompileCpp=0
-Folder=rmcgirr83.org minichat client
+Folder=
 Compile=1
 Link=1
 Priority=1000
@@ -268,6 +198,76 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit23]
+FileName=conf.h
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit14]
+FileName=parser.h
+CompileCpp=0
+Folder=rmcgirr83.org minichat client
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit17]
+FileName=cstring_p.h
+CompileCpp=0
+Folder=rmcgirr83.org minichat client
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit6]
+FileName=project_private.h
+CompileCpp=0
+Folder=rmcgirr83.org minichat client
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit15]
+FileName=conf.c
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit16]
+FileName=conf.h
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit12]
+FileName=conf.c
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit13]
 FileName=conf.h
 CompileCpp=0
 Folder=

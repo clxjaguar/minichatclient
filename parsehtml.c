@@ -35,6 +35,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
     unsigned int i = 0;
     static int j;
     static tstate state;
+    static int nbmessages = 0;
     //char *ptmp = NULL;
         
     char str1[] = "<div id=\"mess";
@@ -43,13 +44,6 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
     char str4[] = "<div class=\"avatarMessage mChatMessage\">";
     char str5[] = "</div>";
 
-    //// html entities decoding call
-    //msgdst = malloc(strlen(message)+1);
-    //decode_html_entities_utf8(ptmp, message);
-    //free(msgdst);
-
-    
-    //static char *username = NULL, *message = NULL, *usericonurl = NULL, *userprofileurl = NULL;
     static unsigned int o = 0;
     static char buffer[4000];
 #ifdef DEBUG
@@ -60,6 +54,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
         state = READY;
         j=0; 
         o=0;
+        nbmessages = 0;
         FREE(msg->username)
         FREE(msg->message)
         FREE(msg->usericonurl)
@@ -173,6 +168,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                     msg->username = malloc((o+1)*sizeof(char));
                     //strcpy(msg->username, buffer);
                     decode_html_entities_utf8(msg->username, buffer);
+                    nbmessages++;
                     state = LOOKING_FOR_MESSAGE;
                 }
                 else {
@@ -211,5 +207,5 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                  
         }
     }
-    return 0;
+    return nbmessages;
 }

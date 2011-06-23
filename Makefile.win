@@ -5,14 +5,14 @@ CPP  = g++.exe
 CC   = gcc.exe
 WINDRES = windres.exe
 RES  = project_private.res
-OBJ  = main.o cookies.o network.o cookies-test.o parsehtml.o entities.o $(RES)
-LINKOBJ  = main.o cookies.o network.o parsehtml.o entities.o $(RES)
+OBJ  = main.o cookies.o network.o parsehtml.o entities.o conf.o $(RES)
+LINKOBJ  = main.o cookies.o network.o parsehtml.o entities.o conf.o $(RES)
 LIBS =  -L"C:/Dev-Cpp/lib" -lws2_32  
 INCS =  -I"C:/Dev-Cpp/include" 
 CXXINCS =  -I"C:/Dev-Cpp/lib/gcc/mingw32/3.4.2/include"  -I"C:/Dev-Cpp/include/c++/3.4.2/backward"  -I"C:/Dev-Cpp/include/c++/3.4.2/mingw32"  -I"C:/Dev-Cpp/include/c++/3.4.2"  -I"C:/Dev-Cpp/include" 
 BIN  = mchatclient.exe
 CXXFLAGS = $(CXXINCS)  
-CFLAGS = $(INCS) -Wall  
+CFLAGS = $(INCS) -Wall -fshort-enums  
 RM = rm -f
 
 .PHONY: all all-before all-after clean clean-custom
@@ -35,14 +35,14 @@ cookies.o: cookies.c
 network.o: network.c
 	$(CC) -c network.c -o network.o $(CFLAGS)
 
-cookies-test.o: cookies-test.c
-	$(CC) -c cookies-test.c -o cookies-test.o $(CFLAGS)
-
 parsehtml.o: parsehtml.c
 	$(CC) -c parsehtml.c -o parsehtml.o $(CFLAGS)
 
 entities.o: entities.c
 	$(CC) -c entities.c -o entities.o $(CFLAGS)
+
+conf.o: conf.c
+	$(CC) -c conf.c -o conf.o $(CFLAGS)
 
 project_private.res: project_private.rc 
 	$(WINDRES) -i project_private.rc --input-format=rc -o project_private.res -O coff 

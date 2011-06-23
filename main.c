@@ -16,6 +16,7 @@
 // 19/04/11 : cLx       Corrections sur l'horodatage / entites html / un peu plein de petits trucs partout
 // 11/05/11 : cLx       Correction d'un bug a la con dans le parseur html (en cas de usericon sur d'autres serveurs que le forum)
 // 29/05/11 : cLx       Amelioration du comportement en cas de problemes de connexion 
+// 23/06/11 : cLx       Modifications pour récupérer la config depuis un fichier de conf.
 //
 // Todo:
 // [x] réseau, compatibilité windows, fonctions http de bases (get et post)
@@ -28,6 +29,7 @@
 // [x] parser les trucs entites HTML
 // [_] gerer les erreurs genre on s'est fait "déconnecté" (sic) par le serveur (et tenter de se relogger)
 // [_] parser le HTML présant quand il y a un lien, ou un quote, ou qu'on clique sur le '@'...
+// [_] delai de polling adaptatif selon qu'il se passe des trucs ou non
 // [?] implémenter un serveur IRC pour un maximum de compatibilité avec un client d'IM ? ...
 // [?] ... voire cette passerelle rendre multi-user pour qu'on puisse le mettre sur le serveur ? ...
 // [?] ...ou faire un add-on pour pidgin ? ...
@@ -52,9 +54,17 @@
 #include "cookies.h"
 #include "network.h"
 #include "parsehtml.h"
+#include "conf.h"
 
-// config file
-#include "userconfig.h" // toute la config se fait là bas !
+#define LOGIN_PAGE "ucp.php?mode=login"
+#define MCHAT_PAGE "mchat.php"
+#define TESTMSG    "{Meeowwwss!}"
+
+// waiting time granolosity for pooling minichat server in milliseconds
+#define WAITING_TIME_GRANOLOSITY 250
+
+// have to be large enough to contain the http headers
+#define BUFSIZE 800
 
 // hééé oui, encore une machine à états ! ^^
 typedef enum {
@@ -70,6 +80,8 @@ typedef enum {
 // quelques variables globales
 tstate state;
 FILE *f;
+char *host = NULL; unsigned int port = 0;
+char *path = NULL;
 
 
 // ces fonctions sont appelées en retour par parsehtml.c
@@ -89,12 +101,13 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
     // gere si la user icon est sur le serveur (avec une adresse relative ./)
     // (ne pas oublier d'alouer pour "http://", ":00000" et \0)
     if (usericonurl[0] == '.' && usericonurl[1] == '/') {
-        p = malloc(strlen(HOST)+strlen(PATH)+strlen(usericonurl)+20);
-        sprintf(p, "http://%s:%d%s%s", HOST, PORT, PATH, &usericonurl[2]);
+        p = malloc(strlen(host)+strlen(path)+strlen(usericonurl)+20);
+        sprintf(p, "http://%s:%d%s%s", host, port, path, &usericonurl[2]);
         usericonurl = p;
     }
     fprintf(stderr, "[icon url    = %s ]\n", usericonurl);
-    fprintf(stderr, "[profile url = http://"HOST""PATH"%s ]\n", &userprofileurl[2]);
+    //fprintf(stderr, "[profile url = http://"HOST""PATH"%s ]\n", &userprofileurl[2]);
+    
     if (state == GET_THE_BACKLOG){
         fprintf(f     , "[    BACK-LOG    ] "); //4+1+2+1+2+1+2+1+2 = 16
         fprintf(stdout, "[BKLOG] "); 
@@ -123,12 +136,11 @@ wprofile&amp;u=1027">Rey</a>, <a href="./memberlist.php?mode=viewprofile&amp;u=1
 e&amp;u=1184">Teobryn</a>, <a href="./memberlist.php?mode=viewprofile&amp;u=5">cLx</a></span></div>"*/
 }
 
-#define MAXBUF 2000
-
 // permet de parser un fichier contenant le code html pour tester le parsage 
 // plutot que de se connecter sur le serveur a chaque fois !
+/*
 int test_html_parser(char *filename){
-    char buf[MAXBUF+1];
+    char buf[1000];
     int bytes;
     int k;
     FILE *ftmp;
@@ -151,7 +163,7 @@ int test_html_parser(char *filename){
 
     state = bkstate;
     return 0;
-}
+}*/
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// ENTRY POINT /////////////////////////////////
@@ -159,23 +171,23 @@ int test_html_parser(char *filename){
 
 int main(void) {
 	int s; //socket descriptor
-	char buf[MAXBUF+1], buf2[MAXBUF+1];
+	char buf[BUFSIZE+1]; // rx buffer
 	int bytes;
 	int k; // flag for any use
-	int t;
-    //int b=0;
 
+	int t; // timeslots remaining before next polling
     unsigned int nberr = 0;
-    unsigned int wait_time = 10;
+    unsigned short wait_time = 40; // 10s
+	unsigned short wait_time_maxi, wait_time_mini, wait_time_awake;
+	
 	tstate oldstate, futurestate;
+	char *useragent = NULL;
 
-    // on garde un peu de place pour stocker les cookies
-    cookie_t cookies[MAXCOOKIES];
-    memset(cookies, 0, sizeof(cookies));
-
-    // message structure
+    cookie_t cookies[MAXCOOKIES]; // se configure dans cookies.h
 	message_t msg;
-    memset(&msg, 0, sizeof(msg));
+
+    memset(&cookies[0], 0, sizeof(cookies));
+    memset(&msg,        0, sizeof(msg));
 
     fprintf(stdout, "\n\
     *******************************************************************\n\
@@ -184,31 +196,44 @@ int main(void) {
     *******************************************************************\n\
     \n");
 
-	f = fopen("output.txt", "a");
+	f = fopen("output.log", "a");
 	if (!f){
-		fprintf(stderr, "Can't open file for writing !\n");
+		fprintf(stderr, "Can't open output.log for writing !\n");
 	}
 
-    //decommenter la ligne qui suit si on veut faire du debug sur le parseur html !
-    //test_html_parser("sample.html"); return 0;
-
-    // Si la plateforme est Windows
     ws_init();
-
-    if (USER[0] != '\0') { state = LOADING_LOGIN_PAGE; }
-    else { state = GET_THE_BACKLOG; }
-
+        
+	//printf("user=%s\n", read_conf_string("user", buf, sizeof(buf)));
+	//printf("password=%s\n", read_conf_string("password", 0, 0));
+	
+	useragent       = read_conf_string("useragent", useragent, 0);
+	host            = read_conf_string("host",      host,      0);
+	port            = read_conf_int   ("port",                 80);
+	path            = read_conf_string("path",      path,      0);
+	wait_time_maxi  = read_conf_int   ("wait_time_maxi",       15) * (1000/WAITING_TIME_GRANOLOSITY);
+	wait_time_mini  = read_conf_int   ("wait_time_mini",       5)  * (1000/WAITING_TIME_GRANOLOSITY);
+	wait_time_awake = read_conf_int   ("wait_time_awake",      3)  * (1000/WAITING_TIME_GRANOLOSITY);
+	fprintf(stdout, "Server from the configuration file is: http://%s:%u%s\n", host, port, path);
+	fprintf(stdout, "User-Agent: %s\n", useragent);
+	fprintf(stdout, "Timmings: maxi=%0.2fs / mini=%0.2fs / awake=%0.2fs\n", (float)wait_time_maxi/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_mini/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_awake/(1000/WAITING_TIME_GRANOLOSITY));
+	
+	if (!host || !path){
+		fprintf(stdout, "Server informations missing. Exiting...\n");
+		return -1;
+	}
+	
+	state = LOADING_LOGIN_PAGE;
     for(;;){
-        // on se connecte sur le serveur pour tout les cas sauf attentes
         if (state != WAIT) {
-            s = maketcpconnexion(HOST, PORT);
-            if (!s) { //
+			// on se connecte sur le serveur pour tout les cas sauf attentes
+			s = maketcpconnexion(host, port);
+			if (!s) { //
                 nberr++;
                 if (nberr == 2) {
                     fprintf(f, "Unable to connect to the server anymore !\r\n");
                     fflush(f);
                 }
-                wait_time = 10;
+                wait_time = 10 * (1000/WAITING_TIME_GRANOLOSITY);
                 futurestate = state;
                 state = WAIT;
             }
@@ -229,7 +254,13 @@ int main(void) {
     		case LOADING_LOGIN_PAGE:
     			// première étape, on se connecte sur la page de login pour aller chercher un sid
                 // (attention, il ne va fonctionner qu'avec l'user-agent spécifié, faut plus le changer !)
-        		http_get(s, PATH"ucp.php?mode=login", HOST, NULL, NULL, USERAGENT, NULL);
+                {
+					char *req = malloc(strlen(path)+strlen(LOGIN_PAGE)+1);
+					strcpy(req, path);
+					strcat(req, LOGIN_PAGE);
+        			http_get(s, req, host, NULL, NULL, useragent, NULL);
+					free(req); req=NULL;
+				}
         		k=1;
         		while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
                     if(k) parsehttpheadersforgettingcookies(cookies, buf);
@@ -241,13 +272,53 @@ int main(void) {
     		case SUBMIT_AUTHENTIFICATION:
                 // on s'identifie sur cette même page.
                 // génération de ce que l'en va envoyer en POST pour se logger
-                strncpy(buf, "username=",  MAXBUF);strncat(buf, USER,     MAXBUF);
-                strncat(buf, "&password=", MAXBUF);strncat(buf, PASSWORD, MAXBUF);
-                strncat(buf, "&redirect=index.php&login=Connexion",       MAXBUF);
-    
-                generate_cookies_string(cookies, buf2, MAXBUF);
-                http_post(s, PATH"ucp.php?mode=login", HOST, buf, "http://"HOST""PATH"ucp.php?mode=login", buf2, USERAGENT, NULL);
-    
+                {
+					char *username   = NULL;
+					char *password   = NULL;
+					
+					char *req        = NULL;
+					char *postdata   = NULL;
+					char *referer    = NULL;
+					char *cookiesstr = NULL;
+					
+					username = read_conf_string("username", username, 0);
+					password = read_conf_string("password", password, 0);
+					
+				    if (!username || !password) { 
+						if (!username) { free(username); username=NULL; }
+						if (!password) { free(password); password=NULL; }
+						fprintf(stderr, "Username/password informations missing or incomplete, skipping authentification. Tying to switch to the reading states though.");
+						close_conf_file();
+						state = GET_THE_BACKLOG; 
+						break;
+					}
+					
+					req = malloc(strlen(path)+strlen(LOGIN_PAGE)+1);
+					strcpy(req, path);
+					strcat(req, LOGIN_PAGE);
+				    
+				    //username=cLx&password=monpassword&redirect=index.php&login=Connexion
+				    postdata = malloc(strlen("username=")+strlen(username)+strlen("&password=")+strlen(password)+strlen("&redirect=index.php&login=Connexion")+1);
+	                strcpy(postdata, "username=");  strcat(postdata, username);
+	                strcat(postdata, "&password="); strcat(postdata, password);
+	                strcat(postdata, "&redirect=index.php&login=Connexion");
+	                free(username); username=NULL;
+	                free(password); password=NULL;
+				    close_conf_file();
+				    
+				    referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(LOGIN_PAGE)+1);
+					strcpy(referer, "http://");
+				    strcat(referer, host);
+				    strcat(referer, path);
+				    strcat(referer, LOGIN_PAGE);
+
+	                cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
+					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
+	                
+					free(req);        req=NULL;
+	                free(postdata);   postdata=NULL;
+	                free(cookiesstr); cookiesstr=NULL;
+				}
                 k=1;
         	    while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
                     if(k) parsehttpheadersforgettingcookies(cookies, buf);
@@ -258,8 +329,28 @@ int main(void) {
 
     		case GET_THE_BACKLOG:
                 // ça, c'est pour récupérer le texte de la conversation déjà écrite comme le fait le navigateur
-        		generate_cookies_string(cookies, buf, MAXBUF);
-                http_get(s, PATH"mchat.php", HOST, "http://"HOST""PATH"ucp.php?mode=login", buf, USERAGENT, NULL);
+                {
+					char *req        = NULL;
+					char *referer    = NULL;
+					char *cookiesstr = NULL;
+					
+					req = malloc(strlen(path)+strlen(MCHAT_PAGE)+1);
+					strcpy(req, path);
+					strcat(req, MCHAT_PAGE);
+
+					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(LOGIN_PAGE)+1);
+					strcpy(referer, "http://");
+				    strcat(referer, host);
+				    strcat(referer, path);
+				    strcat(referer, LOGIN_PAGE);
+										
+					cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
+					http_get(s, req, host, referer, cookiesstr, useragent, NULL);
+					
+					free(req);        req=NULL;
+					free(referer);    referer=NULL;
+					free(cookiesstr); cookiesstr=NULL;
+				}
         		k=1;
                 while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
                     if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
@@ -270,88 +361,164 @@ int main(void) {
     			break;
 
      	    case WATCHING_NEW_MESSAGES:
-                // ... et ça, c'est pour récupérer ce qui se passe en temps réel !
-        		generate_cookies_string(cookies, buf, MAXBUF);
-        		// => id dernier message reçu à récupérer et renvoyer
-        		strncpy(buf2, "mode=read&message_last_id=", sizeof(buf2));
-        		strncat(buf2, msg.msgid, sizeof(buf2));
-                http_post(s, PATH"mchat.php", HOST, buf2, "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
-        		k=1;
-                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
-        			parse_minichat_mess(buf, bytes, &msg, k);
-                    fwrite(buf, bytes, 1, stderr); // envoi vers console
-        			k=0;
-        		}
-                wait_time = WAITING_TIME;
+                // ... et ça, c'est pour récupérer ce qui s'y passe !
+                {
+					char *req        = NULL;
+					char *postdata   = NULL;
+					char *referer    = NULL;
+					char *cookiesstr = NULL;
+					
+					req = malloc(strlen(path)+strlen(MCHAT_PAGE)+1);
+					strcpy(req, path);
+					strcat(req, MCHAT_PAGE);
+	        		
+	        		// => donner l'id du dernier message reçu
+	        		postdata = malloc(strlen("mode=read&message_last_id=")+strlen(msg.msgid)+1);
+	        		strcpy(postdata, "mode=read&message_last_id=");
+	        		strcat(postdata, msg.msgid);
+	        		
+	        		referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(MCHAT_PAGE)+1);
+					strcpy(referer, "http://");
+					strcat(referer, host);
+					strcat(referer, path);
+					strcat(referer, MCHAT_PAGE);
+					
+					cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
+	                http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
+	                
+					free(req);        req=NULL;
+					free(postdata);   postdata=NULL;
+					free(referer);    referer=NULL;
+					free(cookiesstr); cookiesstr=NULL;
+				}
+				{
+					unsigned short nbmessages = 0, old_wait_time;
+	        		k=1;
+	                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+	                    if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
+	        			nbmessages = parse_minichat_mess(buf, bytes, &msg, k);
+	                    if(k) {{ int i; for(i=0; i<bytes; i++){ fprintf(stderr, "%c", buf[i]); if (buf[i] == '\n'){break;} }}}
+						////fwrite(buf, bytes, 1, stderr); } // envoi vers console
+	        			k=0;
+	        		}   
+
+					old_wait_time = wait_time;
+	        		if (nbmessages == 0) {
+						wait_time*=1.5; //*(1000/WAITING_TIME_GRANOLOSITY);
+						if (wait_time>wait_time_maxi) { wait_time = wait_time_maxi; }
+					}
+	                else {
+						wait_time/=(nbmessages+1);
+						if (wait_time<wait_time_mini) { 
+							wait_time = wait_time_mini; 
+							if (old_wait_time < wait_time) { wait_time = old_wait_time; }
+						}
+					}
+				}
                 futurestate = WATCHING_NEW_MESSAGES;
         		state = WAIT;
     			break;
 
             case RETRIEVING_THE_LIST_OF_USERS:
                 // de temps en temps, on peut regarder qui est là.
-                generate_cookies_string(cookies, buf, MAXBUF);
-                http_post(s, PATH"mchat.php", HOST, "mode=stats", "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
+                {
+					char *req        = NULL;
+					char *referer    = NULL;
+					char *cookiesstr = NULL;
+					
+					req = malloc(strlen(path)+strlen(MCHAT_PAGE)+1);
+					strcpy(req, path);
+					strcat(req, MCHAT_PAGE);
+					
+					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(MCHAT_PAGE)+1);
+					strcpy(referer, "http://");
+					strcat(referer, host);
+					strcat(referer, path);
+					strcat(referer, MCHAT_PAGE);
+					
+	                cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
+	                http_post(s, req, host, "mode=stats", referer, cookiesstr, useragent, NULL);
+	                
+	                free(req);        req=NULL;
+					free(referer);    referer=NULL;
+					free(cookiesstr); cookiesstr=NULL;
+				}
                 k=1;
                 while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
                     if(k) parsehttpheadersforgettingcookies(cookies, buf);
        				parse_minichat_mess(buf, bytes, &msg, k);
        				k=0;
                 }
-                wait_time = WAITING_TIME;
-                futurestate = WATCHING_NEW_MESSAGES;
-        		state = WAIT;
+                //wait_time = wait_time_mini; // TODOTODOTODO
+                //futurestate = WATCHING_NEW_MESSAGES;
+        		//state = WAIT;
+        		state = WATCHING_NEW_MESSAGES;
                 break;
 
     		case POSTING_A_MESSAGE:
                 // et enfin, ça, c'est pour y poster quelque chose. faire gaffe de ne pas flooder sinon Timmy va se fâcher.
-                storecookie(cookies, "mChatShowUserList", "yes");
-                generate_cookies_string(cookies, buf, MAXBUF);
-        	    http_post(s, PATH"mchat.php", HOST, "mode=add&message="TESTMSG"&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23", "http://"HOST""PATH"mchat.php", buf, USERAGENT, NULL);
+                {
+					char *req        = NULL;
+					char *postdata   = NULL;
+					char *referer    = NULL;
+					char *cookiesstr = NULL;
+					
+					req = malloc(strlen(path)+strlen(MCHAT_PAGE)+1);
+					strcpy(req, path);
+					strcat(req, MCHAT_PAGE);
+					
+					//"mode=add&message="TESTMSG"&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23"
+					
+					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(MCHAT_PAGE)+1);
+					strcpy(referer, "http://");
+					strcat(referer, host);
+					strcat(referer, path);
+					strcat(referer, MCHAT_PAGE);
+					
+					storecookie(cookies, "mChatShowUserList", "yes");
+					cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
+					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
+	        	    
+					free(req);        req=NULL;
+					free(postdata);   postdata=NULL;
+					free(referer);    referer=NULL;
+					free(cookiesstr); cookiesstr=NULL;
+				}
                 k=1;
                 while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
                     if(k) parsehttpheadersforgettingcookies(cookies, buf);
         			fwrite(buf, bytes, 1, stderr); // envoi vers console
         			k=0;
         		}
+        		wait_time = wait_time_awake;
     			state = WATCHING_NEW_MESSAGES; // le changement d'état est important ;)
     			break;
 
    			case WAIT:
                 // on attends un peu entre chaque refresh pour ne pas saturer le serveur
                 if (state != oldstate) {
-                    t = 0;
-                    fprintf(stderr, "\nWaiting");
+                    t = wait_time;
+                    fprintf(stderr, "\n[Waiting     ]\b");
                 }
-                else {
-                    t++;
-                    if (t<wait_time*4){ //4 * 250ms = 1s
-                        fprintf(stderr, ".");
-                    }
-                    else {
-                        //// Niark ! :)
-                        //if (b++ == 5 && TESTMSG[0] != '\0'){ state = POSTING_A_MESSAGE; }
-                        //else { state = WATCHING_NEW_MESSAGES; }
-                        state = futurestate;
-                        fprintf(stderr, "\r                                              ");
-                    }
-                }
+				if (t){{
+					const char anim[4] = {'\\', '-', '/', '|'};
+					t--; fprintf(stderr, "\b\b\b\b%c%3.0d", anim[t%4], (int)(t/(1000/WAITING_TIME_GRANOLOSITY))); 
+				}}
+				else {
+					state = futurestate;
+					fprintf(stderr, "\r              \r");
+				}
 
-                Sleep(250);
+                Sleep(WAITING_TIME_GRANOLOSITY);
                 oldstate = state;
                 break;
     	}
      
         // if a TCP connexion to the server is present, terminate it !
-        if (s) {
-            close(s);
-            s = 0;
-        }
+        if (s) { close(s); s = 0; }
     }
 	fclose(f);
 	freecookies(cookies);
-    // Si la plateforme est Windows
     ws_cleanup();
-
 	return 0;
 }

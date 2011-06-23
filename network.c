@@ -82,7 +82,7 @@ int maketcpconnexion(char* hostname, int port){
 		return 0;
 	}
 
-	fprintf(stderr, "Connected to %s:%d\n", inet_ntoa(server.sin_addr), port);
+	fprintf(stderr, "Connected to %s:%d\r", inet_ntoa(server.sin_addr), port);
 	return sockfd;
 }
 
