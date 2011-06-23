@@ -3,12 +3,13 @@
   Copyright:    GPL
   Author:       cLx
   Date:         08/04/11 14:55
-  Description:  ce qu'il faut pour se connecter vers des trucs en réseau.
+  Description:  ce qu'il faut pour se connecter vers des trucs en TCP.
 
   05/04/11 : cLx       Début du programme (connexions vers un serveur HTTP), fonctionne sous Debian
   05/04/11 : Nejaa     Portabilisation du code existant vers Windows (testé sous Seven x86)
   06/04/11 : cLx       Test sous XP => OK!
   11/04/11 : cLx       Légeres modifications, entre autre afin que ça fonctionne aussi sous BSD (suffit de ne pas faire de #if defined (linux) en fait :D)
+  22/06/11 : cLx       Ajout de unistd.h dans les includes pour autre chose que windows pour éviter un warning quand on compile avec -Wall
 */
 
 #define DEBUG 0
