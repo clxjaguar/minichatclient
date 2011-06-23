@@ -5,9 +5,9 @@
 
 typedef struct cstring_struct cstring;
 struct cstring_struct {
-	cstring_private *private;
-	size_t length;
 	char *string;
+	size_t length;
+	cstring_private *private;
 };
 
 /**
