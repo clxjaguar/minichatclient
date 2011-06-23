@@ -8,6 +8,6 @@ typedef struct {
 int storecookie(cookie_t *cookies, char* name, char* value);
 int listcookies(cookie_t *cookies);
 char* getcookie(cookie_t *cookies, char *name);
-int generate_cookies_string(cookie_t *cookies, char *buf, int maxbuf);
+char* generate_cookies_string(cookie_t *cookies, char *buf, unsigned int buflen);
 int freecookies(cookie_t *cookies);
 int parsehttpheadersforgettingcookies(cookie_t *cookies, const char *httpheaders);
