@@ -1,7 +1,7 @@
 /*
   Name:         parser.c
   Author:       Niki
-  Description:  Parse HTML inside each messages
+  Description:  Parse HTML inside each message
   Date:         20/06/11
 */
 
@@ -144,7 +144,7 @@ clist *configure(FILE *file) {
 	group = NULL;
 	groups = new_clist();
 	atts = ini_get_select(file, filter_config);
-	
+
 	for (node = atts->first ; node != NULL ; node = node->next) {
 		att = (attribute *)node->data;
 		if(!strcmp(att->name, "context")) {
@@ -195,8 +195,10 @@ char *parse_html_for_output(char *message, parser_config *config) {
 	clist_node *ptr;
 	message_part *part;
 	cstring *out;
-	char *tmp;
+	cstring *tmp;
 	clist *groups;
+	clist *context_stack;
+	clist_node *context_node;
 	
 	FILE *file = fopen("parser.ini", "r");
 	groups = configure(file);
@@ -205,19 +207,42 @@ char *parse_html_for_output(char *message, parser_config *config) {
 	
 	out = new_cstring();
 	parts = get_parts(message);
+	context_stack = new_clist();
 	for (ptr = parts->first ; ptr != NULL ; ptr = ptr->next) {
 		part = (message_part *)ptr->data;
 		
-		if (part->type == TYPE_MESSAGE) {
-			cstring_adds(out, part->data);
-		}
-		else {
-			tmp = get_text(part, config);
-			cstring_adds(out, tmp);
-			free(tmp);
+		switch(part->type) {
+		case TYPE_MESSAGE:
+			if (part->data != NULL) {
+				cstring_adds(out, part->data);
+			}
+		break;
+		case TYPE_OPENING_TAG:
+			context_node = new_clist_node();
+			context_node->free_node = free_clist_node_data;
+			
+			tmp = new_cstring();
+			if (part->data != NULL) {
+				cstring_adds(tmp, part->data);
+			}
+			context_node->data = cstring_convert(tmp);
+
+			clist_add(context_stack, context_node);
+			
+			//TODO: work
+		break;
+		case TYPE_CLOSING_TAG:
+			if(context_stack->size > 0 && !strcmp(part->data, (char *)context_stack->last->data)) {
+				context_node = clist_remove(context_stack, context_stack->last);
+				free_clist_node(context_node);
+
+				//TODO: work
+			}
+		break;
 		}
 	}
-	
+
+	free_clist(context_stack);
 	free_clist(parts);
 	return cstring_convert(out);
 }

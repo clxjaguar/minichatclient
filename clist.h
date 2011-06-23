@@ -20,10 +20,21 @@ clist *new_clist();
 clist_node *new_clist_node();
 
 void clist_add(clist *list, clist_node *node);
-void clist_remove(clist *list, clist_node *node);
+/**
+ * Remove the given node from the given clist (the node MUST be in the clist).
+ * It then returns the removed node.
+ *
+ * Note that the node is NOT freed, you are now responsible for it.
+ */
+clist_node *clist_remove(clist *list, clist_node *node);
 void clist_insert(clist *list, int index, clist_node *node);
 void clist_reverse(clist *list);
+
 void free_clist(clist *list);
 void free_clist_node(clist_node *node);
+/**
+ * Simply free the data field if it is not NULL.
+ */
+void free_clist_node_data(clist_node *node);
 
 #endif
