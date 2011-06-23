@@ -33,7 +33,7 @@ char *read_conf_string(const char *key, char *pvalue, size_t valuebufsize) {
 	unsigned int i, o;
 	char buf[200];
 	char c;
-	bool secondpass = false;
+	bool lastpass = false;
 	
 	if (!key || !key[0]) {
 		fprintf(stderr, "read_conf_string : you have to specify the key's name !\n");
@@ -48,6 +48,7 @@ char *read_conf_string(const char *key, char *pvalue, size_t valuebufsize) {
 			perror("Unable to open "CONFIGURATION_FILE);
 			return NULL;
 		}
+		lastpass = true;
 	}
 	
 	state = VRFY_KEY; i = 0; o = 0;
@@ -55,13 +56,13 @@ char *read_conf_string(const char *key, char *pvalue, size_t valuebufsize) {
 		c = fgetc(fd);
 		
 		if (feof(fd)) {
-			if (!secondpass) {
+			if (!lastpass) {
 				if (state == IN_VALUE) {
 					state = END;
 				}
 				else {
 					fseek(fd, 0, SEEK_SET);
-					secondpass = true;
+					lastpass = true;
 					state = VRFY_KEY; i = 0;
 				}
 			}
@@ -84,7 +85,8 @@ char *read_conf_string(const char *key, char *pvalue, size_t valuebufsize) {
 				else if (c == ' ' || c == '\t' || c == '='){
 					// separator?
 					if (!i) { break; }
-					state = WF_VALUE;
+					if (!key[i]) { state = WF_VALUE; }
+					else { state = WF_NEWLINE; }
 				}
 				else if (c != key[i]) {
 					// now we see it's not the good key
@@ -144,8 +146,9 @@ char *read_conf_string(const char *key, char *pvalue, size_t valuebufsize) {
 			return pvalue;
 		}
 		else {
+			if (pvalue) { free(pvalue); }
 			pvalue = malloc((sizeof(char)+1)*o);
-			strncpy(pvalue, buf, o);
+			strncpy(pvalue, buf, o+1);
 			return pvalue;
 		}
 	}
@@ -158,4 +161,15 @@ void close_conf_file(void) {
 		fclose(fd);
 		fd = NULL;
 	}
+}
+
+int read_conf_int(const char *key, int defaultvalue){
+	char *p = NULL;
+	
+	p = read_conf_string(key, p, 0); // 0 => fonction does the malloc
+	if (p) {
+		defaultvalue = atoi(p);
+		free(p);
+	}
+	return defaultvalue;
 }
