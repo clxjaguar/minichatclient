@@ -27,6 +27,7 @@ int main (int argc, char **argv) {
 	cstring_add(string, string2);
 	free_cstring(string2);
 	printf("You should see String 2: %s\n", string->string);
+	printf("You should see String 2: %s\n", *(char **)string);
 	
 	cstring_clear(string);
 	cstring_addns(string, "1234567890", 4);
