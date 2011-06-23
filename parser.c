@@ -100,7 +100,7 @@ loop: link each tag with its corresponding off-tag
 */
 
 
-char *get_text(message_part *message) {
+char *get_text(message_part *message, parser_config *config) {
 	// TODO
 	cstring *result;
 	
@@ -136,7 +136,7 @@ clist *configure(FILE *file) {
 	clist *atts;
 	attribute *att;
 	clist_node *node;
-	rule_group *group;
+	parser_config *group;
 	rule *rul;
 	cstring *tmp;
 	
@@ -148,7 +148,7 @@ clist *configure(FILE *file) {
 	for (node = atts->first ; node != NULL ; node = node->next) {
 		att = (attribute *)node->data;
 		if(!strcmp(att->name, "context")) {
-			group = (rule_group *)malloc(sizeof(rule_group));
+			group = (parser_config *)malloc(sizeof(parser_config));
 			group->rules = new_clist();
 			add_group_node(groups, group);
 			
@@ -190,7 +190,7 @@ clist *configure(FILE *file) {
 	return groups;
 }
 
-char *parse_html_for_output(char *message) {
+char *parse_html_for_output(char *message, parser_config *config) {
 	clist *parts;
 	clist_node *ptr;
 	message_part *part;
@@ -212,7 +212,7 @@ char *parse_html_for_output(char *message) {
 			cstring_adds(out, part->data);
 		}
 		else {
-			tmp = get_text(part);
+			tmp = get_text(part, config);
 			cstring_adds(out, tmp);
 			free(tmp);
 		}
@@ -310,7 +310,7 @@ clist_node *process_part(char *data, int text) {
 	return node;
 }
 
-clist_node *add_rule_node(rule_group *group, rule *rule) {
+clist_node *add_rule_node(parser_config *group, rule *rule) {
 	clist_node *node;
 	
 	node = new_clist_node();
@@ -321,7 +321,7 @@ clist_node *add_rule_node(rule_group *group, rule *rule) {
 	return node;
 }
 
-clist_node *add_group_node(clist *list, rule_group *group) {
+clist_node *add_group_node(clist *list, parser_config *group) {
 	clist_node *node;
 	
 	node = new_clist_node();
@@ -355,10 +355,10 @@ void free_rule_node(clist_node *node) {
 }
 
 void free_group_node(clist_node *node) {
-	rule_group *group;
+	parser_config *group;
 	
 	if (node->data != NULL) {
-		group = (rule_group *)node->data;
+		group = (parser_config *)node->data;
 		if (group->context != NULL) {
 			free(group->context);
 		}

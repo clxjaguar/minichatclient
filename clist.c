@@ -51,6 +51,24 @@ void clist_add(clist *list, clist_node *node) {
 	list->size++;
 }
 
+void clist_reverse(clist *list) {
+	clist_node *ptr;
+	clist_node *next;
+	
+	for (ptr = list->first ; ptr != NULL ; ) {
+		next = ptr->next;
+		
+		ptr->next = ptr->prev;
+		ptr->prev = next;
+		
+		ptr = next;
+	}
+	
+	next = list->first;
+	list->first = list->last;
+	list->last = next;
+}
+
 void clist_remove(clist *list, clist_node *node) {
 }
 

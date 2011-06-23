@@ -10,7 +10,8 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	
-	test = parse_html_for_output(argv[1]);
+	// TODO: get a config
+	test = parse_html_for_output(argv[1], NULL);
 	printf("%s\n", test);
 
 	if (test != NULL) {
