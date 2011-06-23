@@ -5,10 +5,11 @@
 void print_list(clist *list) {
 	clist_node *node;
 	
-	printf("Printing list:\n");
+	printf("Printing list:\n{\n");
 	for (node = list->first ; node != NULL ; node = node->next) {
-		printf("%s\n", node->data);
+		printf(" %s\n", node->data);
 	}
+	printf("}\n");
 }
 
 int main (int argc, char **argv) {
@@ -28,11 +29,15 @@ int main (int argc, char **argv) {
 	node = NULL;
 	
 	print_list(list);
-	printf("---\nReverse list...\n---\n");
+	printf("Reverse list...\n");
 	clist_reverse(list);
+	print_list(list);
+	printf("Remove last node...\n");
+	node = clist_remove(list, list->last);
 	print_list(list);
 	
 	free_clist(list);
+	free_clist_node(node);
 	
 	return 0;
 }

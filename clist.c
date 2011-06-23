@@ -69,7 +69,21 @@ void clist_reverse(clist *list) {
 	list->last = next;
 }
 
-void clist_remove(clist *list, clist_node *node) {
+clist_node *clist_remove(clist *list, clist_node *node) {
+	if (node->prev != NULL) {
+		node->prev->next = node->next;
+	}
+
+	if (node->next != NULL) {
+		node->next->prev = node->prev;
+	}
+	
+	node->prev = NULL;
+	node->next = NULL;
+	
+	list->size--;
+	
+	return node;
 }
 
 void clist_insert(clist *list, int index, clist_node *node) {
@@ -81,6 +95,14 @@ void free_clist_node(clist_node *node) {
 	} else {
 		free(node);
 	}
+}
+
+void free_clist_node_data(clist_node *node) {
+	if (node->data != NULL) {
+		free(node->data);
+	}
+
+	free(node);
 }
 
 void free_clist(clist *list) {
