@@ -16,8 +16,7 @@ struct rule_struct {
 	char *stop;
 };
 
-typedef struct rule_group_struct rule_group;
-struct rule_group_struct {
+struct parser_config_struct {
 	char *context;
 	clist *rules;
 };
@@ -32,12 +31,12 @@ struct message_part_struct {
 
 char *get_date();
 clist *get_parts(char *message);
-char *get_text(message_part *message);
+char *get_text(message_part *message, parser_config *config);
 clist *configure(FILE *file);
 clist_node *process_part(char *data, int text);
 
-clist_node *add_group_node(clist *list, rule_group *group);
-clist_node *add_rule_node(rule_group *group, rule *rule);
+clist_node *add_group_node(clist *list, parser_config *group);
+clist_node *add_rule_node(parser_config *group, rule *rule);
 
 void free_message_part(message_part* message);
 void free_message_parts(message_part** messages);

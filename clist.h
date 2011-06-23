@@ -22,6 +22,7 @@ clist_node *new_clist_node();
 void clist_add(clist *list, clist_node *node);
 void clist_remove(clist *list, clist_node *node);
 void clist_insert(clist *list, int index, clist_node *node);
+void clist_reverse(clist *list);
 void free_clist(clist *list);
 void free_clist_node(clist_node *node);
 
