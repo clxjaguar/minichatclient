@@ -12,7 +12,6 @@
 #include <string.h>
 #include "cookies.h"
 
-
 int debug = 1;
 
 int storecookie(cookie_t *cookies, char* name, char* value){
@@ -81,19 +80,31 @@ char* getcookie(cookie_t *cookies, char *name){
     return NULL;
 }
 
-int generate_cookies_string(cookie_t *cookies, char *buf, int maxbuf){
-    int i;
+char* generate_cookies_string(cookie_t *cookies, char *buf, unsigned int buflen){
+    unsigned int i;
+	
+	if (!buflen){
+	    for (i=0; i<MAXCOOKIES; i++){
+	        if (cookies[i].name != NULL && cookies[i].value != NULL) {
+	            if (i) { buflen+=2; } //"; "
+	            buflen+=strlen(cookies[i].name)+1+strlen(cookies[i].value); // "cookie=value"
+	        }
+	    }
+	    buflen+=1; // \0
+	    if (buf) { free(buf); buf=NULL; }
+	    buf = malloc(buflen);
+	}
+	if (!buf) { return 0; }
     buf[0] = 0;
-
     for (i=0; i<MAXCOOKIES; i++){
         if (cookies[i].name != NULL && cookies[i].value != NULL) {
-            if (i) { strncat(buf, "; ", maxbuf); }
-            strncat(buf, cookies[i].name, maxbuf);
-            strncat(buf, "=", maxbuf);
-            strncat(buf, cookies[i].value, maxbuf);
+            if (i) { strncat(buf, "; ", buflen); }
+            strncat(buf, cookies[i].name, buflen);
+            strncat(buf, "=", buflen);
+            strncat(buf, cookies[i].value, buflen);
         }
-    }
-    return 0;
+    }    
+    return buf;
 }
 
 typedef enum {
