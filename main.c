@@ -199,17 +199,16 @@ int main(void) {
 	f = fopen("output.log", "a");
 	if (!f){
 		fprintf(stderr, "Can't open output.log for writing !\n");
+		return -1;
 	}
 
     ws_init();
-        
-	//printf("user=%s\n", read_conf_string("user", buf, sizeof(buf)));
-	//printf("password=%s\n", read_conf_string("password", 0, 0));
-	
-	useragent       = read_conf_string("useragent", useragent, 0);
+    
+    /* reading configuration file */
 	host            = read_conf_string("host",      host,      0);
 	port            = read_conf_int   ("port",                 80);
 	path            = read_conf_string("path",      path,      0);
+	useragent       = read_conf_string("useragent", useragent, 0);
 	wait_time_maxi  = read_conf_int   ("wait_time_maxi",       15) * (1000/WAITING_TIME_GRANOLOSITY);
 	wait_time_mini  = read_conf_int   ("wait_time_mini",       5)  * (1000/WAITING_TIME_GRANOLOSITY);
 	wait_time_awake = read_conf_int   ("wait_time_awake",      3)  * (1000/WAITING_TIME_GRANOLOSITY);
@@ -217,8 +216,9 @@ int main(void) {
 	fprintf(stdout, "User-Agent: %s\n", useragent);
 	fprintf(stdout, "Timmings: maxi=%0.2fs / mini=%0.2fs / awake=%0.2fs\n", (float)wait_time_maxi/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_mini/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_awake/(1000/WAITING_TIME_GRANOLOSITY));
 	
-	if (!host || !path){
-		fprintf(stdout, "Server informations missing. Exiting...\n");
+	if (!host || !path || !useragent){
+		fprintf(stdout, "Server informations missing. Please edit your mchatclient.conf file ! Exiting now...\n");
+		Sleep(2000);
 		return -1;
 	}
 	
