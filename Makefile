@@ -4,7 +4,7 @@ MSOURCES=main.c parsehtml.c
 MOBJECTS=$(MSOURCES:.c=.o)
 EXECUTABLE=minichatclient
 
-SOURCES=cookies.c cstring.c ini.c entities.c network.c parser.c clist.c attribute.c
+SOURCES=cookies.c cstring.c ini.c entities.c network.c parser.c clist.c attribute.c conf.c
 OBJECTS=$(SOURCES:.c=.o)
 
 TEST_SOURCES=cookies-test.c cstring-test.c ini-test.c parser-test.c clist-test.c attribute-test.c
