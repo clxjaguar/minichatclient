@@ -105,39 +105,39 @@ int filter_config(attribute *att) {
 }
 
 parser_config *get_parser_config(char filename[]) {
-	clist *groups;
-	clist *atts;
+	config_line *config;
+	clist *config_lines;
 	attribute *att;
-	clist_node *node;
-	parser_one_config *group;
+	clist *atts;
+	clist_node *ptr;
 	rule *rul;
 	cstring *tmp;
-	parser_config *config;
+	parser_config *parserconf;
 	FILE *file;
 	
 	file = fopen(filename, "r");
 	
 	rul = NULL;
-	group = NULL;
-	groups = new_clist();
+	config = NULL;
+	config_lines = new_clist();
 	atts = ini_get_select(file, filter_config);
 
-	for (node = atts->first ; node != NULL ; node = node->next) {
-		att = (attribute *)node->data;
+	for (ptr = atts->first ; ptr != NULL ; ptr = ptr->next) {
+		att = (attribute *)ptr->data;
 		if(!strcmp(att->name, "context")) {
-			group = (parser_one_config *)malloc(sizeof(parser_one_config));
-			group->rules = new_clist();
-			add_group_node(groups, group);
+			config = (config_line *)malloc(sizeof(config_line));
+			config->rules = new_clist();
+			clist_add(config_lines, new_group_node(config));
 			
 			tmp = new_cstring();
 			cstring_adds(tmp, att->value);
-			group->context = cstring_convert(tmp);
+			config->context = cstring_convert(tmp);
 		} else {
-			// group can be NULL if bad INI
-			if (group != NULL) {
+			// config can be NULL if bad INI
+			if (config != NULL) {
 				if(!strcmp(att->name, "tag")) {
-					rul = (rule *)malloc(sizeof(rule));
-					add_rule_node(group, rul);
+					rul = (rule *)malloc(sizeof(rule));					
+					clist_add(config->rules, new_rule_node(rul));
 					
 					tmp = new_cstring();
 					cstring_adds(tmp, att->value);
@@ -164,23 +164,25 @@ parser_config *get_parser_config(char filename[]) {
 		}
 	}
 
-	config = (parser_config *)malloc(sizeof(parser_config));
-	config->p = (parser_config_private *)malloc(sizeof(parser_config_private));
-	config->p->groups = groups;
+	parserconf = (parser_config *)malloc(sizeof(parser_config));
+	parserconf->data = (parser_config_private *)malloc(sizeof(parser_config_private));
+	parserconf->data->config_lines = config_lines;
 	
 	fclose(file);
-	return config;
+	return parserconf;
 }
 
-char *parse_html_for_output(char *message, parser_config *config) {
+char *parse_html_for_output(char *message, parser_config *pconfig) {
 	clist *parts;
 	clist_node *ptr;
 	message_part *part;
 	cstring *out;
 	cstring *tmp;
-	clist *groups;
 	clist *context_stack;
 	clist_node *context_node;	
+	clist *configs;
+	
+	configs = pconfig->data->config_lines;
 	
 	out = new_cstring();
 	parts = get_parts(message);
@@ -195,25 +197,23 @@ char *parse_html_for_output(char *message, parser_config *config) {
 			}
 		break;
 		case TYPE_OPENING_TAG:
-			context_node = new_clist_node();
-			context_node->free_node = free_clist_node_data;
-			
 			tmp = new_cstring();
 			if (part->data != NULL) {
 				cstring_adds(tmp, part->data);
 			}
-			context_node->data = cstring_convert(tmp);
 
-			clist_add(context_stack, context_node);
+			clist_add(context_stack, new_string_node(cstring_convert(tmp)));
 			
-			//TODO: work
+			// Work:
+			cstring_adds(out, process_message_part(configs, context_stack, part));
 		break;
 		case TYPE_CLOSING_TAG:
 			if(context_stack->size > 0 && !strcmp(part->data, (char *)context_stack->last->data)) {
 				context_node = clist_remove(context_stack, context_stack->last);
 				free_clist_node(context_node);
 
-				//TODO: work
+				// Work:
+				cstring_adds(out, process_message_part(configs, context_stack, part));
 			}
 		break;
 		}
@@ -293,6 +293,56 @@ void free_message_part(message_part* message) {
 	free(message);
 }
 
+char *process_message_part(clist *config_lines, clist *context_stack, message_part *part) {
+	cstring *out;
+	config_line *line;
+	clist_node *ptr;
+	
+	out = new_cstring();
+	switch (part->type) {
+	case TYPE_OPENING_TAG:
+		for (ptr = config_lines->first ; ptr != NULL ; ptr = ptr->next) {
+			line = (config_line *)ptr->data;
+			process_message_part_sub(out, line, context_stack, part);
+		}
+		break;
+	case TYPE_CLOSING_TAG:
+		for (ptr = config_lines->last ; ptr != NULL ; ptr = ptr->prev) {
+			line = (config_line *)ptr->data;
+			process_message_part_sub(out, line, context_stack, part);
+		}
+		break;
+	}
+	return cstring_convert(out);
+}
+
+void process_message_part_sub(cstring *out, config_line *line, clist *context_stack, message_part *part) {
+	clist_node *cnode;
+	clist_node *rnode;
+	clist_node *anode;
+	rule *rul;
+	char *context;
+	attribute *att;
+	
+	//TODO
+	return;
+	
+	for (rnode = line->rules->first ; rnode != NULL ; rnode = rnode->next) {
+		rul = (rule *)rnode->data;
+		for (cnode = context_stack->first ; cnode != NULL ; cnode = cnode->next) {
+			context = (char *)cnode->data;
+			//if (rul->context == NULL || rul->context[0] == '\0' || !strcmp(rul->context, context)) {
+				if (!strcmp(rul->tag, part->data)) {
+					for (anode = part->attributes->first ; anode != NULL ; anode = anode->next) {
+						att = (attribute *)anode->data;
+						//TODO: check each attribute
+					}
+				}
+			//}
+		}
+	}
+}
+
 clist_node *process_part(char *data, int text) {
 	message_part *part;
 	clist_node *node;
@@ -312,24 +362,32 @@ clist_node *process_part(char *data, int text) {
 	return node;
 }
 
-clist_node *add_rule_node(parser_one_config *group, rule *rule) {
+clist_node *new_rule_node(rule *rule) {
 	clist_node *node;
 	
 	node = new_clist_node();
 	node->data = rule;
 	node->free_node = free_rule_node;
-	clist_add(group->rules, node);
 	
 	return node;
 }
 
-clist_node *add_group_node(clist *list, parser_one_config *group) {
+clist_node *new_string_node(char *string) {
+	clist_node *context_node;
+	
+	context_node = new_clist_node();
+	context_node->free_node = free_clist_node_data;
+	context_node->data = string;
+
+	return context_node;
+}
+
+clist_node *new_group_node(config_line *group) {
 	clist_node *node;
 	
 	node = new_clist_node();
 	node->data = group;
 	node->free_node = free_group_node;
-	clist_add(list, node);
 	
 	return node;
 }
@@ -357,10 +415,10 @@ void free_rule_node(clist_node *node) {
 }
 
 void free_group_node(clist_node *node) {
-	parser_one_config *group;
+	config_line *group;
 	
 	if (node->data != NULL) {
-		group = (parser_one_config *)node->data;
+		group = (config_line *)node->data;
 		if (group->context != NULL) {
 			free(group->context);
 		}
@@ -372,10 +430,10 @@ void free_group_node(clist_node *node) {
 	free(node);
 }
 
-free_parser_config(parser_config *config) {
-	if (config->p->groups != NULL) {
-		free_clist(config->p->groups);
+free_parser_config(parser_config *pconfig) {
+	if (pconfig->data->config_lines != NULL) {
+		free_clist(pconfig->data->config_lines);
 	}
-	free(config->p);
-	free(config);
+	free(pconfig->data);
+	free(pconfig);
 }
