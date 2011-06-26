@@ -4,7 +4,7 @@
 #include "parser_p.h"
 
 typedef struct parser_config_struct {
-	parser_config_private *p;
+	parser_config_private *data;
 } parser_config;
 
 /**
@@ -18,6 +18,6 @@ char *parse_html_for_output(char *message, parser_config *config);
  */
 parser_config *get_parser_config(char filename[]);
 
-free_parser_config(parser_config *config);
+free_parser_config(parser_config *pconfig);
 
 #endif
