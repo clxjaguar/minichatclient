@@ -101,7 +101,7 @@ loop: link each tag with its corresponding off-tag
 
 
 int filter_config(attribute *att) {
-	return (!strcmp(att->name, "context") || !strcmp(att->name, "tag") || !strcmp(att->name, "value") || !strcmp(att->name, "use") || !strcmp(att->name, "end-tag"));
+	return (!strcmp(att->name, "context") || !strcmp(att->name, "tag") || !strcmp(att->name, "value") || !strcmp(att->name, "start") || !strcmp(att->name, "stop"));
 }
 
 parser_config *get_parser_config(char filename[]) {
@@ -135,7 +135,7 @@ parser_config *get_parser_config(char filename[]) {
 		} else {
 			// config can be NULL if bad INI
 			if (config != NULL) {
-				if(!strcmp(att->name, "tag")) {
+				if(!strcmp(att->name, "tag")) {			
 					rul = (rule *)malloc(sizeof(rule));					
 					clist_add(config->rules, new_rule_node(rul));
 					
@@ -180,12 +180,12 @@ char *parse_html_for_output(char *message, parser_config *pconfig) {
 	cstring *tmp;
 	clist *context_stack;
 	clist_node *context_node;	
-	clist *configs;
+	clist *config_lines;
 	
-	configs = pconfig->data->config_lines;
+	config_lines = pconfig->data->config_lines;
 	
 	out = new_cstring();
-	parts = get_parts(message);
+	parts = get_parts(config_lines, message);
 	context_stack = new_clist();
 	for (ptr = parts->first ; ptr != NULL ; ptr = ptr->next) {
 		part = (message_part *)ptr->data;
@@ -204,35 +204,33 @@ char *parse_html_for_output(char *message, parser_config *pconfig) {
 
 			clist_add(context_stack, new_string_node(cstring_convert(tmp)));
 			
-			// Work:
-			cstring_adds(out, process_message_part(configs, context_stack, part));
+			cstring_adds(out, process_message_part(config_lines, context_stack, part));
 		break;
 		case TYPE_CLOSING_TAG:
 			if(context_stack->size > 0 && !strcmp(part->data, (char *)context_stack->last->data)) {
+				cstring_adds(out, process_message_part(config_lines, context_stack, part));
+				
 				context_node = clist_remove(context_stack, context_stack->last);
 				free_clist_node(context_node);
-
-				// Work:
-				cstring_adds(out, process_message_part(configs, context_stack, part));
 			}
 		break;
 		}
 	}
-
+	
 	free_clist(context_stack);
 	free_clist(parts);
 	return cstring_convert(out);
 }
 
-clist *get_parts(char *message) {
-	clist *list;
+clist *get_parts(clist *config_lines, char *message) {
+	clist *list, *parts_stack;
 	int i_list;
 	cstring *prev_data;
 	int bracket;
 	int i;
 	char car;
-	
-	//free_message_part_node
+	clist_node *ptr, *node;
+	message_part *part, *linked_part;
 	
 	list = new_clist();
 	prev_data = new_cstring();
@@ -243,12 +241,12 @@ clist *get_parts(char *message) {
 	for (car = message[i] ; car != '\0' ; car = message[++i]) {
 		if (!bracket && car == '<') {
 			bracket = 1;
-			clist_add(list, process_part(cstring_convert(prev_data), 1));
+			clist_add(list, process_part(config_lines, cstring_convert(prev_data), 1));
 			prev_data = new_cstring();
 		} 
 		else if (bracket && car == '>') {
 			bracket = 0;
-			clist_add(list, process_part(cstring_convert(prev_data), 0));
+			clist_add(list, process_part(config_lines, cstring_convert(prev_data), 0));
 			prev_data = new_cstring();
 		} 
 		else {
@@ -257,11 +255,37 @@ clist *get_parts(char *message) {
 	}
 	
 	if (!bracket) {
-		clist_add(list, process_part(cstring_convert(prev_data), 1));
+		clist_add(list, process_part(config_lines, cstring_convert(prev_data), 1));
 	}
 	else {
-		clist_add(list, process_part(cstring_convert(prev_data), 0));
+		clist_add(list, process_part(config_lines, cstring_convert(prev_data), 0));
 	}
+	
+	// associate the links between them
+	parts_stack = new_clist();
+	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
+		part = (message_part *)ptr->data;
+		
+		switch (part->type) {
+		case TYPE_OPENING_TAG:
+			node = new_clist_node();
+			node->free_node = NULL; // we don't want to free() the data!
+			node->data = part;
+			clist_add(parts_stack, node);
+			break;
+		case TYPE_CLOSING_TAG:
+			linked_part = (message_part *)parts_stack->last->data;
+			free_clist_node(clist_remove(parts_stack, parts_stack->last));
+			if (!strcmp(part->data, linked_part->data)) {
+				part->link = linked_part;
+				linked_part->link = part;
+			}
+			break;
+		case TYPE_MESSAGE:
+			break;
+		}
+	}
+	free_clist(parts_stack);
 	
 	return list;
 }
@@ -320,40 +344,118 @@ void process_message_part_sub(cstring *out, config_line *line, clist *context_st
 	clist_node *cnode;
 	clist_node *rnode;
 	clist_node *anode;
+	clist_node *tnode;
+	clist *atts;
 	rule *rul;
 	char *context;
 	attribute *att;
+	int in_context, do_apply, global_tag, global_value, tag_equals, value_equals;
 	
-	//TODO
-	return;
+	atts = part->attributes;
+	if (part->type == TYPE_CLOSING_TAG) {
+		if (part->link != NULL) {
+			atts = part->link->attributes;
+		}
+	}
 	
-	for (rnode = line->rules->first ; rnode != NULL ; rnode = rnode->next) {
-		rul = (rule *)rnode->data;
-		for (cnode = context_stack->first ; cnode != NULL ; cnode = cnode->next) {
-			context = (char *)cnode->data;
-			//if (rul->context == NULL || rul->context[0] == '\0' || !strcmp(rul->context, context)) {
-				if (!strcmp(rul->tag, part->data)) {
-					for (anode = part->attributes->first ; anode != NULL ; anode = anode->next) {
-						att = (attribute *)anode->data;
-						//TODO: check each attribute
-					}
+	in_context = 0;
+	for (cnode = context_stack->first ; !in_context && cnode != NULL ; cnode = cnode->next) {
+		context = (char *)cnode->data;
+		if (line->context == NULL || line->context[0] == '\0' || !strcmp(line->context, context)) {
+			in_context = 1;
+		}
+	}
+	
+	if (in_context) {
+		for (rnode = line->rules->first ; rnode != NULL ; rnode = rnode->next) {
+			rul = (rule *)rnode->data;
+			global_tag = (rul->tag == NULL || rul->tag[0] == '\0');
+			
+			do_apply = global_tag;
+			for (tnode = atts->first ; !do_apply && tnode != NULL ; tnode = tnode->next) {
+				att = (attribute *)tnode->data;
+				
+				tag_equals = (!strcmp(rul->tag, att->name));
+				global_value = (rul->value == NULL || rul->value[0] == '\0');
+				value_equals = (!strcmp(rul->value, att->value));
+				
+				if (tag_equals && (global_value || value_equals)) {
+					do_apply = 1;
 				}
-			//}
+			}
+			
+			if (do_apply) {
+				switch (part->type) {
+				case TYPE_OPENING_TAG:
+					cstring_adds(out, rul->start);
+					break;
+				case TYPE_CLOSING_TAG:
+					cstring_adds(out, rul->stop);
+					break;
+				}
+			}
 		}
 	}
 }
 
-clist_node *process_part(char *data, int text) {
+clist_node *process_part(clist *config_lines, char *data, int text) {
 	message_part *part;
-	clist_node *node;
+	clist_node *node, *node2, *node_att;
+	clist *tab, *tab2;
+	cstring *tmp;
+	cstring *string;
+	int i;
+	attribute *att;
 	
 	part = malloc(sizeof(message_part));
 
-	//TODO
-	part->type = text ? TYPE_MESSAGE : TYPE_OPENING_TAG;
-	part->data = data;
-	part->link = NULL;
-	part->attributes = NULL;
+	if (text) {
+		part->type = TYPE_MESSAGE;
+		part->data = data;
+		part->link = NULL;
+		part->attributes = NULL;
+	} else {
+		if (data[0] == '/') {
+			part->type = TYPE_CLOSING_TAG;
+			i = 1;
+		} else {		
+			part->type = TYPE_OPENING_TAG;
+			i = 0;
+		}
+		
+		part->attributes = new_clist();
+		
+		tmp = new_cstring();
+		cstring_addfs(tmp, data, i);
+		free(data);
+		
+		i = 0;
+		tab = cstring_splitc(tmp, ' ', '\"');
+		for (node = tab->first ; node != NULL ; node = node->next) {
+			if (!i) {
+				part->data = cstring_convert(node->data);
+				node->data = NULL;
+				i = 1;
+			} else {
+				string = (cstring*)node->data;
+				tab2 = cstring_splitc(string, '=', '\"');
+				att = new_attribute();
+				att->name = cstring_convert((cstring *)tab2->first->data);
+				tab2->first->data = NULL;
+				if (tab2->first->next == NULL) {
+					att->value = cstring_convert(new_cstring());
+				} else {
+					att->value = cstring_convert((cstring *)tab2->first->next->data);
+					tab2->first->next->data = NULL;
+				}
+				free(tab2);
+				attribute_add_to_clist(part->attributes, att);
+			}
+		}
+		
+		//TODO
+		part->link = NULL;
+	}
 	
 	node = new_clist_node();
 	node->free_node = free_message_part_node;

@@ -44,6 +44,57 @@ char *cstring_convert(cstring *self) {
 	return string;
 }
 
+void cstring_cut_at(cstring *self, size_t size) {
+	if (self->length > size) {
+		self->string[size] = '\0';
+		self->length = size;
+	}
+}
+
+clist *cstring_split(cstring *self, cstring *delim, cstring *quote) {
+	printf("WOOPS! cstring_split NOT IMPLEMENTED!\n");
+}
+
+clist *cstring_splits(cstring *self, char *delim, char *quote) {
+	printf("WOOPS! cstring_splits NOT IMPLEMENTED!\n");
+}
+
+clist *cstring_splitc(cstring *self, char delim, char quote) {
+	clist *list;
+	cstring *elem;
+	clist_node *node;
+	size_t i;
+	int in_quote;
+	
+	list = new_clist();
+	in_quote = 0;
+	elem = NULL;
+	for (i = 0 ; i < self->length ; i++) {
+		if (self->string[i] == quote) {
+			in_quote = !in_quote;
+		} else {
+			if (elem == NULL) {
+				elem = new_cstring();
+				node = new_clist_node();
+				node->data = elem;
+				node->free_node = free_cstring_node;
+				clist_add(list, node);
+			}
+			if (!in_quote && self->string[i] == delim) {
+				elem = new_cstring();
+				node = new_clist_node();
+				node->data = elem;
+				node->free_node = free_cstring_node;
+				clist_add(list, node);
+			} else {
+				cstring_addc(elem, self->string[i]);
+			}
+		}
+	}
+	
+	return list;
+}
+
 void cstring_clear(cstring *self) {
 	self->length = 0;
 	self->string[0] = '\0';
@@ -68,6 +119,18 @@ void cstring_add(cstring *self, cstring *source) {
 	cstring_adds(self, source->string);
 }
 
+void cstring_addf(cstring *self, cstring *source, int index) {
+	cstring_addfs(self, source->string, index);
+}
+
+void cstring_addn(cstring *self, cstring *source, int n) {
+	cstring_addns(self, source->string, n);
+}
+
+void cstring_addfn(cstring *self, cstring *source, int index, int n) {
+	cstring_addfns(self, source->string, index, n);
+}
+
 void cstring_addc(cstring *self, char source) {
 	char source2[2];
 	
@@ -78,18 +141,18 @@ void cstring_addc(cstring *self, char source) {
 }
 
 void cstring_addx(cstring *self, int source) {
-	cstring_addn(self, source, 16, 0);
+	cstring_addN(self, source, 16, 0);
 }
 
 void cstring_addX(cstring *self, int source) {
-	cstring_addn(self, source, 16, 1);
+	cstring_addN(self, source, 16, 1);
 }
 
 void cstring_addi(cstring *self, int source) {
-	cstring_addn(self, source, 10, 0);
+	cstring_addN(self, source, 10, 0);
 }
 
-void cstring_addn(cstring *self, int source, int radix, int cap) {
+void cstring_addN(cstring *self, int source, int radix, int cap) {
 	int value;
 	int tmp;
 	cstring *string;
@@ -112,35 +175,52 @@ void cstring_addn(cstring *self, int source, int radix, int cap) {
 	free_cstring(string);
 }
 
-void cstring_addns(cstring *self, char *source, int n) {
-	int i;
-	char *tmp;
-	
-	for (i = 0 ; i<n && source[i] != '\0' ; i++);
-	if (source[i] == '\0') {
-		cstring_adds(self, source);
-	} else {
-		tmp = (char *)malloc(sizeof(char) * (n + 1));
-		strncpy(tmp, source, n);
-		tmp[n] = '\0';
-		cstring_adds(self, tmp);
-		free(tmp);
-	}
+void cstring_adds(cstring *self, char *source) {
+	cstring_addfs(self, source, 0);
 }
 
-void cstring_adds(cstring *self, char *source) {
+void cstring_addfs(cstring *self, char *source, int index) {
 	size_t ss, ptr;
 	
 	if (source != NULL) {
-		ss = strlen(source);
+		ss = strlen(source) - index;
 		while ((self->length + ss) > (self->private->buffer_length)) {
 			self->private->buffer_length += BUFFER_SIZE;
 			self->string = (char *)realloc(self->string, sizeof(char) * self->private->buffer_length);
 		}
 	
 		for (ptr = self->length ; ptr <= (self->length + ss) ; ptr++) {
-			self->string[ptr] = source[ptr - self->length];
+			self->string[ptr] = source[ptr - self->length + index];
 		}
 		self->length += ss;
 	}
+}
+
+void cstring_addns(cstring *self, char *source, int n) {
+	cstring_addfns(self, source, 0, n);
+}
+
+void cstring_addfns(cstring *self, char *source, int index, int n) {
+	int i;
+	char *tmp;
+	
+	for (i = index ; i<(n + index) && source[i] != '\0' ; i++);
+	if (source[i] == '\0') {
+		cstring_addfs(self, source, index);
+	} else {
+		tmp = (char *)malloc(sizeof(char) * (n + 1));
+		strncpy(tmp, source + index, n);
+		tmp[n] = '\0';
+		cstring_adds(self, tmp);
+		free(tmp);
+	}
+}
+
+
+void free_cstring_node(clist_node *node) {
+	if (node->data != NULL) {
+		free_cstring((cstring *)node->data);
+	}
+	
+	free(node);
 }

@@ -3,16 +3,18 @@
 #include "parser.h"
 
 int main(int argc, char *argv[]) {
-	char *test = NULL;
+	char *string;
+	char *test;
 	parser_config *config;
 	
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s [HTML string to parse]\n", argv[0]);
-		return 1;
+	if (argc < 2) {
+		string = "<span style=\"font-weight: bold\">span bold</span> <strong>strong</strong> <i>'i'</i>";
+	} else {
+		string = argv[1];
 	}
 	
 	config = get_parser_config("parser.ini");
-	test = parse_html_for_output(argv[1], config);
+	test = parse_html_for_output(string, config);
 	free_parser_config(config);
 	printf("%s\n", test);
 

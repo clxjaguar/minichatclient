@@ -1,8 +1,20 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "cstring.h"
+#include "clist.h"
 
 void do_operations(int verbose);
+void print_cstring_list(clist *list);
+
+void print_cstring_list(clist *list) {
+	clist_node *node;
+	
+	printf("Printing list %i:\n{\n", list);
+	for (node = list->first ; node != NULL ; node = node->next) {
+		printf(" %s\n", ((cstring *)node->data)->string);
+	}
+	printf("}\n");
+}
 
 int main (int argc, char **argv) {
 	unsigned long i;
@@ -24,6 +36,7 @@ int main (int argc, char **argv) {
 void do_operations(int verbose) {
 	cstring *string, *string2;
 	char *s2;
+	clist *split_list;
 
 	string = new_cstring();
 	if (verbose) {
@@ -79,6 +92,22 @@ void do_operations(int verbose) {
 		printf("You should see 1234: '%s'\n", string->string);
 	}
 	cstring_clear(string);
+	cstring_adds(string, "1234567890");
+	cstring_cut_at(string, 4);
+	if (verbose) {
+		printf("You should see 1234: '%s'\n", string->string);
+	}
+	cstring_clear(string);
+	cstring_addfs(string, "1234567890", 4);
+	if (verbose) {
+		printf("You should see 567890: '%s'\n", string->string);
+	}
+	cstring_clear(string);
+	cstring_addfns(string, "1234567890", 4, 4);
+	if (verbose) {
+		printf("You should see 5678: '%s'\n", string->string);
+	}
+	cstring_clear(string);
 	cstring_addi(string, 12);
 	if (verbose) {
 		printf("You should see 12: '%s'\n", string->string);
@@ -96,6 +125,20 @@ void do_operations(int verbose) {
 	if (verbose) {
 		printf("You should see CABA: '%s'\n", string->string);
 	}
+	cstring_clear(string);
+	cstring_adds(string, "12 34  '56 78'");
+	split_list = cstring_splitc(string, ' ', '\'');
+	if (verbose) {
+		printf("You should see 12, then 34, then '', then '56 78':\n");
+		print_cstring_list(split_list);
+	}
+	free_clist(split_list);
+	split_list = cstring_splitc(string, 'Z', '\0');
+	if (verbose) {
+		printf("You should see \"12 34  '56 78'\":\n");
+		print_cstring_list(split_list);
+	}
+	free_clist(split_list);
 	
 	free_cstring(string);
 }

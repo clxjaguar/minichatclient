@@ -27,6 +27,21 @@ void free_cstring(cstring *string);
 void cstring_add(cstring *self, cstring *source);
 
 /**
+ * Add a another cstring at the end of the given cstring, starting from index.
+ */
+void cstring_addf(cstring *self, cstring *source, int index);
+
+/**
+ * Add another string at the end of the given cstring, up to N chars long.
+ */
+void cstring_addn(cstring *self, cstring *source, int n);
+
+/**
+ * Add another cstring at the end of the given cstring, starting from index, up to N chars long.
+ */
+void cstring_addfn(cstring *self, cstring *source, int index, int n);
+
+/**
  * Add a char at the end of the given cstring.
  */
 void cstring_addc(cstring *self, char source);
@@ -37,9 +52,20 @@ void cstring_addc(cstring *self, char source);
 void cstring_adds(cstring *self, char *source);
 
 /**
- * Add a string (a sequence of char that MAY end with '\0') at the end of the given cstring, up to N.
+ * Add a string (a sequence of char that MUST end with '\0') at the end of the given cstring, starting from index.
+ */
+void cstring_addfs(cstring *self, char *source, int index);
+
+/**
+ * Add a string (a sequence of char that MAY end with '\0') at the end of the given cstring, up to N chars long.
  */
 void cstring_addns(cstring *self, char *source, int n);
+
+/**
+ * Add a string (a sequence of char that MAY end with '\0') at the end of the given cstring, starting from index,
+ * up to N chars long.
+ */
+void cstring_addfns(cstring *self, char *source, int index, int n);
 
 /**
  * Add an int at the end of the given cstring.
@@ -63,7 +89,17 @@ void cstring_addX(cstring *self, int source);
  * radix: 8, 10 or 16 (the radix of the number to add -- anything above 10 will be assigned a letter from a to z (then, kaboom))
  * cap: capitalize (upper case) the letters if any, 0 = no, 1 = yes
  */
-void cstring_addn(cstring *self, int source, int radix, int cap);
+void cstring_addN(cstring *self, int source, int radix, int cap);
+
+/**
+ * Cut the cstring at the given size if it is greater.
+ * E.g.: it will have (at most) this many characters (without counting NUL) in it after.
+ */
+void cstring_cut_at(cstring *self, size_t size);
+
+clist *cstring_split(cstring *self, cstring *delim, cstring *quote);
+clist *cstring_splits(cstring *self, char *delim, char *quote);
+clist *cstring_splitc(cstring *self, char delim, char quote);
 
 /**
  * Reverse the given cstring.

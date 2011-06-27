@@ -38,9 +38,9 @@ struct message_part_struct {
  * return:
  * 	A list of message_part*
  */
-clist *get_parts(char *message);
+clist *get_parts(clist *config_linrd, char *message);
 
-clist_node *process_part(char *data, int text);
+clist_node *process_part(clist *config_lines, char *data, int text);
 
 /**
  * Process a message_part and return the replacement string according to the rules in parser_config.
@@ -49,7 +49,7 @@ clist_node *process_part(char *data, int text);
  * context_stack:
  * 	the context stack (a list of char*)
  */
-char *process_message_part(clist *configs, clist *context_stack, message_part *part);
+char *process_message_part(clist *config_lines, clist *context_stack, message_part *part);
 
 /**
  * Process a message against a single config_line.
