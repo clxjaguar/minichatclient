@@ -12,9 +12,13 @@
 
 #define BUFFER_SIZE 81
 
+#include "clist.h"
+
 typedef struct cstring_private_struct cstring_private;
 struct cstring_private_struct {
 	size_t buffer_length;
 };
+
+void free_cstring_node(clist_node *node);
 
 #endif

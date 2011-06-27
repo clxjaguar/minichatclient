@@ -39,5 +39,19 @@ int main (int argc, char **argv) {
 	free_clist(list);
 	free_clist_node(node);
 	
+	printf("New List...\n");
+	list = new_clist();
+	node = new_clist_node();
+	node->data = "3";
+	clist_add(list, node);
+	node = NULL;
+	print_list(list);
+	printf("Remove last node...\n");
+	node = clist_remove(list, list->last);
+	print_list(list);
+	
+	free_clist(list);
+	free_clist_node(node);
+	
 	return 0;
 }

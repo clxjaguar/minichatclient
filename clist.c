@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "clist.h"
-#include "clist_p.h"
 
 clist *new_clist() {
 	clist *list;
@@ -70,11 +69,15 @@ void clist_reverse(clist *list) {
 }
 
 clist_node *clist_remove(clist *list, clist_node *node) {
-	if (node->prev != NULL) {
+	if (node->prev == NULL) {
+		list->first = node->next;
+	} else {
 		node->prev->next = node->next;
 	}
 
-	if (node->next != NULL) {
+	if (node->next == NULL) {
+		list->last = node->prev;
+	} else {
 		node->next->prev = node->prev;
 	}
 	
@@ -87,6 +90,7 @@ clist_node *clist_remove(clist *list, clist_node *node) {
 }
 
 void clist_insert(clist *list, int index, clist_node *node) {
+	printf("WOOPS! clist_insert NOT IMPLEMENTED!");
 }
 
 void free_clist_node(clist_node *node) {
@@ -110,7 +114,7 @@ void free_clist(clist *list) {
 	clist_node *next;
 	
 	ptr = list->first;
-	while(ptr != NULL) {
+	while (ptr != NULL) {
 		next = ptr->next;
 		free_clist_node(ptr);
 		ptr = next;
