@@ -9,7 +9,7 @@ void print_cstring_list(clist *list);
 void print_cstring_list(clist *list) {
 	clist_node *node;
 	
-	printf("Printing list %i:\n{\n", list);
+	printf("Printing list:\n{\n");
 	for (node = list->first ; node != NULL ; node = node->next) {
 		printf(" %s\n", ((cstring *)node->data)->string);
 	}
@@ -18,7 +18,6 @@ void print_cstring_list(clist *list) {
 
 int main (int argc, char **argv) {
 	unsigned long i;
-	cstring *string, *string2;
 
 	do_operations(1);
 

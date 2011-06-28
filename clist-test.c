@@ -7,7 +7,7 @@ void print_list(clist *list) {
 	
 	printf("Printing list:\n{\n");
 	for (node = list->first ; node != NULL ; node = node->next) {
-		printf(" %s\n", node->data);
+		printf(" %s\n", (char *)node->data);
 	}
 	printf("}\n");
 }

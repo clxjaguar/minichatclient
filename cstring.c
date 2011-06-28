@@ -53,10 +53,12 @@ void cstring_cut_at(cstring *self, size_t size) {
 
 clist *cstring_split(cstring *self, cstring *delim, cstring *quote) {
 	printf("WOOPS! cstring_split NOT IMPLEMENTED!\n");
+	return NULL;
 }
 
 clist *cstring_splits(cstring *self, char *delim, char *quote) {
 	printf("WOOPS! cstring_splits NOT IMPLEMENTED!\n");
+	return NULL;
 }
 
 clist *cstring_splitc(cstring *self, char delim, char quote) {
