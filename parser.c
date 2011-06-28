@@ -172,7 +172,7 @@ parser_config *get_parser_config(char filename[]) {
 	return parserconf;
 }
 
-char *parse_html_for_output(char *message, parser_config *pconfig) {
+char *parse_html_in_message(char *message, parser_config *pconfig) {
 	clist *parts;
 	clist_node *ptr;
 	message_part *part;
