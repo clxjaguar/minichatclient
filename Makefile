@@ -4,7 +4,6 @@
 
 COMPILER = gcc 
 CCFLAGS = -Wall -fshort-enums
-#CCFLAGS = 
 .PHONY: all rebuild clean mrproper love
 
 all: mchatclient
