@@ -13,6 +13,7 @@
 #include "clist.h"
 #include "parser.h"
 #include "parser_p.h"
+#include "ini.h"
 
 /*
 
