@@ -51,11 +51,11 @@ $(EXECUTABLE): $(OBJECTS) $(MOBJECTS)
 	@echo --- 
 	@echo - Linking final executable $(EXECUTABLE)...
 	@echo --- 
-	$(CC) $(LDFLAGS) $(OBJECTS) $(MOBJECTS) -o $@
+	$(CC) $(CFLAGS) $(OBJECTS) $(MOBJECTS) -o $@
 
 $(TEST_EXECUTABLES): $(TEST_SOURCES) $(TEST_OBJECTS) $(OBJECTS)
 	@echo --- 
 	@echo - Linking test executable $@...
 	@echo --- 
-	$(CC) $(LDFLAGS) $@.o $(OBJECTS) -o $@
+	$(CC) $(CFLAGS) $@.o $(OBJECTS) -o $@
 

@@ -224,7 +224,6 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 
 clist *get_parts(clist *config_lines, char *message) {
 	clist *list, *parts_stack;
-	int i_list;
 	cstring *prev_data;
 	int bracket;
 	int i;
@@ -300,7 +299,6 @@ void free_message_part_node(clist_node* node) {
 void free_message_part(message_part* message) {
 	clist_node *node;
 	clist_node *next;
-	attribute *att;
 	
 	if (message->data != NULL) {
 		free(message->data);
@@ -343,7 +341,6 @@ char *process_message_part(clist *config_lines, clist *context_stack, message_pa
 void process_message_part_sub(cstring *out, config_line *line, clist *context_stack, message_part *part) {
 	clist_node *cnode;
 	clist_node *rnode;
-	clist_node *anode;
 	clist_node *tnode;
 	clist *atts;
 	rule *rul;
@@ -400,7 +397,7 @@ void process_message_part_sub(cstring *out, config_line *line, clist *context_st
 
 clist_node *process_part(clist *config_lines, char *data, int text) {
 	message_part *part;
-	clist_node *node, *node2, *node_att;
+	clist_node *node;
 	clist *tab, *tab2;
 	cstring *tmp;
 	cstring *string;
@@ -532,7 +529,7 @@ void free_group_node(clist_node *node) {
 	free(node);
 }
 
-free_parser_config(parser_config *pconfig) {
+void free_parser_config(parser_config *pconfig) {
 	if (pconfig->data->config_lines != NULL) {
 		free_clist(pconfig->data->config_lines);
 	}

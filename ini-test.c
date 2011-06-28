@@ -21,7 +21,6 @@ int main (int argc, char *argv[]) {
 	FILE *file;
 	clist_node *node;
 	attribute *att;
-	int i;
 	char *name, *value;
 	
 	if (argc != 2) {

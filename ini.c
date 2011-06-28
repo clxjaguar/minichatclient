@@ -109,7 +109,7 @@ clist *ini_get_select(FILE *file, int (*filter)(attribute *att)) {
 }
 
 attribute *get_attribute(char data[]) {
-	int i, len;
+	int i;
 	cstring *key, *value;
 	attribute *att;
 	cstring *line;

@@ -18,6 +18,6 @@ char *parse_html_in_message(char *message, parser_config *config);
  */
 parser_config *get_parser_config(char filename[]);
 
-free_parser_config(parser_config *pconfig);
+void free_parser_config(parser_config *pconfig);
 
 #endif
