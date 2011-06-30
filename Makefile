@@ -17,7 +17,7 @@ mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o
 
 #### USED OBJECTS ####
 
-main.o: main.c userconfig.h conf.h network.h cookies.h parsehtml.h 
+main.o: main.c conf.h network.h cookies.h parsehtml.h 
 	@echo "*** Compiling main.o"
 	@${COMPILER} ${CCFLAGS} -c main.c -o main.o
 
