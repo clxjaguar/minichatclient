@@ -28,12 +28,11 @@ int main (int argc, char **argv) {
 	}
 	printf("Done.\n");
 	
-	
 	return 0;
 }
 
 void do_operations(int verbose) {
-	cstring *string, *string2;
+	cstring *string, *string2, *string3;
 	char *s2;
 	clist *split_list;
 
@@ -138,6 +137,45 @@ void do_operations(int verbose) {
 		print_cstring_list(split_list);
 	}
 	free_clist(split_list);
+	cstring_clear(string);
+	cstring_adds(string, "12345 67890");
+	string2 = new_cstring();
+	string3 = new_cstring();
+	cstring_adds(string2, "78");
+	cstring_adds(string3, "__");
+	cstring_replace(string, string2, string3);
+	if (verbose) {
+		printf("You should see '12345 6__90': '%s'\n", string->string);
+	}
+	cstring_clear(string);
+	cstring_clear(string2);
+	cstring_clear(string3);
+	cstring_adds(string, "12345 67890");
+	cstring_adds(string2, "78");
+	cstring_adds(string3, "_");
+	cstring_replace(string, string2, string3);
+	if (verbose) {
+		printf("You should see '12345 6_90': '%s'\n", string->string);
+	}
+	cstring_clear(string);
+	cstring_clear(string2);
+	cstring_clear(string3);
+	cstring_adds(string, "12345 67890");
+	cstring_adds(string2, "78");
+	cstring_adds(string3, "___");
+	cstring_replace(string, string2, string3);
+	if (verbose) {
+		printf("You should see '12345 6___90': '%s'\n", string->string);
+	}
+	free_cstring(string2);
+	free_cstring(string3);
+	cstring_clear(string);
+	cstring_adds(string, "1234567890");
+	string2 = cstring_substring(string, 3, 2);
+	if (verbose) {
+		printf("You should see '45': '%s'\n", string2->string);
+	}
+	free_cstring(string2);
 	
 	free_cstring(string);
 }
