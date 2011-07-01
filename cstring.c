@@ -51,17 +51,43 @@ void cstring_cut_at(cstring *self, size_t size) {
 	}
 }
 
-clist *cstring_split(cstring *self, cstring *delim, cstring *quote) {
-	printf("WOOPS! cstring_split NOT IMPLEMENTED!\n");
-	return NULL;
+clist *cstring_splitc(cstring *self, char delim, char quote) {
+	clist *list;
+	cstring *d, *q;
+
+	d = new_cstring();
+	q = new_cstring();
+
+	cstring_addc(d, delim);
+	cstring_addc(q, quote);
+
+	list = cstring_split(self, d, q);
+
+	free_cstring(d);
+	free_cstring(q);
+
+	return list;
 }
 
 clist *cstring_splits(cstring *self, char *delim, char *quote) {
-	printf("WOOPS! cstring_splits NOT IMPLEMENTED!\n");
-	return NULL;
+	clist *list;
+	cstring *d, *q;
+
+	d = new_cstring();
+	q = new_cstring();
+
+	cstring_adds(d, delim);
+	cstring_adds(q, quote);
+
+	list = cstring_split(self, d, q);
+
+	free_cstring(d);
+	free_cstring(q);
+
+	return list;
 }
 
-clist *cstring_splitc(cstring *self, char delim, char quote) {
+clist *cstring_split(cstring *self, cstring *delim, cstring *quote) {
 	clist *list;
 	cstring *elem;
 	clist_node *node;
@@ -72,8 +98,9 @@ clist *cstring_splitc(cstring *self, char delim, char quote) {
 	in_quote = 0;
 	elem = NULL;
 	for (i = 0 ; i < self->length ; i++) {
-		if (self->string[i] == quote) {
+		if (quote->length > 0 && cstring_starts_with(self, quote, i)) {
 			in_quote = !in_quote;
+			i += quote->length -1;
 		} else {
 			if (elem == NULL) {
 				elem = new_cstring();
@@ -82,12 +109,13 @@ clist *cstring_splitc(cstring *self, char delim, char quote) {
 				node->free_node = free_cstring_node;
 				clist_add(list, node);
 			}
-			if (!in_quote && self->string[i] == delim) {
+			if (!in_quote && cstring_starts_with(self, delim, i)) {
 				elem = new_cstring();
 				node = new_clist_node();
 				node->data = elem;
 				node->free_node = free_cstring_node;
 				clist_add(list, node);
+				i += delim->length - 1;
 			} else {
 				cstring_addc(elem, self->string[i]);
 			}
