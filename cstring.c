@@ -97,6 +97,72 @@ clist *cstring_splitc(cstring *self, char delim, char quote) {
 	return list;
 }
 
+cstring *cstring_substring(cstring *self, int start, int length) {
+	cstring *sub;
+	char *source;
+
+	if (length == -1) {
+		length = self->length - start;
+	}
+
+	sub = new_cstring();
+	source = self->string;
+	source = source + start;
+
+	cstring_addns(sub, source, length);
+
+	return sub;
+}
+
+int cstring_starts_with(cstring *self, cstring *find, int start_index) {
+	return cstring_starts_withs(self, find->string, start_index);
+}
+
+int cstring_starts_withs(cstring *self, char *find, int start_index) {
+	int i;
+	
+	for (i = 0 ; self->string[start_index + i] == find[i] && self->string[start_index + i] != '\0' && find[i] != '\0' ; i++);
+
+	return find[i] == '\0';
+}
+
+int cstring_replace(cstring *self, cstring *from, cstring *to) {
+	int occurs;
+	int num;
+	int i, ii;
+	cstring *tmp;
+
+	occurs = 0;
+	num = 0;
+	for (i = 0 ; self->string[i] != '\0' ; i++) {
+		if (cstring_starts_with(self, from, i)) {
+			occurs++;
+			if (from->length == to->length) {
+				for (ii = 0 ; ii < to->length ; ii++) {
+					self->string[i + ii] = to->string[ii];
+				}
+			} else if (from->length > to->length) {
+				for (ii = 0 ; ii < to->length ; ii++) {
+					self->string[i + ii] = to->string[ii];
+				}
+				for ( ; ii <= ((self->length - i) - (from->length - to->length)) ; ii++) {
+					self->string[i + ii] = self->string[i + ii + (from->length - to->length)];
+				}
+			} else {
+				//TODO: this is not efficient...
+				tmp = cstring_substring(self, i + from->length, -1);
+				cstring_cut_at(self, i);
+				cstring_add(self, to);
+				cstring_add(self, tmp);
+				free_cstring(tmp);
+			}
+			i += to->length -1;
+		}
+	}
+
+	return occurs;
+}
+
 void cstring_clear(cstring *self) {
 	self->length = 0;
 	self->string[0] = '\0';

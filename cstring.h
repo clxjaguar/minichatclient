@@ -227,6 +227,22 @@ void cstring_addN(cstring *self, int source, int radix, int cap);
 void cstring_cut_at(cstring *self, size_t size);
 
 /**
+ * Create a substring of this cstring.
+ *
+ * Create a substring of this cstring.
+ *
+ * @param self:
+ * 	the cstring to work on
+ * @param start:
+ * 	the index to start at
+ * @param length:
+ * 	the number of characters to copy, -1 for 'up to the end'
+ * @return:
+ * 	a newly allocated cstring
+ */
+cstring *cstring_substring(cstring *self, int start, int length);
+
+/**
  * Split a cstring into "smaller" cstrings every time the given separator is found.
  *
  * Split a cstring into "smaller" cstrings every time the given separator is found.
@@ -280,6 +296,54 @@ clist *cstring_splitc(cstring *self, char delim, char quote);
  * 	the cstring to work on
  */
 void cstring_reverse(cstring *self);
+
+/**
+ * Replace all occurences of a cstring insode the given cstring by another.
+ *
+ * Replace all occurences of a cstring insode the given cstring by another.
+ * 
+ * @param self:
+ * 	the cstring to work on
+ * @param from:
+ * 	the cstring to replace
+ * @param to:
+ * 	the replacement cstring
+ * @return:
+ * 	the number of occurences changed
+ */
+int cstring_replace(cstring *self, cstring *from, cstring *to);
+
+/**
+ * Check if the cstring starts with the given pattern.
+ *
+ * Check if the cstring starts with the given pattern.
+ *
+ * @param self:
+ * 	the cstring to work on
+ * @param find:
+ * 	the cstring to find
+ * @param start_index:
+ * 	the index at which to start the comparison
+ * @return:
+ * 	true if it does
+ */
+int cstring_starts_with(cstring *self, cstring *find, int start_index);
+
+/**
+ * Check if the cstring starts with the given pattern.
+ *
+ * Check if the cstring starts with the given pattern.
+ *
+ * @param self:
+ * 	the cstring to work on
+ * @param find:
+ * 	the string to find
+ * @param start_index:
+ * 	the index at which to start the comparison
+ * @return:
+ * 	true if it does
+ */
+int cstring_starts_withs(cstring *self, char *find, int start_index);
 
 /*
  * Clear the given cstring.
