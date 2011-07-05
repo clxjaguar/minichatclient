@@ -345,6 +345,38 @@ int cstring_starts_with(cstring *self, cstring *find, int start_index);
  */
 int cstring_starts_withs(cstring *self, char *find, int start_index);
 
+/**
+ * Check if the cstring ends with the given pattern.
+ *
+ * Check if the cstring ends with the given pattern.
+ *
+ * @param self:
+ * 	the cstring to work on
+ * @param find:
+ * 	the cstring to find
+ * @param start_index:
+ * 	the index at which to start the comparison
+ * @return:
+ * 	true if it does
+ */
+int cstring_ends_with(cstring *self, cstring *find, int start_index);
+
+/**
+ * Check if the cstring ends with the given pattern.
+ *
+ * Check if the cstring ends with the given pattern.
+ *
+ * @param self:
+ * 	the cstring to work on
+ * @param find:
+ * 	the string to find
+ * @param start_index:
+ * 	the index at which to start the comparison
+ * @return:
+ * 	true if it does
+ */
+int cstring_ends_withs(cstring *self, char *find, int start_index);
+
 /*
  * Clear the given cstring.
  *

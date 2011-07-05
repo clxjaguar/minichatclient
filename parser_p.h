@@ -4,6 +4,7 @@
 #define TYPE_MESSAGE      0
 #define TYPE_OPENING_TAG  1
 #define TYPE_CLOSING_TAG  2
+#define TYPE_NICK         3
 
 #include "attribute.h"
 #include "clist.h"

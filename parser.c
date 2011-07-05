@@ -225,7 +225,7 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 
 clist *get_parts(clist *config_lines, char *message) {
 	clist *list, *parts_stack;
-	cstring *prev_data;
+	cstring *prev_data, *cdata;
 	int bracket;
 	int i;
 	char car;
@@ -286,7 +286,29 @@ clist *get_parts(clist *config_lines, char *message) {
 		}
 	}
 	free_clist(parts_stack);
-	
+
+	// Apply some rules (eg: "@ ")
+	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
+		part = (message_part *)ptr->data;
+		cdata = new_cstring();
+		cstring_adds(cdata, part->data);
+		if (part->type == TYPE_MESSAGE && cstring_ends_withs(cdata, "@ ", 0)) {
+			// @ span NICK span
+			node = ptr->next;
+			clist_remove(list, ptr);
+			free_clist_node(ptr);
+			ptr = node->next;
+			clist_remove(list, node);
+			free_clist_node(node);
+			node = ptr->next;
+			clist_remove(list, node);
+			free_clist_node(node);
+			part = (message_part *)ptr->data;
+			part->type = TYPE_NICK;
+		}
+		free_cstring(cdata);
+	}
+
 	return list;
 }
 
