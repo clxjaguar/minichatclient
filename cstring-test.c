@@ -35,6 +35,7 @@ void do_operations(int verbose) {
 	cstring *string, *string2, *string3;
 	char *s2;
 	clist *split_list;
+	int b;
 
 	string = new_cstring();
 	if (verbose) {
@@ -176,6 +177,24 @@ void do_operations(int verbose) {
 		printf("You should see '45': '%s'\n", string2->string);
 	}
 	free_cstring(string2);
-	
+	cstring_clear(string);
+	cstring_adds(string, "1234567890");
+	b = cstring_starts_withs(string, "123", 0);
+	if (verbose) {
+		printf("'1234567890' starts with '123': %s\n", (b?"YES":"NO"));
+	}
+	b = cstring_ends_withs(string, "890", 0);
+	if (verbose) {
+		printf("'1234567890' ends with '890': %s\n", (b?"YES":"NO"));
+	}
+	b = cstring_starts_withs(string, "124, 0", 0);
+	if (verbose) {
+		printf("'1234567890' starts with '124': %s\n", (b?"YES":"NO"));
+	}
+	b = cstring_ends_withs(string, "8900", 0);
+	if (verbose) {
+		printf("'1234567890' ends with '8900': %s\n", (b?"YES":"NO"));
+	}
+
 	free_cstring(string);
 }
