@@ -15,92 +15,6 @@
 #include "parser_p.h"
 #include "ini.h"
 
-/*
-
-Todo :
-
-(09:52:50) cLx: [TimeStamp]: http://www.serveur.com/2011/03 ... -a-lecole/
-(09:53:04) cLx: il a pas renvoyé le bon lien ^^'
-(09:55:07) niki: ok
-(09:55:49) niki: mais il devait renovyer quoi?
-(09:57:10) cLx: http://www.divertissonsnous.com/2011/03/14/se-battre-contre-un-gros-a-lecole/
-(09:57:22) cLx: MAIS ! si le html était :
-(09:57:49) niki: pcq bon, c un choix... je compte mettre (http://url] nom-url
-(09:58:04) cLx: ouais voila
-(09:58:20) niki: mais ca c pas encore fait ^^"'
-(09:58:39) cLx: mais pour pas que ça soit trop lourd, il faut vérifier que le texte du lien soit pas la même chose que le lien, ou bien la même chose en version raccourcie ...
-(09:59:41) cLx: mais sinon a part ça, super boulot, c'est cool :)
-(09:59:54) niki: merci :)
-(10:00:13) niki: (la version raccourcie, bonjour pour vérifier.. :x)
-(10:01:25) cLx: je pense qu'il faut couper la chaine avec " ... "
-(10:01:54) cLx: et après regarder si le coté gauche correspond au début, et le coté droit correspond à la fin ...
-(10:02:11) niki: oui, on peut faire ça.. en supposant qu'ils raccourcissent toujours de la meme facon
-(10:02:24) cLx: ouais je pense
-(10:02:28) niki: ok alors
-
-Bref:
-
-(10:20:36) cLx: est ce que vous pouvezprocess_part(prev_data, 1) cliquer sur cette URL (http://perdu.com) ?
-(10:20:48) cLx: sans que ça prenne les parenthèses dans l'adresse ?
-(10:21:34) niki: oui
-(10:21:41) cLx: parce que c'est assez classe comme façon de sortir "<!-- m --><a class="postlink" href="http://perdu.com">URL</a><!-- m --> ?"
-(10:22:17) niki: oui
-(10:22:19) niki: à noter :)
-
-<strong>Nouveau Sujet</strong>: <a href="http://forum.francefurs.org/viewtopic.php?p=172728#p172728" class="postlink">Grosse surprise ce matin Oo</a>
-
-clx@CatServ:~/softwares/minichatclient$ ./parser-test '<strong>Nouveau Sujet</strong>: <a href="http://forum.url.org/viewtopic.php?p=172728#p172728" class="postlink">Grosse surprise ce matin Oo</a>'
-[TimeStamp]: *Nouveau Sujet*: Grosse surprise ce matin Oo
-=> *Nouveau Sujet*: Grosse surprise ce matin Oo (http://forum.url.org/viewtopic.php?p=172728#p172728)
-
-Et:
-clx@CatServ:~/softwares/minichatclient$ ./parser-test '@ <span style="font-weight: bold">nick</span>'     
-*** glibc detected *** ./parser-test: free(): invalid pointer: 0x08048960 ***
-( http://pastebin.com/2WZnyq98, répétable !)
-
-CHANGED : j'ai supprimé le timestamp, il ne doit pas être mis ici, et j'ai rajouté les mises à null après les free(). </cLx>
-
-****
-
-<aa> @ <span ....>XX</span>, FF
-	from: aa
-	to: XX
-	mess: FF
-
-<span style="font-weight: bold">
-</span>
-
-### Comments
-
-context=
-tag=strong
-value=
-use=*
-end-tag=*
-
-context=span
-tag=style
-value="font-weight: bold"
-use=*
-tag=style
-value="font-???: italic"
-use=_
-end-tag=!REVERSE!
-
-strong=*
-/strong=*
-a=[\{href}
-/a=]
-
-loop: link each tag with its corresponding off-tag
-
-<span style="font-weight: bold">
-	replace with <b>, replace corresp by </b>
-
-
-*/
-
-
 int filter_config(attribute *att) {
 	return (!strcmp(att->name, "context") || !strcmp(att->name, "tag") || !strcmp(att->name, "value") || !strcmp(att->name, "start") || !strcmp(att->name, "stop"));
 }
@@ -225,7 +139,7 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 
 clist *get_parts(clist *config_lines, char *message) {
 	clist *list, *parts_stack;
-	cstring *prev_data, *cdata;
+	cstring *prev_data, *cdata, *cdata2;
 	int bracket;
 	int i;
 	char car;
@@ -239,14 +153,24 @@ clist *get_parts(clist *config_lines, char *message) {
 	i = 0;
 	
 	for (car = message[i] ; car != '\0' ; car = message[++i]) {
-		if (!bracket && car == '<') {
+		if (!bracket && car == '<') {		
 			bracket = 1;
 			clist_add(list, process_part(config_lines, cstring_convert(prev_data), 1));
 			prev_data = new_cstring();
 		} 
 		else if (bracket && car == '>') {
 			bracket = 0;
-			clist_add(list, process_part(config_lines, cstring_convert(prev_data), 0));
+			node = process_part(config_lines, cstring_convert(prev_data), 0);
+			part = (message_part *)node->data;
+			clist_add(list, node);
+			
+			if (i > 0 && message[i - 1] == '/') {				
+				node = clone_message_part_node(node);
+				part = (message_part *)node->data;
+				part->type = TYPE_CLOSING_TAG;
+				clist_add(list, node);
+			}
+
 			prev_data = new_cstring();
 		} 
 		else {
@@ -254,13 +178,8 @@ clist *get_parts(clist *config_lines, char *message) {
 		}
 	}
 	
-	if (!bracket) {
-		clist_add(list, process_part(config_lines, cstring_convert(prev_data), 1));
-	}
-	else {
-		clist_add(list, process_part(config_lines, cstring_convert(prev_data), 0));
-	}
-	
+	clist_add(list, process_part(config_lines, cstring_convert(prev_data), 1));
+
 	// associate the links between them
 	parts_stack = new_clist();
 	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
@@ -286,27 +205,82 @@ clist *get_parts(clist *config_lines, char *message) {
 		}
 	}
 	free_clist(parts_stack);
-
+	
 	// Apply some rules (eg: "@ ")
 	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
 		part = (message_part *)ptr->data;
 		cdata = new_cstring();
 		cstring_adds(cdata, part->data);
 		if (part->type == TYPE_MESSAGE && cstring_ends_withs(cdata, "@ ", 0)) {
-			// @ span NICK span
-			node = ptr->next;
-			clist_remove(list, ptr);
-			free_clist_node(ptr);
-			ptr = node->next;
-			clist_remove(list, node);
-			free_clist_node(node);
-			node = ptr->next;
-			clist_remove(list, node);
-			free_clist_node(node);
+			// '@ <span ...>NICK</span>, '
+
+			// remove the "@ " and point 'ptr' to the fist span
+			if (!strcmp(cdata->string, "@ ")) {
+				node = ptr->next;
+				clist_remove(list, ptr);
+				free_clist_node(ptr);
+				ptr = node;
+			} else {
+				cstring_cut_at(cdata, cdata->length - 2);
+				free(part->data);
+				part->data = cstring_convert(cdata);
+				cdata = NULL;
+				ptr = ptr->next;
+			}
+			
+			// process the first <span>
+			part = (message_part *)ptr->data;		
+			cdata2 = new_cstring();
+			cstring_adds(cdata2, "nick");
+			if (part->data != NULL) {
+				free(part->data);
+			}
+			part->data = cstring_convert(cdata2);
+			if (part->attributes != NULL) {
+				free_clist(part->attributes);
+			}
+			part->attributes = new_clist();		
+			ptr = ptr->next;
+			
+			// process the NICK
+			ptr = ptr->next;
+			
+			// process the second </span>
 			part = (message_part *)ptr->data;
-			part->type = TYPE_NICK;
+			cdata2 = new_cstring();
+			cstring_adds(cdata2, "nick");
+			if (part->data != NULL) {
+				free(part->data);
+			}
+			part->data = cstring_convert(cdata2);
+			if (part->attributes != NULL) {
+				free_clist(part->attributes);
+			}
+			part->attributes = new_clist();
+			ptr = ptr->next;
+		
+			// check the text after the NICK, and remove ", " from it, then points to it
+			part = (message_part *)ptr->data;
+			cdata2 = new_cstring();
+			cstring_adds(cdata2, part->data);
+			if (cstring_starts_withs(cdata2, ", ", 0)) {
+				if (!strcmp(cdata2->string, ", ")) {
+					node = ptr;
+					ptr = node->next;
+					clist_remove(list, node);
+					free_clist_node(node);
+				} else {
+					prev_data = cstring_substring(cdata2, 2, -1);
+					free(part->data);
+					part->data = cstring_convert(prev_data);
+				}
+			}
+			free_cstring(cdata2);
 		}
-		free_cstring(cdata);
+		
+		if (cdata != NULL) {
+			free_cstring(cdata);
+		}
 	}
 
 	return list;
@@ -482,6 +456,28 @@ clist_node *process_part(clist *config_lines, char *data, int text) {
 	node->data = part;
 	
 	return node;
+}
+
+clist_node *clone_message_part_node(clist_node *node) {
+	message_part *message, *new_message;
+	clist_node *new_node;
+	
+	message = (message_part *) node->data;
+	new_node = new_clist_node();
+	new_message = (message_part *)malloc(sizeof(message_part));
+	
+	new_message->type = message->type;
+	new_message->attributes = new_clist(); //TODO: not correct for a clone operation!
+	new_message->link = NULL;
+	if (message->data == NULL) {	
+		new_message->data = NULL;
+	} else {
+		new_message->data = malloc((strlen(message->data) + 1) * sizeof(char));
+		strcpy(new_message->data, message->data);
+	}
+
+	new_node->data = new_message;
+	return new_node;
 }
 
 clist_node *new_rule_node(rule *rule) {

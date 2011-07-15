@@ -158,7 +158,6 @@ int cstring_ends_with(cstring *self, cstring *find, int start_index) {
 	size_t i, index;
 
 	index = self->length - find->length - start_index;
-	
 	if (index > 0) {
 		for ( i = 0 ; self->length > (index + i) && find->length > i && self->string[index + i] == find->string[i] ; i++);
 		return self->string[index + i] == find->string[i];
@@ -181,12 +180,10 @@ int cstring_ends_withs(cstring *self, char *find, int start_index) {
 
 int cstring_replace(cstring *self, cstring *from, cstring *to) {
 	int occurs;
-	int num;
 	int i, ii;
 	cstring *tmp;
 
 	occurs = 0;
-	num = 0;
 	for (i = 0 ; self->string[i] != '\0' ; i++) {
 		if (cstring_starts_with(self, from, i)) {
 			occurs++;
@@ -280,15 +277,20 @@ void cstring_addN(cstring *self, int source, int radix, int cap) {
 	
 	string = new_cstring();
 	value = source;
-	while (value > 0) {
-		tmp = value % radix;
-		if (tmp < 10) {
-			cstring_addc(string, '0' + tmp);
-		} else {
-			cstring_addc(string, (cap ? 'A' : 'a') + (tmp - 10));
-		}
+	
+	if (value == 0) {
+		cstring_addc(string, '0');
+	} else {
+		while (value > 0) {
+			tmp = value % radix;
+			if (tmp < 10) {
+				cstring_addc(string, '0' + tmp);
+			} else {
+				cstring_addc(string, (cap ? 'A' : 'a') + (tmp - 10));
+			}
 		
-		value = value / radix;
+			value = value / radix;
+		}
 	}
 	
 	cstring_reverse(string);
