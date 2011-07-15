@@ -195,6 +195,12 @@ void do_operations(int verbose) {
 	if (verbose) {
 		printf("'1234567890' ends with '8900': %s\n", (b?"YES":"NO"));
 	}
+	cstring_clear(string);
+	cstring_adds(string, " text text @@ ");
+	b = cstring_ends_withs(string, "@ ", 0);
+	if (verbose) {
+		printf("'%s' ends with '@ ': %s\n", string->string, (b?"YES":"NO"));
+	}
 
 	free_cstring(string);
 }

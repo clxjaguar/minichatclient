@@ -70,6 +70,8 @@ clist_node *new_string_node(char *string);
 clist_node *new_group_node(config_line *config);
 clist_node *new_rule_node(rule *rule);
 
+clist_node *clone_message_part_node(clist_node *message_node);
+
 void free_message_part(message_part* message);
 void free_message_part_node(clist_node* node);
 void free_rule_node(clist_node *node);
