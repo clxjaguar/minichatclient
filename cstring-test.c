@@ -139,6 +139,14 @@ void do_operations(int verbose) {
 	}
 	free_clist(split_list);
 	cstring_clear(string);
+	cstring_adds(string, "\"12=34\"=56=\"78=90\"");
+	split_list = cstring_splitc(string, '=', '\"');
+	if (verbose) {
+		printf("You should see \"12=34 56 78=90\":\n");
+		print_cstring_list(split_list);
+	}
+	free_clist(split_list);
+	cstring_clear(string);
 	cstring_adds(string, "12345 67890");
 	string2 = new_cstring();
 	string3 = new_cstring();

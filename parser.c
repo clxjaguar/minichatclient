@@ -316,26 +316,30 @@ char *process_message_part(clist *config_lines, clist *context_stack, message_pa
 	cstring *out;
 	config_line *line;
 	clist_node *ptr;
-	
+	int applied;
+
 	out = new_cstring();
 	switch (part->type) {
 	case TYPE_OPENING_TAG:
-		for (ptr = config_lines->first ; ptr != NULL ; ptr = ptr->next) {
+		applied = 0;
+		for (ptr = config_lines->first ; !applied && ptr != NULL ; ptr = ptr->next) {
 			line = (config_line *)ptr->data;
-			process_message_part_sub(out, line, context_stack, part);
+			applied = process_message_part_sub(out, line, context_stack, part);
 		}
 		break;
 	case TYPE_CLOSING_TAG:
-		for (ptr = config_lines->last ; ptr != NULL ; ptr = ptr->prev) {
+		applied = 0;
+		for (ptr = config_lines->last ; !applied && ptr != NULL ; ptr = ptr->prev) {			
 			line = (config_line *)ptr->data;
-			process_message_part_sub(out, line, context_stack, part);
+			applied = process_message_part_sub(out, line, context_stack, part);
 		}
 		break;
 	}
+	
 	return cstring_convert(out);
 }
 
-void process_message_part_sub(cstring *out, config_line *line, clist *context_stack, message_part *part) {
+int process_message_part_sub(cstring *out, config_line *line, clist *context_stack, message_part *part) {
 	clist_node *cnode;
 	clist_node *rnode;
 	clist_node *tnode;
@@ -344,6 +348,10 @@ void process_message_part_sub(cstring *out, config_line *line, clist *context_st
 	char *context;
 	attribute *att;
 	int in_context, do_apply, global_tag, global_value, tag_equals, value_equals;
+	cstring *text_to_apply, *from, *to;
+	clist_node *att_node;
+
+	do_apply = 0;
 	
 	atts = part->attributes;
 	if (part->type == TYPE_CLOSING_TAG) {
@@ -379,27 +387,52 @@ void process_message_part_sub(cstring *out, config_line *line, clist *context_st
 			}
 			
 			if (do_apply) {
+				text_to_apply = new_cstring();
+				
 				switch (part->type) {
-				case TYPE_OPENING_TAG:
-					cstring_adds(out, rul->start);
+				case TYPE_OPENING_TAG:					
+					cstring_adds(text_to_apply, rul->start);
 					break;
 				case TYPE_CLOSING_TAG:
-					cstring_adds(out, rul->stop);
+					cstring_adds(text_to_apply, rul->stop);
 					break;
 				}
+
+				from = new_cstring();
+				to = new_cstring();
+				for (att_node = atts->first ; att_node != NULL ; att_node = att_node->next) {
+					att = (attribute *)att_node->data;
+					cstring_clear(from);
+					cstring_adds(from, "\\{");
+					cstring_adds(from, att->name);
+					cstring_addc(from, '}');
+
+					cstring_clear(to);
+					cstring_adds(to, att->value);
+					
+					cstring_replace(text_to_apply, from, to);
+				}
+				free_cstring(to);
+				free_cstring(from);					
+				
+				cstring_add(out, text_to_apply);
+				free_cstring(text_to_apply);
 			}
 		}
 	}
+	
+	return do_apply;
 }
 
 clist_node *process_part(clist *config_lines, char *data, int text) {
 	message_part *part;
 	clist_node *node;
-	clist *tab, *tab2;
+	clist *tab;
 	cstring *tmp;
 	cstring *string;
 	int i;
 	attribute *att;
+	int first_equ;
 	
 	part = malloc(sizeof(message_part));
 
@@ -432,17 +465,17 @@ clist_node *process_part(clist *config_lines, char *data, int text) {
 				i = 1;
 			} else {
 				string = (cstring*)node->data;
-				tab2 = cstring_splitc(string, '=', '\"');
-				att = new_attribute();
-				att->name = cstring_convert((cstring *)tab2->first->data);
-				tab2->first->data = NULL;
-				if (tab2->first->next == NULL) {
-					att->value = cstring_convert(new_cstring());
-				} else {
-					att->value = cstring_convert((cstring *)tab2->first->next->data);
-					tab2->first->next->data = NULL;
+				
+				for (first_equ = 0 ; string->string[first_equ] != '\0' && string->string[first_equ] != '=' ; first_equ++);
+				if (string->string[first_equ] != '=') {
+					first_equ = 0;
 				}
-				free(tab2);
+
+				att = new_attribute();
+				att->value = cstring_convert(cstring_substring(string, first_equ + 1, -1));
+				cstring_cut_at(string, first_equ);			
+				att->name = cstring_convert(string);
+
 				attribute_add_to_clist(part->attributes, att);
 			}
 		}
