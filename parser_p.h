@@ -58,13 +58,19 @@ char *process_message_part(clist *config_lines, clist *context_stack, message_pa
  * Process the message against a signle config_line. It will be called by process_message on each
  * config_line for each message_part.
  *
- * @param out the cstring on which to work
- * @param config_line the configuration line to test against
- * @param context_stack the context stack (list of char *)
- * @param part the message to process
+ * @param out:
+ * 	the cstring on which to work
+ * @param config_line:
+ * 	the configuration line to test against
+ * @param context_stack:
+ * 	the context stack (list of char *)
+ * @param part:
+ *	the message to process
  * 
+ * @return
+ * 	true if the rule was used
  */
-void process_message_part_sub(cstring *out, config_line *line, clist *context_stack, message_part *part);
+int process_message_part_sub(cstring *out, config_line *line, clist *context_stack, message_part *part);
 
 clist_node *new_string_node(char *string);
 clist_node *new_group_node(config_line *config);
