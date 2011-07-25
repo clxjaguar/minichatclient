@@ -227,59 +227,70 @@ clist *get_parts(clist *config_lines, char *message) {
 				cdata = NULL;
 				ptr = ptr->next;
 			}
-			
-			// process the first <span>
-			part = (message_part *)ptr->data;		
-			cdata2 = new_cstring();
-			cstring_adds(cdata2, "nick");
-			if (part->data != NULL) {
-				free(part->data);
-			}
-			part->data = cstring_convert(cdata2);
-			if (part->attributes != NULL) {
-				free_clist(part->attributes);
-			}
-			part->attributes = new_clist();		
-			ptr = ptr->next;
-			
-			// process the NICK
-			ptr = ptr->next;
-			
-			// process the second </span>
-			part = (message_part *)ptr->data;
-			cdata2 = new_cstring();
-			cstring_adds(cdata2, "nick");
-			if (part->data != NULL) {
-				free(part->data);
-			}
-			part->data = cstring_convert(cdata2);
-			if (part->attributes != NULL) {
-				free_clist(part->attributes);
-			}
-			part->attributes = new_clist();
-			ptr = ptr->next;
-		
-			// check the text after the NICK, and remove ", " from it, then points to it
-			part = (message_part *)ptr->data;
-			cdata2 = new_cstring();
-			cstring_adds(cdata2, part->data);
-			if (cstring_starts_withs(cdata2, ", ", 0)) {
-				if (!strcmp(cdata2->string, ", ")) {
-					node = ptr;
-					ptr = node->next;
-					clist_remove(list, node);
-					free_clist_node(node);
-				} else {
-					prev_data = cstring_substring(cdata2, 2, -1);
+			if (ptr != NULL) {
+				// process the first <span>
+				part = (message_part *)ptr->data;
+				cdata2 = new_cstring();
+				cstring_adds(cdata2, "nick");
+				if (part->data != NULL) {
 					free(part->data);
-					part->data = cstring_convert(prev_data);
+				}
+				part->data = cstring_convert(cdata2);
+				if (part->attributes != NULL) {
+					free_clist(part->attributes);
+				}
+				part->attributes = new_clist();		
+				ptr = ptr->next;
+			
+				if (ptr != NULL && ptr->next != NULL) {
+					// process the NICK
+					ptr = ptr->next;
+					
+					// process the second </span>
+					part = (message_part *)ptr->data;
+					cdata2 = new_cstring();
+					cstring_adds(cdata2, "nick");
+					if (part->data != NULL) {
+						free(part->data);
+					}
+					part->data = cstring_convert(cdata2);
+					if (part->attributes != NULL) {
+						free_clist(part->attributes);
+					}
+					part->attributes = new_clist();
+					ptr = ptr->next;
+				
+					if (ptr != NULL) {
+						// check the text after the NICK, and remove ", " from it, then points to it
+						part = (message_part *)ptr->data;
+						cdata2 = new_cstring();
+						cstring_adds(cdata2, part->data);
+						if (cstring_starts_withs(cdata2, ", ", 0)) {
+							if (!strcmp(cdata2->string, ", ")) {
+								node = ptr;
+								ptr = node->next;
+								clist_remove(list, node);
+								free_clist_node(node);
+							} else {
+								prev_data = cstring_substring(cdata2, 2, -1);
+								free(part->data);
+								part->data = cstring_convert(prev_data);
+							}
+						}
+						free_cstring(cdata2);
+					}
 				}
 			}
-			free_cstring(cdata2);
 		}
-		
 		if (cdata != NULL) {
 			free_cstring(cdata);
+		}
+
+		// If the input is not correct, you can 'skip' some node
+		// and thus end on a ptr == NULL -- which will crash
+		// at the next increment of the loop (ptr = ptr->next)
+		if (ptr == NULL) {
+			break;
 		}
 	}
 
