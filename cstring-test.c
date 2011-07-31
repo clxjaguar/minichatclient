@@ -209,6 +209,12 @@ void do_operations(int verbose) {
 	if (verbose) {
 		printf("'%s' ends with '@ ': %s\n", string->string, (b?"YES":"NO"));
 	}
+	cstring_clear(string);
+	cstring_adds(string, "@ ");
+	b = cstring_ends_withs(string, "@ ", 0);
+	if (verbose) {
+		printf("'%s' ends with '@ ': %s\n", string->string, (b?"YES":"NO"));
+	}
 
 	free_cstring(string);
 }

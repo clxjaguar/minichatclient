@@ -167,18 +167,20 @@ clist *get_parts(clist *config_lines, char *message) {
 		else if (bracket && car == '>') {
 			bracket = 0;
 			if (prev_data->length > 0) {
-				node = process_part(config_lines, cstring_convert(prev_data), 0);
-				part = (message_part *)node->data;
-				clist_add(list, node);
-			
-				if (i > 0 && message[i - 1] == '/') {
-					node = clone_message_part_node(node);
+				if ((i > 0 && message[i - 1] != '/') || prev_data->length > 1) {
+					node = process_part(config_lines, cstring_convert(prev_data), 0);
 					part = (message_part *)node->data;
-					part->type = TYPE_CLOSING_TAG;
 					clist_add(list, node);
-				}
+			
+					if (i > 0 && message[i - 1] == '/') {
+						node = clone_message_part_node(node);
+						part = (message_part *)node->data;
+						part->type = TYPE_CLOSING_TAG;
+						clist_add(list, node);
+					}
 
-				prev_data = new_cstring();
+					prev_data = new_cstring();
+				}
 			}
 		} 
 		else {
@@ -248,7 +250,6 @@ clist *get_parts(clist *config_lines, char *message) {
 		cstring_adds(cdata, part->data);
 		if (part->type == TYPE_MESSAGE && cstring_ends_withs(cdata, "@ ", 0)) {
 			// '@ <span ...>NICK</span>, '
-
 			// remove the "@ " and point 'ptr' to the fist span
 			if (!strcmp(cdata->string, "@ ")) {
 				node = ptr->next;
@@ -407,6 +408,7 @@ char *process_message_part(clist *config_lines, clist *context_stack, message_pa
 
 	out = new_cstring();
 	switch (part->type) {
+	case TYPE_CLOSING_TAG: //TODO: check
 	case TYPE_OPENING_TAG:
 		applied = 0;
 		for (ptr = config_lines->first ; !applied && ptr != NULL ; ptr = ptr->next) {
@@ -414,13 +416,13 @@ char *process_message_part(clist *config_lines, clist *context_stack, message_pa
 			applied = process_message_part_sub(out, line, context_stack, part);
 		}
 		break;
-	case TYPE_CLOSING_TAG:
+	/*case TYPE_CLOSING_TAG:
 		applied = 0;
 		for (ptr = config_lines->last ; !applied && ptr != NULL ; ptr = ptr->prev) {			
 			line = (config_line *)ptr->data;
 			applied = process_message_part_sub(out, line, context_stack, part);
 		}
-		break;
+		break;*/
 	}
 	
 	return cstring_convert(out);
@@ -477,7 +479,7 @@ int process_message_part_sub(cstring *out, config_line *line, clist *context_sta
 				text_to_apply = new_cstring();
 				
 				switch (part->type) {
-				case TYPE_OPENING_TAG:					
+				case TYPE_OPENING_TAG:
 					cstring_adds(text_to_apply, rul->start);
 					break;
 				case TYPE_CLOSING_TAG:
