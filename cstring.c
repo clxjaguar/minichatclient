@@ -163,7 +163,7 @@ int cstring_ends_with(cstring *self, cstring *find, int start_index) {
 		return self->string[index + i] == find->string[i];
 	}
 
-	return 1;
+	return 0;
 }
 
 int cstring_ends_withs(cstring *self, char *find, int start_index) {
@@ -176,6 +176,22 @@ int cstring_ends_withs(cstring *self, char *find, int start_index) {
 	free_cstring(cs);
 
 	return result;
+}
+
+int cstring_find(cstring *self, cstring *find, int start_index) {
+	return cstring_finds(self, find->string, start_index);
+}
+
+int cstring_finds(cstring *self, char *find, int start_index) {
+	int i;
+
+	for (i = start_index ; self->string[i] != '\0' ; i++) {
+		if (cstring_starts_withs(self, find, i)) {
+			return i;
+		}
+	}
+	
+	return -1;
 }
 
 int cstring_replace(cstring *self, cstring *from, cstring *to) {

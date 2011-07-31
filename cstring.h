@@ -378,6 +378,34 @@ int cstring_ends_with(cstring *self, cstring *find, int start_index);
 int cstring_ends_withs(cstring *self, char *find, int start_index);
 
 /*
+ * Check if the given string is contained by this one.
+ *
+ * @param self:
+ * 	the cstring to work on
+ * @param find:
+ * 	the string to find
+ * @param start_index:
+ * 	the index at which to start the comparison
+ * @return:
+ * 	the start index of the found string if found, or a negative value if not
+ */
+int cstring_find(cstring *self, cstring *find, int start_index);
+
+/*
+ * Check if the given string is contained by this one.
+ *
+ * @param self:
+ * 	the cstring to work on
+ * @param find:
+ * 	the string to find
+ * @param start_index:
+ * 	the index at which to start the comparison
+ * @return:
+ * 	the start index of the found string if found, or a negative value if not
+ */
+int cstring_finds(cstring *self, char *find, int start_index);
+
+/*
  * Clear the given cstring.
  *
  * Clear (truncate its size to 0) the given cstring.
