@@ -101,6 +101,7 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 	
 	out = new_cstring();
 	parts = get_parts(config_lines, message);
+	
 	context_stack = new_clist();
 	for (ptr = parts->first ; ptr != NULL ; ptr = ptr->next) {
 		part = (message_part *)ptr->data;
@@ -134,17 +135,20 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 	
 	free_clist(context_stack);
 	free_clist(parts);
+	
 	return cstring_convert(out);
 }
 
 clist *get_parts(clist *config_lines, char *message) {
 	clist *list, *parts_stack;
-	cstring *prev_data, *cdata, *cdata2;
+	cstring *prev_data, *cdata, *cdata2, *starting, *ending;
 	int bracket;
 	int i;
 	char car;
+	char *string;
 	clist_node *ptr, *node;
 	message_part *part, *linked_part;
+	attribute *att;
 	
 	list = new_clist();
 	prev_data = new_cstring();
@@ -153,33 +157,39 @@ clist *get_parts(clist *config_lines, char *message) {
 	i = 0;
 	
 	for (car = message[i] ; car != '\0' ; car = message[++i]) {
-		if (!bracket && car == '<') {		
+		if (!bracket && car == '<') {	
 			bracket = 1;
-			clist_add(list, process_part(config_lines, cstring_convert(prev_data), 1));
-			prev_data = new_cstring();
+			if (prev_data->length > 0) {
+				clist_add(list, process_part(config_lines, cstring_convert(prev_data), 1));
+				prev_data = new_cstring();
+			}
 		} 
 		else if (bracket && car == '>') {
 			bracket = 0;
-			node = process_part(config_lines, cstring_convert(prev_data), 0);
-			part = (message_part *)node->data;
-			clist_add(list, node);
-			
-			if (i > 0 && message[i - 1] == '/') {				
-				node = clone_message_part_node(node);
+			if (prev_data->length > 0) {
+				node = process_part(config_lines, cstring_convert(prev_data), 0);
 				part = (message_part *)node->data;
-				part->type = TYPE_CLOSING_TAG;
 				clist_add(list, node);
-			}
+			
+				if (i > 0 && message[i - 1] == '/') {
+					node = clone_message_part_node(node);
+					part = (message_part *)node->data;
+					part->type = TYPE_CLOSING_TAG;
+					clist_add(list, node);
+				}
 
-			prev_data = new_cstring();
+				prev_data = new_cstring();
+			}
 		} 
 		else {
 			cstring_addc(prev_data, car);
 		}
 	}
 	
-	clist_add(list, process_part(config_lines, cstring_convert(prev_data), 1));
-
+	if (prev_data->length > 0) {
+		clist_add(list, process_part(config_lines, cstring_convert(prev_data), 1));
+	}
+	
 	// associate the links between them
 	parts_stack = new_clist();
 	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
@@ -193,11 +203,13 @@ clist *get_parts(clist *config_lines, char *message) {
 			clist_add(parts_stack, node);
 			break;
 		case TYPE_CLOSING_TAG:
-			linked_part = (message_part *)parts_stack->last->data;
-			free_clist_node(clist_remove(parts_stack, parts_stack->last));
-			if (!strcmp(part->data, linked_part->data)) {
-				part->link = linked_part;
-				linked_part->link = part;
+			if (parts_stack->last != NULL) {
+				linked_part = (message_part *)parts_stack->last->data;
+				free_clist_node(clist_remove(parts_stack, parts_stack->last));
+				if (!strcmp(part->data, linked_part->data)) {
+					part->link = linked_part;
+					linked_part->link = part;
+				}
 			}
 			break;
 		case TYPE_MESSAGE:
@@ -205,6 +217,29 @@ clist *get_parts(clist *config_lines, char *message) {
 		}
 	}
 	free_clist(parts_stack);
+	
+	// associate the links between them (second pass, to force-close parts if they are not linked)
+	parts_stack = new_clist();
+	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
+		part = (message_part *)ptr->data;
+		
+		switch (part->type) {
+		case TYPE_OPENING_TAG:
+			if (part->link == NULL) {
+				cdata = new_cstring();
+				cstring_addc(cdata, '/');
+				cstring_adds(cdata, part->data);
+				
+				node = process_part(config_lines, cstring_convert(cdata), 0);
+				node->next = ptr->next;
+				node->prev = ptr;
+				ptr->next = node;
+				
+				ptr = node;
+			}
+		break;
+		}
+	}
 	
 	// Apply some rules (eg: "@ ")
 	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
@@ -282,6 +317,47 @@ clist *get_parts(clist *config_lines, char *message) {
 				}
 			}
 		}
+		if (part->type == TYPE_OPENING_TAG && (strcmp(part->data, "a") == 0 || strcmp(part->data, "A") == 0)) {
+			// Change <a href="abcdefghi">abc ... ghi</a> into <a href="abc ... ghi">abcdefghi</a>
+			if (ptr->next != NULL) {
+				linked_part = (message_part *)ptr->next->data;
+				starting = new_cstring();
+				cstring_adds(starting, (char *)linked_part->data);
+				i = cstring_finds(starting, " ... ", 0);
+				if (i >= 0) {
+					// cut starting into 'starting' and 'ending' (separated by " ... ")
+					// and set cdata2 to the value associated with the href attribute
+					ending = new_cstring();
+					cstring_addf(ending, starting, i + 5);
+					cstring_cut_at(starting, i);
+					cdata2 = new_cstring();
+					for (node = part->attributes->first ; node != NULL ; node = node->next) {
+						att = (attribute *)node->data;
+						if (strcmp(att->name, "href") == 0) {
+							cstring_adds(cdata2, att->value);
+							break;
+						}
+					}
+					
+					if (cstring_starts_with(cdata2, starting, 0) && cstring_ends_with(cdata2, ending, 0)) {
+						// the href correspond to the next node value (eg: 'abcdef' for the href and 'ab ... ef' for the
+						// next node value)
+						// What we do: we invert href and the next node value, and we change href into nohref
+						string = att->value;
+						att->value = (char *)linked_part->data;
+						linked_part->data = string;
+						
+						free(att->name);
+						prev_data = new_cstring();
+						cstring_adds(prev_data, "nohref");
+						att->name = cstring_convert(prev_data);
+					}
+					free_cstring(ending);
+					free_cstring(cdata2);
+				}
+				free_cstring(starting);
+			}
+		}
 		if (cdata != NULL) {
 			free_cstring(cdata);
 		}
@@ -293,7 +369,7 @@ clist *get_parts(clist *config_lines, char *message) {
 			break;
 		}
 	}
-
+	
 	return list;
 }
 
