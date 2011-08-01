@@ -143,7 +143,7 @@ clist *get_parts(clist *config_lines, char *message) {
 	clist *list, *parts_stack;
 	cstring *prev_data, *cdata, *cdata2, *starting, *ending;
 	int bracket;
-	int i;
+	int i, do_apply;
 	char car;
 	char *string;
 	clist_node *ptr, *node;
@@ -321,42 +321,57 @@ clist *get_parts(clist *config_lines, char *message) {
 		if (part->type == TYPE_OPENING_TAG && (strcmp(part->data, "a") == 0 || strcmp(part->data, "A") == 0)) {
 			// Change <a href="abcdefghi">abc ... ghi</a> into <a href="abc ... ghi">abcdefghi</a>
 			if (ptr->next != NULL) {
+				do_apply = 0;
 				linked_part = (message_part *)ptr->next->data;
 				starting = new_cstring();
 				cstring_adds(starting, (char *)linked_part->data);
 				i = cstring_finds(starting, " ... ", 0);
-				if (i >= 0) {
+
+				cdata2 = new_cstring();
+				att = NULL;
+				for (node = part->attributes->first ; node != NULL ; node = node->next) {
+					att = (attribute *)node->data;
+					if (strcmp(att->name, "href") == 0) {
+						cstring_adds(cdata2, att->value);
+						break;
+					}
+				}
+
+				// option 1: both links are equals
+				if (att != NULL && strcmp((char *)linked_part->data, att->value) == 0) {
+					do_apply = 1;
+				}
+
+				// option 2: displayed link is "truncated" href link (abc ... ghi)
+				if (att != NULL && !do_apply && i >= 0) {
 					// cut starting into 'starting' and 'ending' (separated by " ... ")
 					// and set cdata2 to the value associated with the href attribute
 					ending = new_cstring();
 					cstring_addf(ending, starting, i + 5);
 					cstring_cut_at(starting, i);
-					cdata2 = new_cstring();
-					for (node = part->attributes->first ; node != NULL ; node = node->next) {
-						att = (attribute *)node->data;
-						if (strcmp(att->name, "href") == 0) {
-							cstring_adds(cdata2, att->value);
-							break;
-						}
-					}
 					
 					if (cstring_starts_with(cdata2, starting, 0) && cstring_ends_with(cdata2, ending, 0)) {
-						// the href correspond to the next node value (eg: 'abcdef' for the href and 'ab ... ef' for the
-						// next node value)
-						// What we do: we invert href and the next node value, and we change href into nohref
-						string = att->value;
-						att->value = (char *)linked_part->data;
-						linked_part->data = string;
-						
-						free(att->name);
-						prev_data = new_cstring();
-						cstring_adds(prev_data, "nohref");
-						att->name = cstring_convert(prev_data);
+						do_apply = 1;
 					}
+
 					free_cstring(ending);
-					free_cstring(cdata2);
+				}
+
+				if (do_apply) {
+					// the href correspond to the next node value (eg: 'abcdef' for the href and 'ab ... ef' for the
+					// next node value)
+					// What we do: we invert href and the next node value, and we change href into nohref
+					string = att->value;
+					att->value = (char *)linked_part->data;
+					linked_part->data = string;
+					
+					free(att->name);
+					prev_data = new_cstring();
+					cstring_adds(prev_data, "nohref");
+					att->name = cstring_convert(prev_data);
 				}
 				free_cstring(starting);
+				free_cstring(cdata2);
 			}
 		}
 		if (cdata != NULL) {
