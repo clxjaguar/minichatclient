@@ -9,11 +9,32 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "ini.h"
-#include "ini_p.h"
 #include "cstring.h"
 #include "clist.h"
 #include "attribute.h"
+
+#include <stdio.h>
+#include "attribute.h"
+
+// start of privates prototypes
+/**
+ * Create an attribute from a string (it will cut it in half at the sign '=' if found,
+ * or just put the whole string in the 'name' field).
+ * It will return NULL if the given string describes a comment.
+ */
+attribute *get_attribute(char data[]);
+
+/**
+ * Remove a trailing LN, or CRLN, and replace it by '\0'.
+ */
+void remove_crlf(char data[], int length);
+
+char *mmask;
+int match(attribute *att);
+// end of privates prototypes
+
 
 char *ini_get(FILE *file, char name[]) {
 	clist *list;

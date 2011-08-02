@@ -1,7 +1,6 @@
 #ifndef CSTRING_H
 #define CSTRING_H
-
-#include "cstring_p.h"
+#include "clist.h"
 
 /**
  * This is a cstring.
@@ -13,6 +12,8 @@
  * MUST NOT be used again, and you are resposible for freeing the said char*).
  */
 typedef struct cstring_struct cstring;
+typedef struct cstring_private_struct cstring_private;
+
 struct cstring_struct {
 	char *string;
 	size_t length;
