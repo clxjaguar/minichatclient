@@ -166,8 +166,8 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                     buffer[o] = '\0';
                     FREE(msg->username)
                     msg->username = malloc((o+1)*sizeof(char));
-                    //strcpy(msg->username, buffer);
-                    decode_html_entities_utf8(msg->username, buffer);
+                    strcpy(msg->username, buffer);
+                    //decode_html_entities_utf8(msg->username, buffer);
                     nbmessages++;
                     state = LOOKING_FOR_MESSAGE;
                 }

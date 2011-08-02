@@ -1,7 +1,11 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "parser_p.h"
+#include "clist.h"
+
+typedef struct parser_config_private_struct {
+	clist *config_lines;
+} parser_config_private;
 
 typedef struct parser_config_struct {
 	parser_config_private *data;

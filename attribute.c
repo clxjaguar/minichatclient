@@ -11,7 +11,8 @@
 #include <string.h>
 #include "clist.h"
 #include "attribute.h"
-#include "attribute_p.h"
+
+void free_attribute_node(clist_node *node);
 
 attribute *new_attribute() {
 	attribute *att;

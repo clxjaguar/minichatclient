@@ -9,8 +9,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "cstring.h"
-#include "cstring_p.h"
+
+#define BUFFER_SIZE 81
+
+//start of private prototypes
+
+struct cstring_private_struct {
+	size_t buffer_length;
+};
+
+void free_cstring_node(clist_node *node);
+
+//end of private prototypes
+
 
 cstring *new_cstring() {
 	cstring *string;
