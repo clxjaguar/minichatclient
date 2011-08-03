@@ -31,7 +31,7 @@ static FILE *fd = NULL;
 char *read_conf_string(const char *key, char *pvalue, size_t valuebufsize) {
 	tstate state;
 	unsigned int i, o;
-	char buf[200];
+	char buf[KEY_VALUE_BUFFER_SIZE];
 	char c;
 	bool lastpass = false;
 	
