@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
 		string = argv[1];
 	}
 	
-	config = get_parser_config("parser_plaintext.conf");
+	config = get_parser_config("parser_rules.conf");
 	test = parse_html_in_message(string, config);
 	free_parser_config(config);
 	printf("%s\n", test);

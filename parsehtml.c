@@ -14,6 +14,7 @@
 
 #include "entities.h"
 #include "parsehtml.h"
+#include "parser.h"
 
 typedef enum {
     READY=0,
@@ -28,8 +29,26 @@ typedef enum {
     IN_USERNAME
 } tstate;
 
+parser_config *config = NULL;
+
 #define FREE(p) if (p != NULL) { free(p); p = NULL; }
 #define DEBUG 0
+
+int parser_freerules(void){
+	if (config != NULL){
+		free_parser_config(config);
+		config = NULL;
+		return 1;
+	}
+	return 0;
+}
+
+int parser_loadrules(void){
+	parser_freerules();
+	config = get_parser_config("parser_rules.conf");
+	if (config != NULL) { return 0; }
+	else { return 1; }
+}
 
 unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *msg, int reset){
     unsigned int i = 0;
@@ -45,7 +64,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
     char str5[] = "</div>";
 
     static unsigned int o = 0;
-    static char buffer[4000];
+    static char buffer[4000]; //TODO: rendre ce truc dynamique
 #ifdef DEBUG
     static tstate oldstate = READY;
 #endif
@@ -166,8 +185,8 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                     buffer[o] = '\0';
                     FREE(msg->username)
                     msg->username = malloc((o+1)*sizeof(char));
-                    strcpy(msg->username, buffer);
-                    //decode_html_entities_utf8(msg->username, buffer);
+                    //strcpy(msg->username, buffer);
+                    decode_html_entities_utf8(msg->username, buffer);
                     nbmessages++;
                     state = LOOKING_FOR_MESSAGE;
                 }
@@ -196,10 +215,23 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                         buffer[o] = '\0';
                         FREE(msg->message)
                         msg->message = malloc((o+1)*sizeof(char));
-                        //strcpy(msg->message, buffer);
-                        decode_html_entities_utf8(msg->message, buffer);
-                        minichat_message(msg->username, msg->message, msg->usericonurl, msg->userprofileurl);
-                        state = READY;
+
+						{
+							char *buffer2 = NULL;
+							if (config != NULL){
+								buffer2 = parse_html_in_message(buffer, config);
+							}
+							
+							if (buffer2 != NULL){
+								decode_html_entities_utf8(msg->message, buffer2); //strcpy(msg->message, buffer2);
+								free(buffer2);
+							}
+							else {
+								decode_html_entities_utf8(msg->message, buffer); //strcpy(msg->message, buffer);
+							}
+						}
+						minichat_message(msg->username, msg->message, msg->usericonurl, msg->userprofileurl);
+						state = READY;
                     }
                 }
                 else { j=0; }
