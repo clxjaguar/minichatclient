@@ -10,9 +10,9 @@ all: mchatclient
 
 rebuild: mrproper all
 
-mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o
+mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o
 	@echo "*** Linking all main objects files..."
-	@gcc cookies.o network.o main.o conf.o parsehtml.o entities.o -o mchatclient
+	@gcc cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o -o mchatclient
 	@strip mchatclient
 
 #### USED OBJECTS ####
@@ -29,13 +29,19 @@ cookies.o: cookies.c cookies.h
 	@echo "*** Compiling cookies.o"
 	@${COMPILER} ${CCFLAGS} -c cookies.c -o cookies.o
 
-parsehtml.o: parsehtml.c parsehtml.h entities.h
+parsehtml.o: parsehtml.c parsehtml.h entities.h parser.h clist.h
 	@echo "*** Compiling parsehtml.o"
 	@${COMPILER} ${CCFLAGS} -c parsehtml.c -o parsehtml.o
 
 conf.o: conf.c conf.h
 	@echo "*** Compiling conf.o"
 	@${COMPILER} ${CCFLAGS} -c conf.c -o conf.o
+
+# PARSING HTML ENTITIES
+
+entities.o: entities.c entities.h
+	@echo "*** Compiling entities.o"
+	@${COMPILER} ${CCFLAGS} -c entities.c -o entities.o
 
 # HTML PARSING IN MESSAGES
 
@@ -44,10 +50,6 @@ parser.o: parser.c parser.h
 	@${COMPILER} ${CCFLAGS} -c parser.c -o parser.o
 
 # NOW OBJECTS USED FOR HTML PARSING IN MESSAGES
-
-entities.o: entities.c entities.h
-	@echo "*** Compiling entities.o"
-	@${COMPILER} ${CCFLAGS} -c entities.c -o entities.o
 
 cstring.o: cstring.c cstring.h
 	@echo "*** Compiling cstring.o"
@@ -88,7 +90,7 @@ parser-test: parser.o parser-test.o cstring.o ini.o clist.o attribute.o
 	@echo "*** Linking parser-test executable..."
 	@${COMPILER} parser.o parser-test.o cstring.o ini.o clist.o attribute.o -o parser-test
 
-parser-test.o: parser-test.c
+parser-test.o: parser-test.c parser.h clist.h
 	@echo "*** Compiling parser-test.o"
 	@${COMPILER} ${CCFLAGS} -c parser-test.c -o parser-test.o
 

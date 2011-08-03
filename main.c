@@ -93,25 +93,22 @@ void put_timestamp(FILE *f){
     
     if (f == NULL) { return; }
 
-	/*
-    if (ptm->tm_mday != day){
-        fprintf(stdout, "*** %04u-%02u-%02u ***\n",   ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
-        day = ptm->tm_mday;
-    }
-    */
-
     if (state == GET_THE_BACKLOG){
 		if (f != stdout) {
 			fprintf(f     , "[    BACK-LOG    ] "); //4+1+2+1+2+1+2+1+2 = 16
 		}
-		fprintf(f, "[BKLOG] "); 
+		else {
+			fprintf(f, "[BKLOG] "); 
+		}
 	}
 	else {
 		if (f != stdout) {
 			fprintf(f     , "[%04u-%02u-%02u", ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
 			fprintf(f     , " %02u:%02u] ", ptm->tm_hour, ptm->tm_min);
 		}
-		fprintf(f, "[%02u:%02u] ", ptm->tm_hour, ptm->tm_min);
+		else {
+			fprintf(f, "[%02u:%02u] ", ptm->tm_hour, ptm->tm_min);
+		}
     }
 }
 
@@ -119,9 +116,6 @@ void put_timestamp(FILE *f){
 void minichat_message(char* username, char* message, char *usericonurl, char *userprofileurl){
     char *p = NULL;
     
-    put_timestamp(f);
-    put_timestamp(stdout);
-
     // gere si la user icon est sur le serveur (avec une adresse relative ./)
     // (ne pas oublier d'alouer pour "http://", ":00000" et \0)
     if (usericonurl[0] == '.' && usericonurl[1] == '/') {
@@ -129,12 +123,19 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
         sprintf(p, "http://%s:%d%s%s", host, port, path, &usericonurl[2]);
         usericonurl = p;
     }
-    fprintf(stderr, "[icon url    = %s ]\n", usericonurl);
-    //fprintf(stderr, "[profile url = http://"HOST""PATH"%s ]\n", &userprofileurl[2]);
     
     // display the message
-    fprintf(stdout, "<%s> %s\n\n", username, message);
+    put_timestamp(stdout);
+    fprintf(stdout, "<%s> %s\n", username, message);
+
+	// and put it in the log file    
+    put_timestamp(f);
     fprintf(f     , "<%s> %s\r\n", username, message);
+    
+    fprintf(stderr, "[icon url    = %s ]\n\n", usericonurl);
+    //fprintf(stderr, "[profile url = http://"HOST""PATH"%s ]\n", &userprofileurl[2]);
+
+    
     fflush(f);
 
     if (p) { free(p); p = NULL; }
@@ -226,6 +227,7 @@ int main(void) {
 	wait_time_maxi  = read_conf_int   ("wait_time_maxi",       15) * (1000/WAITING_TIME_GRANOLOSITY);
 	wait_time_mini  = read_conf_int   ("wait_time_mini",       5)  * (1000/WAITING_TIME_GRANOLOSITY);
 	wait_time_awake = read_conf_int   ("wait_time_awake",      3)  * (1000/WAITING_TIME_GRANOLOSITY);
+	
 	fprintf(stdout, "Server from the configuration file is: http://%s:%u%s\n", host, port, path);
 	fprintf(stdout, "User-Agent: %s\n", useragent);
 	fprintf(stdout, "Timmings: maxi=%0.2fs / mini=%0.2fs / awake=%0.2fs\n", (float)wait_time_maxi/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_mini/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_awake/(1000/WAITING_TIME_GRANOLOSITY));
@@ -237,8 +239,9 @@ int main(void) {
 	}
 	
 	if (read_conf_int("read_parser_rules", 0)){
-		if(!parser_loadrules()){
+		if(parser_loadrules()){
 			fprintf(stdout, "Warning: Unable to load the parser rules. They will not be used.\n");
+			Sleep(2000);
 		}
 	}
 	

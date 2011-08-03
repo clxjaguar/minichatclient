@@ -5,8 +5,8 @@ CPP  = g++.exe
 CC   = gcc.exe
 WINDRES = windres.exe
 RES  = project_private.res
-OBJ  = main.o cookies.o network.o parsehtml.o entities.o conf.o $(RES)
-LINKOBJ  = main.o cookies.o network.o parsehtml.o entities.o conf.o $(RES)
+OBJ  = main.o cookies.o network.o parsehtml.o entities.o conf.o parser.o cstring.o attribute.o ini.o clist.o $(RES)
+LINKOBJ  = main.o cookies.o network.o parsehtml.o entities.o conf.o parser.o cstring.o attribute.o ini.o clist.o $(RES)
 LIBS =  -L"C:/Dev-Cpp/lib" -lws2_32  
 INCS =  -I"C:/Dev-Cpp/include" 
 CXXINCS =  -I"C:/Dev-Cpp/lib/gcc/mingw32/3.4.2/include"  -I"C:/Dev-Cpp/include/c++/3.4.2/backward"  -I"C:/Dev-Cpp/include/c++/3.4.2/mingw32"  -I"C:/Dev-Cpp/include/c++/3.4.2"  -I"C:/Dev-Cpp/include" 
@@ -43,6 +43,21 @@ entities.o: entities.c
 
 conf.o: conf.c
 	$(CC) -c conf.c -o conf.o $(CFLAGS)
+
+parser.o: parser.c
+	$(CC) -c parser.c -o parser.o $(CFLAGS)
+
+cstring.o: cstring.c
+	$(CC) -c cstring.c -o cstring.o $(CFLAGS)
+
+attribute.o: attribute.c
+	$(CC) -c attribute.c -o attribute.o $(CFLAGS)
+
+ini.o: ini.c
+	$(CC) -c ini.c -o ini.o $(CFLAGS)
+
+clist.o: clist.c
+	$(CC) -c clist.c -o clist.o $(CFLAGS)
 
 project_private.res: project_private.rc 
 	$(WINDRES) -i project_private.rc --input-format=rc -o project_private.res -O coff 
