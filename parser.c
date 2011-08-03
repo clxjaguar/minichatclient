@@ -113,6 +113,10 @@ parser_config *get_parser_config(char filename[]) {
 	
 	file = fopen(filename, "r");
 	
+	// <patch> niki, tu segfault si le fichier n'est pas trouvé! 
+	if (!file) { return NULL; } 
+	// </patch>
+	
 	rul = NULL;
 	config = NULL;
 	config_lines = new_clist();
