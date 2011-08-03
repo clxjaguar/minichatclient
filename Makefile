@@ -39,7 +39,7 @@ conf.o: conf.c conf.h
 
 # HTML PARSING IN MESSAGES
 
-parser.o: parser.c parser.h parser_p.h
+parser.o: parser.c parser.h
 	@echo "*** Compiling parser.o"
 	@${COMPILER} ${CCFLAGS} -c parser.c -o parser.o
 
@@ -49,7 +49,7 @@ entities.o: entities.c entities.h
 	@echo "*** Compiling entities.o"
 	@${COMPILER} ${CCFLAGS} -c entities.c -o entities.o
 
-cstring.o: cstring.c cstring.h cstring_p.h
+cstring.o: cstring.c cstring.h
 	@echo "*** Compiling cstring.o"
 	@${COMPILER} ${CCFLAGS} -c cstring.c -o cstring.o
 
@@ -57,11 +57,11 @@ clist.o: clist.c clist.h
 	@echo "*** Compiling clist.o"
 	@${COMPILER} ${CCFLAGS} -c clist.c -o clist.o
 
-ini.o: ini.c ini.h ini_p.h
+ini.o: ini.c ini.h
 	@echo "*** Compiling ini.o"
 	@${COMPILER} ${CCFLAGS} -c ini.c -o ini.o
 
-attribute.o: attribute.c attribute.h attribute_p.h
+attribute.o: attribute.c attribute.h
 	@echo "*** Compiling attribute.o"
 	@${COMPILER} ${CCFLAGS} -c attribute.c -o attribute.o
 

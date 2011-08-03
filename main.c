@@ -83,21 +83,45 @@ FILE *f;
 char *host = NULL; unsigned int port = 0;
 char *path = NULL;
 
-
-// ces fonctions sont appelées en retour par parsehtml.c
-void minichat_message(char* username, char* message, char *usericonurl, char *userprofileurl){
-    struct tm *ptm;
-    time_t lt;
-    static unsigned int day;
-    char *p = NULL;
+void put_timestamp(FILE *f){
+    struct tm *ptm;	
+    time_t lt;	
+    //static unsigned int day;
 
     lt = time(NULL);
     ptm = localtime(&lt);
+    
+    if (f == NULL) { return; }
 
+	/*
     if (ptm->tm_mday != day){
         fprintf(stdout, "*** %04u-%02u-%02u ***\n",   ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
         day = ptm->tm_mday;
     }
+    */
+
+    if (state == GET_THE_BACKLOG){
+		if (f != stdout) {
+			fprintf(f     , "[    BACK-LOG    ] "); //4+1+2+1+2+1+2+1+2 = 16
+		}
+		fprintf(f, "[BKLOG] "); 
+	}
+	else {
+		if (f != stdout) {
+			fprintf(f     , "[%04u-%02u-%02u", ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
+			fprintf(f     , " %02u:%02u] ", ptm->tm_hour, ptm->tm_min);
+		}
+		fprintf(f, "[%02u:%02u] ", ptm->tm_hour, ptm->tm_min);
+    }
+}
+
+// ces fonctions sont appelées en retour par parsehtml.c
+void minichat_message(char* username, char* message, char *usericonurl, char *userprofileurl){
+    char *p = NULL;
+    
+    put_timestamp(f);
+    put_timestamp(stdout);
+
     // gere si la user icon est sur le serveur (avec une adresse relative ./)
     // (ne pas oublier d'alouer pour "http://", ":00000" et \0)
     if (usericonurl[0] == '.' && usericonurl[1] == '/') {
@@ -108,16 +132,6 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
     fprintf(stderr, "[icon url    = %s ]\n", usericonurl);
     //fprintf(stderr, "[profile url = http://"HOST""PATH"%s ]\n", &userprofileurl[2]);
     
-    if (state == GET_THE_BACKLOG){
-        fprintf(f     , "[    BACK-LOG    ] "); //4+1+2+1+2+1+2+1+2 = 16
-        fprintf(stdout, "[BKLOG] "); 
-    }
-    else {
-        fprintf(f     , "[%04u-%02u-%02u", ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
-        fprintf(f     , " %02u:%02u] ", ptm->tm_hour, ptm->tm_min);
-        fprintf(stdout, "[%02u:%02u] ", ptm->tm_hour, ptm->tm_min);
-    }
-
     // display the message
     fprintf(stdout, "<%s> %s\n\n", username, message);
     fprintf(f     , "<%s> %s\r\n", username, message);
@@ -217,9 +231,15 @@ int main(void) {
 	fprintf(stdout, "Timmings: maxi=%0.2fs / mini=%0.2fs / awake=%0.2fs\n", (float)wait_time_maxi/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_mini/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_awake/(1000/WAITING_TIME_GRANOLOSITY));
 	
 	if (!host || !path || !useragent){
-		fprintf(stdout, "Server informations missing. Please edit your mchatclient.conf file ! Exiting now...\n");
+		fprintf(stdout, "Error: Server informations missing. Please edit your mchatclient.conf file ! Exiting now...\n");
 		Sleep(2000);
 		return -1;
+	}
+	
+	if (read_conf_int("read_parser_rules", 0)){
+		if(!parser_loadrules()){
+			fprintf(stdout, "Warning: Unable to load the parser rules. They will not be used.\n");
+		}
 	}
 	
 	state = LOADING_LOGIN_PAGE;
@@ -230,6 +250,7 @@ int main(void) {
 			if (!s) { //
                 nberr++;
                 if (nberr == 2) {
+					put_timestamp(f);
                     fprintf(f, "Unable to connect to the server anymore !\r\n");
                     fflush(f);
                 }
@@ -239,6 +260,7 @@ int main(void) {
             }
             else { 
                 if (nberr >= 2) {
+					put_timestamp(f);
                     fprintf(f, "The server seem to be back now !\r\n");
                     if (nberr >= 30) { // 5' ? reconnect from beginning.
                         state = LOADING_LOGIN_PAGE;
@@ -519,6 +541,7 @@ int main(void) {
     }
 	fclose(f);
 	freecookies(cookies);
+	parser_freerules();
     ws_cleanup();
 	return 0;
 }
