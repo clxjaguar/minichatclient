@@ -241,6 +241,13 @@ clist *get_parts(clist *config_lines, char *message) {
 	bracket = 0;
 	i = 0;
 	
+	// @ <-UTF8-> (40/64 C2/194)
+	char s_at[4];
+	s_at[0] = 0x40;
+	s_at[1] = 0xC2;
+	s_at[2] = ' ';
+	s_at[3] = '\0'; 
+	
 	for (car = message[i] ; car != '\0' ; car = message[++i]) {
 		if (!bracket && car == '<') {	
 			bracket = 1;
@@ -333,16 +340,16 @@ clist *get_parts(clist *config_lines, char *message) {
 		part = (message_part *)ptr->data;
 		cdata = new_cstring();
 		cstring_adds(cdata, part->data);
-		if (part->type == TYPE_MESSAGE && cstring_ends_withs(cdata, "@ ", 0)) {
+		if (part->type == TYPE_MESSAGE && cstring_ends_withs(cdata, s_at, 0)) {
 			// '@ <span ...>NICK</span>, '
 			// remove the "@ " and point 'ptr' to the fist span
-			if (!strcmp(cdata->string, "@ ")) {
+			if (!strcmp(cdata->string, s_at)) {
 				node = ptr->next;
 				clist_remove(list, ptr);
 				free_clist_node(ptr);
 				ptr = node;
 			} else {
-				cstring_cut_at(cdata, cdata->length - 2);
+				cstring_cut_at(cdata, cdata->length - 3);
 				free(part->data);
 				part->data = cstring_convert(cdata);
 				cdata = NULL;
