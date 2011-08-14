@@ -133,12 +133,15 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
     fprintf(f     , "<%s> %s\r\n", username, message);
     
     fprintf(stderr, "[icon url    = %s ]\n\n", usericonurl);
+    
     //fprintf(stderr, "[profile url = http://"HOST""PATH"%s ]\n", &userprofileurl[2]);
-
+	userprofileurl[0] = userprofileurl[0]; // dont show a warning message for unused variable...
     
     fflush(f);
 
     if (p) { free(p); p = NULL; }
+
+
 }
 
 void minichat_users_at_this_moment(char *string){
