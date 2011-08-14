@@ -52,7 +52,7 @@ int parser_loadrules(void){
 
 unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *msg, int reset){
     unsigned int i = 0;
-    static int j;
+    static unsigned int j;
     static tstate state;
     static int nbmessages = 0;
     //char *ptmp = NULL;
