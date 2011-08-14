@@ -11,7 +11,6 @@
 #include "cstring.h"
 #include "clist.h"
 #include "parser.h"
-#include "parser_p.h"
 #include "ini.h"
 
 #define TYPE_MESSAGE      0
