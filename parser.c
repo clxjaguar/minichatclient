@@ -11,90 +11,13 @@
 #include "cstring.h"
 #include "clist.h"
 #include "parser.h"
+#include "parser_p.h"
 #include "ini.h"
 
 #define TYPE_MESSAGE      0
 #define TYPE_OPENING_TAG  1
 #define TYPE_CLOSING_TAG  2
 #define TYPE_NICK         3
-
-//start of private prototypes
-
-//#include "attribute.h"
-
-typedef struct rule_struct {
-	char *tag;
-	char *value;
-	char *start;
-	char *stop;
-} rule;
-
-typedef struct config_line_struct {
-	char *context;
-	clist *rules;
-} config_line;
-
-typedef struct message_part_struct message_part;
-struct message_part_struct {
-	int type; // (0 or 1 or 2: 0 is text, 1 is <>, 2 is </>)
-	char *data;
-	message_part *link; // (NULL for text)
-	clist *attributes; // (NULL for text)
-};
-
-/**
- * Process and return the message_parts found in this message.
- * return:
- * 	A list of message_part*
- */
-clist *get_parts(char *message);
-
-clist_node *process_part(char *data, int text);
-
-/**
- * Process a message_part and return the replacement string according to the rules in parser_config.
- * groups:
- * 	the list of config_lines
- * context_stack:
- * 	the context stack (a list of char*)
- */
-char *process_message_part(clist *config_lines, clist *context_stack, message_part *part);
-
-/**
- * Process a message against a single config_line.
- *
- * Process the message against a signle config_line. It will be called by process_message on each
- * config_line for each message_part.
- *
- * @param out:
- * 	the cstring on which to work
- * @param config_line:
- * 	the configuration line to test against
- * @param context_stack:
- * 	the context stack (list of char *)
- * @param part:
- *	the message to process
- * 
- * @return
- * 	true if the rule was used
- */
-int process_message_part_sub(cstring *out, config_line *line, clist *context_stack, message_part *part);
-
-clist_node *new_string_node(char *string);
-clist_node *new_group_node(config_line *config);
-clist_node *new_rule_node(rule *rule);
-
-clist_node *clone_message_part_node(clist_node *message_node);
-
-void free_message_part(message_part* message);
-void free_message_part_node(clist_node* node);
-void free_rule_node(clist_node *node);
-void free_group_node(clist_node *node);
-
-int filter_config(attribute *att);
-
-// end of privates prototypes
-
 
 int filter_config(attribute *att) {
 	return (!strcmp(att->name, "context") || !strcmp(att->name, "tag") || !strcmp(att->name, "value") || !strcmp(att->name, "start") || !strcmp(att->name, "stop"));
@@ -109,6 +32,7 @@ parser_config *get_parser_config(char filename[]) {
 	rule *rul;
 	cstring *tmp;
 	parser_config *parserconf;
+	parser_config_private *data;
 	FILE *file;
 	
 	file = fopen(filename, "r");
@@ -165,9 +89,10 @@ parser_config *get_parser_config(char filename[]) {
 	}
 
 	parserconf = (parser_config *)malloc(sizeof(parser_config));
-	parserconf->data = (parser_config_private *)malloc(sizeof(parser_config_private));
-	parserconf->data->config_lines = config_lines;
-	
+	data = (parser_config_private *)malloc(sizeof(parser_config_private));
+	data->config_lines = config_lines;
+	parserconf->data = data;
+
 	fclose(file);
 	return parserconf;
 }
@@ -181,8 +106,10 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 	clist *context_stack;
 	clist_node *context_node;	
 	clist *config_lines;
+	parser_config_private *data;
 	
-	config_lines = pconfig->data->config_lines;
+	data = (parser_config_private *)pconfig->data;
+	config_lines = data->config_lines;
 	
 	out = new_cstring();
 	parts = get_parts(message);
@@ -204,7 +131,6 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 			}
 
 			clist_add(context_stack, new_string_node(cstring_convert(tmp)));
-			
 			cstring_adds(out, process_message_part(config_lines, context_stack, part));
 		break;
 		case TYPE_CLOSING_TAG:
@@ -217,10 +143,10 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 		break;
 		}
 	}
-	
+
 	free_clist(context_stack);
 	free_clist(parts);
-	
+
 	return cstring_convert(out);
 }
 
@@ -774,9 +700,14 @@ void free_group_node(clist_node *node) {
 }
 
 void free_parser_config(parser_config *pconfig) {
-	if (pconfig->data->config_lines != NULL) {
-		free_clist(pconfig->data->config_lines);
+	parser_config_private *data;
+	
+	data = (parser_config_private *)pconfig->data;
+	
+	if (data->config_lines != NULL) {
+		free_clist(data->config_lines);
 	}
+
 	free(pconfig->data);
 	free(pconfig);
 }
