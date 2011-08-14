@@ -49,11 +49,11 @@ char *cstring_convert(cstring *self) {
 	
 	if (self == NULL)
 		return NULL;
-	
+
 	free(self->private);
 	string = (self->string);
 	free(self);
-	
+
 	return string;
 }
 

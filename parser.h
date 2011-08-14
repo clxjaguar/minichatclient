@@ -3,12 +3,8 @@
 
 #include "clist.h"
 
-typedef struct parser_config_private_struct {
-	clist *config_lines;
-} parser_config_private;
-
-typedef struct parser_config_struct {
-	parser_config_private *data;
+typedef struct {
+	void *data;
 } parser_config;
 
 /**
