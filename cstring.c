@@ -82,7 +82,7 @@ clist *cstring_splitc(cstring *self, char delim, char quote) {
 	return list;
 }
 
-clist *cstring_splits(cstring *self, char *delim, char *quote) {
+clist *cstring_splits(cstring *self, const char delim[], const char quote[]) {
 	clist *list;
 	cstring *d, *q;
 
@@ -155,11 +155,11 @@ cstring *cstring_substring(cstring *self, int start, int length) {
 	return sub;
 }
 
-int cstring_starts_with(cstring *self, cstring *find, int start_index) {
+int cstring_starts_with(cstring *self, cstring *find, size_t start_index) {
 	return cstring_starts_withs(self, find->string, start_index);
 }
 
-int cstring_starts_withs(cstring *self, char *find, int start_index) {
+int cstring_starts_withs(cstring *self, const char find[], size_t start_index) {
 	int i;
 	
 	for (i = 0 ; self->string[start_index + i] == find[i] && self->string[start_index + i] != '\0' && find[i] != '\0' ; i++);
@@ -167,11 +167,12 @@ int cstring_starts_withs(cstring *self, char *find, int start_index) {
 	return find[i] == '\0';
 }
 
-int cstring_ends_with(cstring *self, cstring *find, int start_index) {
+int cstring_ends_with(cstring *self, cstring *find, size_t start_index) {
 	size_t i, index;
 
-	index = self->length - find->length - start_index;
-	if (index >= 0) {
+	index = self->length - find->length;
+	if (index >= start_index) {
+		index -=  start_index;
 		for ( i = 0 ; self->length > (index + i) && find->length > i && self->string[index + i] == find->string[i] ; i++);
 		return self->string[index + i] == find->string[i];
 	}
@@ -179,7 +180,7 @@ int cstring_ends_with(cstring *self, cstring *find, int start_index) {
 	return 0;
 }
 
-int cstring_ends_withs(cstring *self, char *find, int start_index) {
+int cstring_ends_withs(cstring *self, const char find[], int start_index) {
 	cstring *cs;
 	int result;
 
@@ -195,7 +196,7 @@ int cstring_find(cstring *self, cstring *find, int start_index) {
 	return cstring_finds(self, find->string, start_index);
 }
 
-int cstring_finds(cstring *self, char *find, int start_index) {
+int cstring_finds(cstring *self, const char find[], int start_index) {
 	int i;
 
 	for (i = start_index ; self->string[i] != '\0' ; i++) {
@@ -209,7 +210,7 @@ int cstring_finds(cstring *self, char *find, int start_index) {
 
 int cstring_replace(cstring *self, cstring *from, cstring *to) {
 	int occurs;
-	int i, ii;
+	size_t i, ii;
 	cstring *tmp;
 
 	occurs = 0;
@@ -327,11 +328,11 @@ void cstring_addN(cstring *self, int source, int radix, int cap) {
 	free_cstring(string);
 }
 
-void cstring_adds(cstring *self, char *source) {
+void cstring_adds(cstring *self, const char source[]) {
 	cstring_addfs(self, source, 0);
 }
 
-void cstring_addfs(cstring *self, char *source, int index) {
+void cstring_addfs(cstring *self, const char source[], int index) {
 	size_t ss, ptr;
 	
 	if (source != NULL) {
@@ -348,11 +349,11 @@ void cstring_addfs(cstring *self, char *source, int index) {
 	}
 }
 
-void cstring_addns(cstring *self, char *source, int n) {
+void cstring_addns(cstring *self, const char source[], int n) {
 	cstring_addfns(self, source, 0, n);
 }
 
-void cstring_addfns(cstring *self, char *source, int index, int n) {
+void cstring_addfns(cstring *self, const char source[], int index, int n) {
 	int i;
 	char *tmp;
 	

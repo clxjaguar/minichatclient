@@ -116,7 +116,7 @@ void cstring_addc(cstring *self, char source);
  * @param source:
  * 	the string to add
  */
-void cstring_adds(cstring *self, char *source);
+void cstring_adds(cstring *self, const char source[]);
 
 /**
  * Add a string at the end of the given cstring, starting from index.
@@ -130,7 +130,7 @@ void cstring_adds(cstring *self, char *source);
  * @param index:
  * 	the starting index at which to copy from the source
  */
-void cstring_addfs(cstring *self, char *source, int index);
+void cstring_addfs(cstring *self, const char source[], int index);
 
 /**
  * Add a string at the end of the given cstring, up to N chars long.
@@ -144,7 +144,7 @@ void cstring_addfs(cstring *self, char *source, int index);
  * @param n:
  * 	the maximum number of chars to add (excluding the NUL byte)
  */
-void cstring_addns(cstring *self, char *source, int n);
+void cstring_addns(cstring *self, const char source[], int n);
 
 /**
  * Add a string at the end of the given cstring, starting from index, up to N chars long.
@@ -160,7 +160,7 @@ void cstring_addns(cstring *self, char *source, int n);
  * @param n:
  * 	the maximum number of chars to add (excluding the NUL byte)
  */
-void cstring_addfns(cstring *self, char *source, int index, int n);
+void cstring_addfns(cstring *self, const char source[], int index, int n);
 
 /**
  * Add an int at the end of the given cstring.
@@ -271,7 +271,7 @@ clist *cstring_split(cstring *self, cstring *delim, cstring *quote);
  * @return:
  * 	A list of cstring
  */
-clist *cstring_splits(cstring *self, char *delim, char *quote);
+clist *cstring_splits(cstring *self, const char delim[], const char quote[]);
 
 /**
  * Split a cstring into "smaller" cstrings every time the given separator is found.
@@ -328,7 +328,7 @@ int cstring_replace(cstring *self, cstring *from, cstring *to);
  * @return:
  * 	true if it does
  */
-int cstring_starts_with(cstring *self, cstring *find, int start_index);
+int cstring_starts_with(cstring *self, cstring *find, size_t start_index);
 
 /**
  * Check if the cstring starts with the given pattern.
@@ -344,7 +344,7 @@ int cstring_starts_with(cstring *self, cstring *find, int start_index);
  * @return:
  * 	true if it does
  */
-int cstring_starts_withs(cstring *self, char *find, int start_index);
+int cstring_starts_withs(cstring *self, const char find[], size_t start_index);
 
 /**
  * Check if the cstring ends with the given pattern.
@@ -360,7 +360,7 @@ int cstring_starts_withs(cstring *self, char *find, int start_index);
  * @return:
  * 	true if it does
  */
-int cstring_ends_with(cstring *self, cstring *find, int start_index);
+int cstring_ends_with(cstring *self, cstring *find, size_t start_index);
 
 /**
  * Check if the cstring ends with the given pattern.
@@ -376,7 +376,7 @@ int cstring_ends_with(cstring *self, cstring *find, int start_index);
  * @return:
  * 	true if it does
  */
-int cstring_ends_withs(cstring *self, char *find, int start_index);
+int cstring_ends_withs(cstring *self, const char find[], int start_index);
 
 /*
  * Check if the given string is contained by this one.
@@ -404,7 +404,7 @@ int cstring_find(cstring *self, cstring *find, int start_index);
  * @return:
  * 	the start index of the found string if found, or a negative value if not
  */
-int cstring_finds(cstring *self, char *find, int start_index);
+int cstring_finds(cstring *self, const char find[], int start_index);
 
 /*
  * Clear the given cstring.
