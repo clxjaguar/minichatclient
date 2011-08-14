@@ -242,11 +242,7 @@ clist *get_parts(clist *config_lines, char *message) {
 	i = 0;
 	
 	// @ <-UTF8-> (40/64 C2/194)
-	char s_at[4];
-	s_at[0] = 0x40;
-	s_at[1] = 0xC2;
-	s_at[2] = ' ';
-	s_at[3] = '\0'; 
+	const char s_at[4] = {0x40, 0xC2, 0xA0, 0};
 	
 	for (car = message[i] ; car != '\0' ; car = message[++i]) {
 		if (!bracket && car == '<') {	
@@ -349,7 +345,7 @@ clist *get_parts(clist *config_lines, char *message) {
 				free_clist_node(ptr);
 				ptr = node;
 			} else {
-				cstring_cut_at(cdata, cdata->length - 3);
+				cstring_cut_at(cdata, cdata->length - strlen(s_at));
 				free(part->data);
 				part->data = cstring_convert(cdata);
 				cdata = NULL;
