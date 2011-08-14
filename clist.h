@@ -27,7 +27,14 @@ void clist_add(clist *list, clist_node *node);
  * Note that the node is NOT freed, you are now responsible for it.
  */
 clist_node *clist_remove(clist *list, clist_node *node);
-void clist_insert(clist *list, int index, clist_node *node);
+
+/**
+ * Insert the node at the given position in the list.
+ * 
+ * @return:
+ * 	true if it was inserted (it will not be inserted if the index does not exist in the list)
+ */
+int clist_insert(clist *list, unsigned int index, clist_node *node);
 void clist_reverse(clist *list);
 
 void free_clist(clist *list);

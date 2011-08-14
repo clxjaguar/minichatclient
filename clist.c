@@ -89,8 +89,27 @@ clist_node *clist_remove(clist *list, clist_node *node) {
 	return node;
 }
 
-void clist_insert(clist *list, int index, clist_node *node) {
-	printf("WOOPS! clist_insert NOT IMPLEMENTED!");
+int clist_insert(clist *list, unsigned int index, clist_node *node) {
+	clist_node *ptr;
+	int inserted;
+	unsigned int i;
+	
+	inserted = 0;
+	i = 0;
+	for (ptr = list->first ; !inserted && ptr != NULL ; ptr = ptr->next) {
+		if (index == i)  {
+			node->prev = ptr->prev;
+			ptr->prev = node;
+			if (node->prev != NULL) {
+				node->prev->next = node;
+			}
+			node->next = ptr;
+			inserted = 1;
+		}
+		i++;
+	}
+	
+	return inserted;
 }
 
 void free_clist_node(clist_node *node) {

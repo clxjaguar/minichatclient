@@ -47,9 +47,9 @@ struct message_part_struct {
  * return:
  * 	A list of message_part*
  */
-clist *get_parts(clist *config_linrd, char *message);
+clist *get_parts(char *message);
 
-clist_node *process_part(clist *config_lines, char *data, int text);
+clist_node *process_part(char *data, int text);
 
 /**
  * Process a message_part and return the replacement string according to the rules in parser_config.
@@ -185,7 +185,7 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 	config_lines = pconfig->data->config_lines;
 	
 	out = new_cstring();
-	parts = get_parts(config_lines, message);
+	parts = get_parts(message);
 	
 	context_stack = new_clist();
 	for (ptr = parts->first ; ptr != NULL ; ptr = ptr->next) {
@@ -224,7 +224,7 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 	return cstring_convert(out);
 }
 
-clist *get_parts(clist *config_lines, char *message) {
+clist *get_parts(char *message) {
 	clist *list, *parts_stack;
 	cstring *prev_data, *cdata, *cdata2, *starting, *ending;
 	int bracket;
@@ -248,7 +248,7 @@ clist *get_parts(clist *config_lines, char *message) {
 		if (!bracket && car == '<') {	
 			bracket = 1;
 			if (prev_data->length > 0) {
-				clist_add(list, process_part(config_lines, cstring_convert(prev_data), 1));
+				clist_add(list, process_part(cstring_convert(prev_data), 1));
 				prev_data = new_cstring();
 			}
 		} 
@@ -256,7 +256,7 @@ clist *get_parts(clist *config_lines, char *message) {
 			bracket = 0;
 			if (prev_data->length > 0) {
 				if ((i > 0 && message[i - 1] != '/') || prev_data->length > 1) {
-					node = process_part(config_lines, cstring_convert(prev_data), 0);
+					node = process_part(cstring_convert(prev_data), 0);
 					part = (message_part *)node->data;
 					clist_add(list, node);
 			
@@ -277,7 +277,7 @@ clist *get_parts(clist *config_lines, char *message) {
 	}
 	
 	if (prev_data->length > 0) {
-		clist_add(list, process_part(config_lines, cstring_convert(prev_data), 1));
+		clist_add(list, process_part(cstring_convert(prev_data), 1));
 	}
 	
 	// associate the links between them
@@ -320,7 +320,7 @@ clist *get_parts(clist *config_lines, char *message) {
 				cstring_addc(cdata, '/');
 				cstring_adds(cdata, part->data);
 				
-				node = process_part(config_lines, cstring_convert(cdata), 0);
+				node = process_part(cstring_convert(cdata), 0);
 				node->next = ptr->next;
 				node->prev = ptr;
 				ptr->next = node;
@@ -616,7 +616,7 @@ int process_message_part_sub(cstring *out, config_line *line, clist *context_sta
 	return do_apply;
 }
 
-clist_node *process_part(clist *config_lines, char *data, int text) {
+clist_node *process_part(char *data, int text) {
 	message_part *part;
 	clist_node *node;
 	clist *tab;

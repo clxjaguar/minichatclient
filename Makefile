@@ -3,7 +3,7 @@
 ################################
 
 COMPILER = gcc 
-CCFLAGS = -Wall -fshort-enums
+CCFLAGS = -Wall -Wextra -fshort-enums
 .PHONY: all rebuild clean mrproper love
 
 all: mchatclient
