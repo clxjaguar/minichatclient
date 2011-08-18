@@ -5,6 +5,22 @@
   Date:         20/06/11
 */
 
+/*
+  Hey niki ! tu pourrais gerer le cas suivant chiant ou il y a plusieurs gens qui sont citÃes avec cette putain d'arobase de merde :
+  [2011-08-18 20:57] <Teobryn> Mairusu Paua: @Â *WildRaven*, HyRo: @Â *Brek Wolf*, Furthick: @Â *Deoloup*, youpla / re
+
+  il vaudrait mieux faire en sorte que ca fasse :
+  [2011-08-18 20:57] <Teobryn> Mairusu Paua, WildRaven, HyRo, Brek Wolf, Furthick, Deoloup: youpla / re
+
+  pour le moment t'as vu Ãca le gere un coup sur deux *gg*
+  
+                                                                 -- cLx
+
+
+*/
+
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
