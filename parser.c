@@ -523,6 +523,57 @@ void force_close_tags(clist *list) {
 }
 
 /**
+ * Count the number of <span>/</span> you have that follow the pattern:
+ * "<span><span>DATA</span></span>" (this one would return 2).
+ *
+ * @param list the list to look into
+ * @param ptr the item to start the check at from the list
+ *
+ * @return the number of <span></span>'s
+ */
+int count_span_data_span(clist_node *ptr) {
+	message_part *part;
+	int num_of_spans, num_of_sspans;
+	
+	num_of_spans = 0;
+	part = (message_part *)ptr->data;
+	
+	while (ptr != NULL && !strcmp(part->data, "span") && part->type == TYPE_OPENING_TAG) {
+		num_of_spans++;
+		ptr = ptr->next;
+		if (ptr != NULL) {
+			part = (message_part *)ptr->data;
+		}
+	}
+	
+	if (part->type != TYPE_MESSAGE) {
+		return 0;
+	}
+	
+	if (ptr != NULL) {
+		ptr = ptr->next;
+	}
+	
+	if (ptr != NULL) {
+		num_of_sspans = 0;
+		part = (message_part *)ptr->data;
+		while (ptr != NULL && !strcmp(part->data, "span") && part->type == TYPE_CLOSING_TAG) {
+			num_of_sspans++;
+			ptr = ptr->next;
+			if (ptr != NULL) {
+				part = (message_part *)ptr->data;
+			}
+		}
+		
+		if (num_of_spans <= num_of_sspans) {
+			return num_of_spans;
+		}
+	}
+	
+	return 0;
+}
+
+/**
  * Check the rule that says that someone is called by "@ <span>Someone</span>, ".
  * If it is the case, we will remove the <span> and the </span>, the "@ ", and
  * replace it with "<nick>Someone</nick>".
@@ -538,78 +589,97 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 	// @ <-UTF8-> (Ox40/64 OxC2/194)
 	//const char s_at1[4] = {0x40, 0xC2, 0xA0, '\0'};
 	
-	cstring *prev_data, *cdata, *cdata2;
+	cstring *cdata;
 	clist_node *node;
 	message_part *part;
+	char blast, bblast; // before last, before before last chars
+	int size, num_of_spans, i;
 	
+	blast = '\0';
+	bblast = '\0';
 	part = (message_part *)ptr->data;
-	cdata = new_cstring();
-	cstring_adds(cdata, part->data);
-	if (part->type == TYPE_MESSAGE && cstring_starts_withs(cdata, "@", 0) && cdata->length <= 3) {
-		// '@ <span ...>NICK</span>, '
-		// remove the "@ " and point 'ptr' to the fist span
-		node = ptr->next;
-		clist_remove(list, ptr);
-		free_clist_node(ptr);
-		ptr = node;
-
-		if (ptr != NULL) {
-			// process the first <span>
-			part = (message_part *)ptr->data;
-			cdata2 = new_cstring();
-			cstring_adds(cdata2, "nick");
-			if (part->data != NULL) {
+	size = strlen(part->data);
+	
+	if (size >= 3) bblast = part->data[size - 1 - 2];
+	if (size >= 2) blast = part->data[size - 1 - 1];
+	
+	if (blast == '@' || bblast == '@') {
+		num_of_spans = count_span_data_span(ptr->next);
+		if (num_of_spans > 0) {
+			// remove the @
+			if (blast == '@') size -= 2;
+			if (bblast == '@') size -= 3;
+			if (size < 0) {
+				// The "@xx" is on its own message_part
+				node = ptr->next;
+				clist_remove(list, ptr);
+				free_clist_node(ptr);
+				ptr = node;
+			} else {
+				// The "@xx" is at the end of a message_part
+				cdata = new_cstring();
+				cstring_adds(cdata, part->data);
 				free(part->data);
-			}
-			part->data = cstring_convert(cdata2);
-			if (part->attributes != NULL) {
-				free_clist(part->attributes);
-			}
-			part->attributes = new_clist();		
-			ptr = ptr->next;
-
-			if (ptr != NULL && ptr->next != NULL) {
+				part->data = cstring_convert(cstring_substring(cdata, 0, size));
 				ptr = ptr->next;
-			
-				// process the second </span>
-				part = (message_part *)ptr->data;
-				cdata2 = new_cstring();
-				cstring_adds(cdata2, "nick");
-				if (part->data != NULL) {
-					free(part->data);
-				}
-				part->data = cstring_convert(cdata2);
-				if (part->attributes != NULL) {
-					free_clist(part->attributes);
-				}
-				part->attributes = new_clist();
-				ptr = ptr->next;
-		
-				if (ptr != NULL) {
-					// check the text after the NICK, and remove ", " from it, then points to it
-					part = (message_part *)ptr->data;
-					cdata2 = new_cstring();
-					cstring_adds(cdata2, part->data);
-					if (cstring_starts_withs(cdata2, ", ", 0)) {
-						if (!strcmp(cdata2->string, ", ")) {
-							node = ptr;
-							ptr = node->next;
-							clist_remove(list, node);
-							free_clist_node(node);
-						} else {
-							prev_data = cstring_substring(cdata2, 2, -1);
-							free(part->data);
-							part->data = cstring_convert(prev_data);
-						}
-					}
-					free_cstring(cdata2);
-				}
 			}
 		}
-	}
-	
-	if (cdata != NULL) {
-		free_cstring(cdata);
+		
+		for (; num_of_spans > 0 ; num_of_spans = count_span_data_span(ptr)) {
+			// change the <span> into <nick>
+			part = (message_part *)ptr->data;
+			cdata = new_cstring();
+			cstring_adds(cdata, "nick");
+			part->data = cstring_convert(cdata);
+			ptr = ptr->next;
+			
+			// delete the <span>'s
+			for (i = 0 ; i < num_of_spans - 1; i++) {
+				node = ptr->next;
+				clist_remove(list, ptr);
+				free_clist_node(ptr);
+				ptr = node;
+			}
+			
+			// skip the nickname
+			ptr = ptr->next;
+			
+			// delete the </span>'s
+			for (i = 0 ; i < num_of_spans - 1; i++) {
+				node = ptr->next;
+				clist_remove(list, ptr);
+				free_clist_node(ptr);
+				ptr = node;
+			}
+			
+			// change the </span> into </nick>
+			part = (message_part *)ptr->data;
+			cdata = new_cstring();
+			cstring_adds(cdata, "nick");
+			part->data = cstring_convert(cdata);
+			ptr = ptr->next;
+			
+			// remove the ", " if it exists
+			if (ptr != NULL) {
+				part = (message_part *)ptr->data;
+				cdata = new_cstring();
+				cstring_adds(cdata, part->data);
+				if (cstring_starts_withs(cdata, ", ", 0)) {
+					if (cdata->length <= 2) {
+						// The ", " is on its own line
+						node = ptr->next;
+						clist_remove(list, ptr);
+						free_clist_node(ptr);
+						ptr = node;
+					} else {
+						// The ", " is at the start of another line
+						free(part->data);
+						part->data = cstring_convert(cstring_substring(cdata, 2, -1));
+					}
+				}
+				free_cstring(cdata);
+			}
+		}
 	}
 	
 	return ptr;
@@ -708,7 +778,7 @@ clist_node *check_reduce_link_rule(clist_node *ptr) {
  */
 clist *get_parts(char *message) {
 	clist *list;
-	clist_node *ptr;
+	clist_node *ptr, *ptr2;
 	
 	list = cut_string(message);
 	
@@ -717,15 +787,15 @@ clist *get_parts(char *message) {
 	force_close_tags(list);
 	
 	// Apply some special rules (eg: "@ ")
-	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
-		ptr = check_at_rule(list, ptr);
-		ptr = check_reduce_link_rule(ptr);
+	for (ptr = list->first ; ptr != NULL ; ) {
+		ptr2 = ptr;
 		
-		// If the input is not correct, you can 'skip' some node
-		// and thus end on a ptr == NULL -- which will crash
-		// at the next increment of the loop (ptr = ptr->next)
-		if (ptr == NULL) {
-			break;
+		ptr2 = check_at_rule(list, ptr2);
+		ptr2 = check_reduce_link_rule(ptr2);
+		
+		// If nothing changed, we still need to increment the counter
+		if (ptr2 == ptr) {
+			ptr = ptr->next;
 		}
 	}
 	
