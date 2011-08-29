@@ -201,8 +201,8 @@ void free_message_part_node(clist_node* node) {
 }
 
 /**
- * Process the message against a signle config_line. It will be called by process_message on each
- * config_line for each message_part.
+ * Process the message against a signle config_line. It will be called by process_message
+ * on each config_line for each message_part.
  *
  * @param out the cstring on which to work
  * @param config_line the configuration line to test against
@@ -300,7 +300,7 @@ int process_message_part_sub(cstring *out, config_line *line, clist *context_sta
  * Process a message_part and return the replacement string according to the rules in parser_config.
  *
  * @param groups the list of config_lines
- * @param context_stack the context stack (a list of char*)
+ * @param context_stack the context stack (a list of char *)
  * @param part the message to process
  * 
  * @return the processed message 
@@ -400,21 +400,14 @@ clist_node *process_part(char *data, int text) {
 	return node;
 }
 
-/**
- * Process and return the message_parts found in this message.
- *
- * @return a list of message_part*
- */
-clist *get_parts(char *message) {
-	clist *list, *parts_stack;
-	cstring *prev_data, *cdata, *cdata2, *starting, *ending;
+clist *cut_string(char *message) {
+	clist *list;
+	cstring *prev_data;
 	int bracket;
-	int i, do_apply;
+	int i;
 	char car;
-	char *string;
-	clist_node *ptr, *node;
-	message_part *part, *linked_part;
-	attribute *att;
+	clist_node *node;
+	message_part *part;
 	
 	list = new_clist();
 	prev_data = new_cstring();
@@ -422,9 +415,7 @@ clist *get_parts(char *message) {
 	bracket = 0;
 	i = 0;
 	
-	// @ <-UTF8-> (Ox40/64 OxC2/194)
-	//const char s_at1[4] = {0x40, 0xC2, 0xA0, '\0'};
-	
+	// cut the string at every '<' and '>'
 	for (car = message[i] ; car != '\0' ; car = message[++i]) {
 		if (!bracket && car == '<') {	
 			bracket = 1;
@@ -461,7 +452,18 @@ clist *get_parts(char *message) {
 		clist_add(list, process_part(cstring_convert(prev_data), 1));
 	}
 	
-	// associate the links between them
+	return list;
+}
+
+/**
+ * Associate the links between them (the parameters in the <> tags will be 
+ * tranferred into the pending </> tags, and vice-versa.
+ */
+void associate_links(clist *list) {
+	clist *parts_stack;
+	clist_node *ptr, *node;
+	message_part *part, *linked_part;
+	
 	parts_stack = new_clist();
 	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
 		part = (message_part *)ptr->data;
@@ -488,9 +490,16 @@ clist *get_parts(char *message) {
 		}
 	}
 	free_clist(parts_stack);
+}
+
+/**
+ * Force-close tags which are not closed.
+ */
+void force_close_tags(clist *list) {
+	cstring *cdata;
+	clist_node *ptr, *node;
+	message_part *part;
 	
-	// associate the links between them (second pass, to force-close parts if they are not linked)
-	parts_stack = new_clist();
 	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
 		part = (message_part *)ptr->data;
 		
@@ -511,22 +520,58 @@ clist *get_parts(char *message) {
 		break;
 		}
 	}
-	
-	// Apply some rules (eg: "@ ")
-	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
-		part = (message_part *)ptr->data;
-		cdata = new_cstring();
-		cstring_adds(cdata, part->data);
-		if (part->type == TYPE_MESSAGE && cstring_starts_withs(cdata, "@", 0) && cdata->length <= 3) {
-			// '@ <span ...>NICK</span>, '
-			// remove the "@ " and point 'ptr' to the fist span
-			node = ptr->next;
-			clist_remove(list, ptr);
-			free_clist_node(ptr);
-			ptr = node;
+}
 
-			if (ptr != NULL) {
-				// process the first <span>
+/**
+ * Check the rule that says that someone is called by "@ <span>Someone</span>, ".
+ * If it is the case, we will remove the <span> and the </span>, the "@ ", and
+ * replace it with "<nick>Someone</nick>".
+ * Note that you can have <span><span>Someone</span></span>, too.
+ *
+ * @param list the list of message_part from which we will process one item
+ * @param ptr the item to process from the list
+ *
+ * @return the new current pointer (so, the next message_part to check against
+ * 	special rules)
+ */
+clist_node *check_at_rule(clist *list, clist_node *ptr) {
+	// @ <-UTF8-> (Ox40/64 OxC2/194)
+	//const char s_at1[4] = {0x40, 0xC2, 0xA0, '\0'};
+	
+	cstring *prev_data, *cdata, *cdata2;
+	clist_node *node;
+	message_part *part;
+	
+	part = (message_part *)ptr->data;
+	cdata = new_cstring();
+	cstring_adds(cdata, part->data);
+	if (part->type == TYPE_MESSAGE && cstring_starts_withs(cdata, "@", 0) && cdata->length <= 3) {
+		// '@ <span ...>NICK</span>, '
+		// remove the "@ " and point 'ptr' to the fist span
+		node = ptr->next;
+		clist_remove(list, ptr);
+		free_clist_node(ptr);
+		ptr = node;
+
+		if (ptr != NULL) {
+			// process the first <span>
+			part = (message_part *)ptr->data;
+			cdata2 = new_cstring();
+			cstring_adds(cdata2, "nick");
+			if (part->data != NULL) {
+				free(part->data);
+			}
+			part->data = cstring_convert(cdata2);
+			if (part->attributes != NULL) {
+				free_clist(part->attributes);
+			}
+			part->attributes = new_clist();		
+			ptr = ptr->next;
+
+			if (ptr != NULL && ptr->next != NULL) {
+				ptr = ptr->next;
+			
+				// process the second </span>
 				part = (message_part *)ptr->data;
 				cdata2 = new_cstring();
 				cstring_adds(cdata2, "nick");
@@ -537,108 +582,145 @@ clist *get_parts(char *message) {
 				if (part->attributes != NULL) {
 					free_clist(part->attributes);
 				}
-				part->attributes = new_clist();		
+				part->attributes = new_clist();
 				ptr = ptr->next;
-
-				if (ptr != NULL && ptr->next != NULL) {
-					ptr = ptr->next;
-					
-					// process the second </span>
+		
+				if (ptr != NULL) {
+					// check the text after the NICK, and remove ", " from it, then points to it
 					part = (message_part *)ptr->data;
 					cdata2 = new_cstring();
-					cstring_adds(cdata2, "nick");
-					if (part->data != NULL) {
-						free(part->data);
-					}
-					part->data = cstring_convert(cdata2);
-					if (part->attributes != NULL) {
-						free_clist(part->attributes);
-					}
-					part->attributes = new_clist();
-					ptr = ptr->next;
-				
-					if (ptr != NULL) {
-						// check the text after the NICK, and remove ", " from it, then points to it
-						part = (message_part *)ptr->data;
-						cdata2 = new_cstring();
-						cstring_adds(cdata2, part->data);
-						if (cstring_starts_withs(cdata2, ", ", 0)) {
-							if (!strcmp(cdata2->string, ", ")) {
-								node = ptr;
-								ptr = node->next;
-								clist_remove(list, node);
-								free_clist_node(node);
-							} else {
-								prev_data = cstring_substring(cdata2, 2, -1);
-								free(part->data);
-								part->data = cstring_convert(prev_data);
-							}
+					cstring_adds(cdata2, part->data);
+					if (cstring_starts_withs(cdata2, ", ", 0)) {
+						if (!strcmp(cdata2->string, ", ")) {
+							node = ptr;
+							ptr = node->next;
+							clist_remove(list, node);
+							free_clist_node(node);
+						} else {
+							prev_data = cstring_substring(cdata2, 2, -1);
+							free(part->data);
+							part->data = cstring_convert(prev_data);
 						}
-						free_cstring(cdata2);
 					}
+					free_cstring(cdata2);
 				}
 			}
 		}
-		if (part->type == TYPE_OPENING_TAG && (strcmp(part->data, "a") == 0 || strcmp(part->data, "A") == 0)) {
-			// Change <a href="abcdefghi">abc ... ghi</a> into <a href="abc ... ghi">abcdefghi</a>
-			if (ptr->next != NULL) {
-				do_apply = 0;
-				linked_part = (message_part *)ptr->next->data;
-				starting = new_cstring();
-				cstring_adds(starting, (char *)linked_part->data);
-				i = cstring_finds(starting, " ... ", 0);
+	}
+	
+	if (cdata != NULL) {
+		free_cstring(cdata);
+	}
+	
+	return ptr;
+}
 
-				cdata2 = new_cstring();
-				att = NULL;
-				for (node = part->attributes->first ; node != NULL ; node = node->next) {
-					att = (attribute *)node->data;
-					if (strcmp(att->name, "href") == 0) {
-						cstring_adds(cdata2, att->value);
-						break;
-					}
+/**
+ * Check the rule that says that a reduced URL must be remove.
+ * So, change "<a href="abcdefghi">abc ... ghi</a>" into 
+ * "<a nohref="abc ... ghi">abcdefghi</a>".
+ *
+ * @param list the list of message_part from which we will process one item
+ * @param ptr the item to process from the list
+ *
+ * @return the new current pointer (so, the next message_part to check against
+ * 	special rules)
+ */
+clist_node *check_reduce_link_rule(clist_node *ptr) {
+	cstring *prev_data, *cdata, *cdata2, *starting, *ending;
+	int i, do_apply;
+	char *string;
+	clist_node *node;
+	message_part *part, *linked_part;
+	attribute *att;
+	
+	part = (message_part *)ptr->data;
+	cdata = new_cstring();
+	cstring_adds(cdata, part->data);
+	if (part->type == TYPE_OPENING_TAG && (strcmp(part->data, "a") == 0 || strcmp(part->data, "A") == 0)) {
+		// Change <a href="abcdefghi">abc ... ghi</a> into <a href="abc ... ghi">abcdefghi</a>
+		if (ptr->next != NULL) {
+			do_apply = 0;
+			linked_part = (message_part *)ptr->next->data;
+			starting = new_cstring();
+			cstring_adds(starting, (char *)linked_part->data);
+			i = cstring_finds(starting, " ... ", 0);
+
+			cdata2 = new_cstring();
+			att = NULL;
+			for (node = part->attributes->first ; node != NULL ; node = node->next) {
+				att = (attribute *)node->data;
+				if (strcmp(att->name, "href") == 0) {
+					cstring_adds(cdata2, att->value);
+					break;
 				}
+			}
 
-				// option 1: both links are equals
-				if (att != NULL && strcmp((char *)linked_part->data, att->value) == 0) {
+			// option 1: both links are equals
+			if (att != NULL && strcmp((char *)linked_part->data, att->value) == 0) {
+				do_apply = 1;
+			}
+
+			// option 2: displayed link is "truncated" href link (abc ... ghi)
+			if (att != NULL && !do_apply && i >= 0) {
+				// cut starting into 'starting' and 'ending' (separated by " ... ")
+				// and set cdata2 to the value associated with the href attribute
+				ending = new_cstring();
+				cstring_addf(ending, starting, i + 5);
+				cstring_cut_at(starting, i);
+			
+				if (cstring_starts_with(cdata2, starting, 0) && cstring_ends_with(cdata2, ending, 0)) {
 					do_apply = 1;
 				}
 
-				// option 2: displayed link is "truncated" href link (abc ... ghi)
-				if (att != NULL && !do_apply && i >= 0) {
-					// cut starting into 'starting' and 'ending' (separated by " ... ")
-					// and set cdata2 to the value associated with the href attribute
-					ending = new_cstring();
-					cstring_addf(ending, starting, i + 5);
-					cstring_cut_at(starting, i);
-					
-					if (cstring_starts_with(cdata2, starting, 0) && cstring_ends_with(cdata2, ending, 0)) {
-						do_apply = 1;
-					}
-
-					free_cstring(ending);
-				}
-
-				if (do_apply) {
-					// the href correspond to the next node value (eg: 'abcdef' for the href and 'ab ... ef' for the
-					// next node value)
-					// What we do: we invert href and the next node value, and we change href into nohref
-					string = att->value;
-					att->value = (char *)linked_part->data;
-					linked_part->data = string;
-					
-					free(att->name);
-					prev_data = new_cstring();
-					cstring_adds(prev_data, "nohref");
-					att->name = cstring_convert(prev_data);
-				}
-				free_cstring(starting);
-				free_cstring(cdata2);
+				free_cstring(ending);
 			}
-		}
-		if (cdata != NULL) {
-			free_cstring(cdata);
-		}
 
+			if (do_apply) {
+				// the href correspond to the next node value (eg: 'abcdef' for the href and 'ab ... ef' for the
+				// next node value)
+				// What we do: we invert href and the next node value, and we change href into nohref
+				string = att->value;
+				att->value = (char *)linked_part->data;
+				linked_part->data = string;
+			
+				free(att->name);
+				prev_data = new_cstring();
+				cstring_adds(prev_data, "nohref");
+				att->name = cstring_convert(prev_data);
+			}
+			free_cstring(starting);
+			free_cstring(cdata2);
+		}
+	}
+	
+	if (cdata != NULL) {
+		free_cstring(cdata);
+	}
+	
+	return ptr;
+}
+
+/**
+ * Process and return the message_parts found in this message.
+ *
+ * @return a list of message_part *
+ */
+clist *get_parts(char *message) {
+	clist *list;
+	clist_node *ptr;
+	
+	list = cut_string(message);
+	
+	associate_links(list);
+	
+	force_close_tags(list);
+	
+	// Apply some special rules (eg: "@ ")
+	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
+		ptr = check_at_rule(list, ptr);
+		ptr = check_reduce_link_rule(ptr);
+		
 		// If the input is not correct, you can 'skip' some node
 		// and thus end on a ptr == NULL -- which will crash
 		// at the next increment of the loop (ptr = ptr->next)
