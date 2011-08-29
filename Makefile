@@ -4,38 +4,43 @@
 
 COMPILER = gcc 
 CCFLAGS = -Wall -Wextra -fshort-enums
+LIBS = -lncurses
 .PHONY: all rebuild clean mrproper love
 
 all: mchatclient
 
 rebuild: mrproper all
 
-mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o
+mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o
 	@echo "*** Linking all main objects files..."
-	@gcc cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o -o mchatclient
+	@gcc ${LIBS} cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o -o mchatclient
 	@strip mchatclient
 
 #### USED OBJECTS ####
 
-main.o: main.c conf.h network.h cookies.h parsehtml.h 
+main.o: main.c conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h
 	@echo "*** Compiling main.o"
 	@${COMPILER} ${CCFLAGS} -c main.c -o main.o
 
-network.o: network.c
+network.o: network.c display_interfaces.h
 	@echo "*** Compiling network.o"
 	@${COMPILER} ${CCFLAGS} -c network.c -o network.o
 
-cookies.o: cookies.c cookies.h
+cookies.o: cookies.c cookies.h display_interfaces.h
 	@echo "*** Compiling cookies.o"
 	@${COMPILER} ${CCFLAGS} -c cookies.c -o cookies.o
 
-parsehtml.o: parsehtml.c parsehtml.h entities.h parser.h clist.h
+parsehtml.o: parsehtml.c parsehtml.h entities.h parser.h clist.h display_interfaces.h
 	@echo "*** Compiling parsehtml.o"
 	@${COMPILER} ${CCFLAGS} -c parsehtml.c -o parsehtml.o
 
-conf.o: conf.c conf.h
+conf.o: conf.c conf.h display_interfaces.h
 	@echo "*** Compiling conf.o"
 	@${COMPILER} ${CCFLAGS} -c conf.c -o conf.o
+
+gotcurses.o: gotcurses.c display_interfaces.h commons.h
+	@echo "*** Compiling gotcurses.o"
+	@${COMPILER} ${CCFLAGS} -c gotcurses.c -o gotcurses.o
 
 # PARSING HTML ENTITIES
 

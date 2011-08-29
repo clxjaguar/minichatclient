@@ -12,21 +12,20 @@
   22/06/11 : cLx       Ajout de unistd.h dans les includes pour autre chose que windows pour éviter un warning quand on compile avec -Wall
 */
 
-#define DEBUG 0
+#include "display_interfaces.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #if defined (WIN32)
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <string.h>
     #include <winsock2.h>
     #define close(s) closesocket(s)
 #else
-    #include <stdio.h>
     #include <unistd.h>
     #include <arpa/inet.h>
     #include <sys/types.h>
     #include <sys/socket.h>
-    #include <string.h>
     #include <netdb.h>
 #endif
 
@@ -47,16 +46,28 @@ int maketcpconnexion(char* hostname, int port){
 	struct hostent	 *he;
 	struct sockaddr_in  server;
 	int sockfd;
+	char *p;
 
-    fprintf(stderr, "\n");
+    //fprintf(stderr, "Resolving %s ...", hostname);
+    display_debug("Resolving ", 0);
+    display_debug(hostname, 1);
+	display_debug(" ... ", 1);
+    
 	/* resolve host to an IP */
 	if ((he = (void *)gethostbyname(hostname)) == NULL) { // deprécié !
-		fprintf(stderr, "Error resolving hostname.\n");
+		//fprintf(stderr, "Error resolving hostname.\n");
+		display_debug("Error resolving hostname.", 1);
 		return 0;
 	}
 
 	if (he->h_addrtype == AF_INET) {
-		//fprintf(stderr, "%s => %u.%u.%u.%u (IPv4)\n", he->h_name, (unsigned char)he->h_addr[0], (unsigned char)he->h_addr[1], (unsigned char)he->h_addr[2], (unsigned char)he->h_addr[3]);
+		//p = malloc(50);
+		//snprintf(p, 25, "\b\b\b\b=> %d.%d.%d.%d", he->h_addr[0], he->h_addr[1], he->h_addr[2], he->h_addr[3]);
+		//display_debug(p, 1);
+		//free(p); p=NULL;
+	}
+	else {
+		display_debug("huh? not AF_INET?", 1);
 	}
 
 	/*
@@ -71,38 +82,55 @@ int maketcpconnexion(char* hostname, int port){
 
 	/* open socket */
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		fprintf(stderr, "Error: unable to open socket\n");
+		//fprintf(stderr, "Error: unable to open socket\n");
+		display_debug("Error: unable to open socket.", 0);
 		return 0;
 	}
 
 	/* connect */
 	if (connect(sockfd, (struct sockaddr *)&server, sizeof(server))) {
-		fprintf(stderr, "Error connecting to %s:%d\n", he->h_name, port);
+		//fprintf(stderr, "Error connecting to %s:%d\n", he->h_name, port);
+		p = malloc(200); // flemme.
+		snprintf(p, 200, "Error connecting to %s:%d", he->h_name, port);
+		display_debug(p, 0);
+		free(p); p=NULL;
 		close(sockfd);
 		return 0;
 	}
 
-	fprintf(stderr, "Connected to %s:%d\r", inet_ntoa(server.sin_addr), port);
+	//fprintf(stderr, "Connected to %s:%d\r", inet_ntoa(server.sin_addr), port);
+	p = malloc(200);
+	snprintf(p, 200, "Connected to %s:%d", inet_ntoa(server.sin_addr), port);
+	display_debug(p, 0);
+	free(p); p=NULL;
 	return sockfd;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
 int sendstr(int s, char* buf){
-	if (DEBUG) fprintf(stderr, "%s", buf);
+#ifdef DEBUG
+	fprintf(stderr, "%s", buf);
+#endif
 	send(s, buf, strlen(buf), 0);
 	return 0;
 }
 
 int sendline(int s, char* buf){
-	if (DEBUG) fprintf(stderr, "%s\n", buf);
+#ifdef DEBUG
+	fprintf(stderr, "%s\n", buf);
+#endif
 	send(s, buf, strlen(buf), 0);
 	send(s, "\r\n", 2, 0);
 	return 0;
 }
 
 int http_get(int s, char* req, char* host, char* referer, char* cookies, char* useragent, char* mischeaders){
-    fprintf(stderr, "GET http://%s%s%s\n", host, req[0]=='/'?"":"/", req);
+	char buf[200];
+    //fprintf(stderr, "GET http://%s%s%s\n", host, req[0]=='/'?"":"/", req);
+    snprintf(buf, 200, "GET http://%s%s%s", host, req[0]=='/'?"":"/", req);
+    display_debug(buf, 0);
+    
 	sendstr(s, "GET ");
 	sendstr(s, req);
 	sendline(s, " HTTP/1.1");
@@ -134,8 +162,10 @@ int http_get(int s, char* req, char* host, char* referer, char* cookies, char* u
 
 int http_post(int s, char* req, char* host, char* datas, char* referer, char* cookies, char* useragent, char* mischeaders){
 	char buf[200];
-
-    fprintf(stderr, "POST http://%s%s%s [%s]\n", host, req[0]=='/'?"":"/", req, datas);
+    //fprintf(stderr, "POST http://%s%s%s [%s]\n", host, req[0]=='/'?"":"/", req, datas);
+    snprintf(buf, 200, "POST http://%s%s%s [%s]", host, req[0]=='/'?"":"/", req, datas);
+    display_debug(buf, 0);
+    
 	sendstr(s, "POST ");
 	sendstr(s, req);
 	sendline(s, " HTTP/1.1");
@@ -161,7 +191,7 @@ int http_post(int s, char* req, char* host, char* datas, char* referer, char* co
 		sendline(s, cookies);
 	}
 	sendline(s, "Content-Type: application/x-www-form-urlencoded");
-	sprintf(buf, "Content-Length: %d", strlen(datas));
+	snprintf(buf, 200, "Content-Length: %d", strlen(datas));
 	sendline(s, buf);
 	if (mischeaders && mischeaders[0] != '\0') { sendline(s, mischeaders); }
 	sendline(s, ""); // une ligne vide signifie au serveur qu'on a fini avec les headers, c'est a lui maintenant

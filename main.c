@@ -1,22 +1,8 @@
 // Ce truc est une sorte declient http afin de servir depasserelle vers le minichat rmcgirr83.org pour phpbb.
 // pourquoi toujours utiliser les trucs les moins compatibles possibles ?
 //
-// Sous windows, il faut passer -lws2_32 au linker (nous utilisons aussi gcc).
-//
-// Changelog:
-// 05/04/11 : cLx       Début du programme (connexions vers un serveur HTTP), fonctionne sous Debian
-// 05/04/11 : Nejaa     Portabilisation du code existant vers Windows
-// 06/04/11 : cLx       Test sous XP => OK!
-// 07/04/11 : cLx       Grosses modifications dans plusieurs fonctions du programme. Le programme peut se logger et envoyer du texte
-// 08/04/11 : cLx       Découpage en differents objets. Traitement des cookies de façon automatique.
-// 08/04/11 : Nejaa     Minimes modification pour compiler sans warnings et fonction d'attente (provisoire) portabilité a tester
-// 15/04/11 : cLx       Une machines à états pour faire un semblant de parsage sur l'HTML
-// 17/04/11 : cLx       La fonction de decodage fait maintenant quelque chose de propre ! :D
-// 18/04/11 : Nejaa     Ajout du marquage de l'heure
-// 19/04/11 : cLx       Corrections sur l'horodatage / entites html / un peu plein de petits trucs partout
-// 11/05/11 : cLx       Correction d'un bug a la con dans le parseur html (en cas de usericon sur d'autres serveurs que le forum)
-// 29/05/11 : cLx       Amelioration du comportement en cas de problemes de connexion 
-// 23/06/11 : cLx       Modifications pour récupérer la config depuis un fichier de conf.
+// Avec gcc sous windows, il faut passer -lws2_32 et "c:\Dev-Cpp\lib\libcurses.a" au 
+// linker (avec pdcurses-3.2-1mol.DevPak d'installé dans dev-c++ dans cet exemple).
 //
 // Todo:
 // [x] réseau, compatibilité windows, fonctions http de bases (get et post)
@@ -28,8 +14,8 @@
 // [_] ajouter le support de l'IPv6 (un jour viendra où l'on y sera obligé!)
 // [x] parser les trucs entites HTML
 // [_] gerer les erreurs genre on s'est fait "déconnecté" (sic) par le serveur (et tenter de se relogger)
-// [_] parser le HTML présant quand il y a un lien, ou un quote, ou qu'on clique sur le '@'...
-// [_] delai de polling adaptatif selon qu'il se passe des trucs ou non
+// [x] parser le HTML présant quand il y a un lien, ou un quote, ou qu'on clique sur le '@'...
+// [x] delai de polling adaptatif selon qu'il se passe des trucs ou non
 // [?] implémenter un serveur IRC pour un maximum de compatibilité avec un client d'IM ? ...
 // [?] ... voire cette passerelle rendre multi-user pour qu'on puisse le mettre sur le serveur ? ...
 // [?] ...ou faire un add-on pour pidgin ? ...
@@ -45,23 +31,21 @@
 
 #if defined (WIN32)
     #include <winsock2.h>
-    #define close(s) closesocket(s)
 #else
     #include <sys/socket.h>
     #define Sleep(s) usleep(s*1000)
+    #define closesocket(s); close(s);
 #endif
 
 #include "cookies.h"
 #include "network.h"
 #include "parsehtml.h"
 #include "conf.h"
+#include "commons.h"
+#include "display_interfaces.h"
 
 #define LOGIN_PAGE "ucp.php?mode=login"
 #define MCHAT_PAGE "mchat.php"
-#define TESTMSG    "{Meeowwwss!}"
-
-// waiting time granolosity for pooling minichat server in milliseconds
-#define WAITING_TIME_GRANOLOSITY 250
 
 // have to be large enough to contain the http headers
 #define BUFSIZE 800
@@ -85,8 +69,7 @@ char *path = NULL;
 
 void put_timestamp(FILE *f){
     struct tm *ptm;	
-    time_t lt;	
-    //static unsigned int day;
+    time_t lt;		
 
     lt = time(NULL);
     ptm = localtime(&lt);
@@ -95,7 +78,7 @@ void put_timestamp(FILE *f){
 
     if (state == GET_THE_BACKLOG){
 		if (f != stdout) {
-			fprintf(f     , "[    BACK-LOG    ] "); //4+1+2+1+2+1+2+1+2 = 16
+			fprintf(f, "[    BACK-LOG    ] "); //4+1+2+1+2+1+2+1+2 = 16
 		}
 		else {
 			fprintf(f, "[BKLOG] "); 
@@ -103,8 +86,8 @@ void put_timestamp(FILE *f){
 	}
 	else {
 		if (f != stdout) {
-			fprintf(f     , "[%04u-%02u-%02u", ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
-			fprintf(f     , " %02u:%02u] ", ptm->tm_hour, ptm->tm_min);
+			fprintf(f, "[%04u-%02u-%02u", ptm->tm_year+1900, ptm->tm_mon+1, ptm->tm_mday);
+			fprintf(f, " %02u:%02u] ", ptm->tm_hour, ptm->tm_min);
 		}
 		else {
 			fprintf(f, "[%02u:%02u] ", ptm->tm_hour, ptm->tm_min);
@@ -115,31 +98,32 @@ void put_timestamp(FILE *f){
 // ces fonctions sont appelées en retour par parsehtml.c
 void minichat_message(char* username, char* message, char *usericonurl, char *userprofileurl){
     char *p = NULL;
-    
-    // gere si la user icon est sur le serveur (avec une adresse relative ./)
-    // (ne pas oublier d'alouer pour "http://", ":00000" et \0)
-    if (usericonurl[0] == '.' && usericonurl[1] == '/') {
-        p = malloc(strlen(host)+strlen(path)+strlen(usericonurl)+20);
-        sprintf(p, "http://%s:%d%s%s", host, port, path, &usericonurl[2]);
-        usericonurl = p;
-    }
-    
+        
     // display the message
-    put_timestamp(stdout);
-    fprintf(stdout, "<%s> %s\n", username, message);
+    //put_timestamp(stdout);
+    p = malloc(strlen(username)+strlen(message)+4); // "<> \0"
+    strcpy(p, "<"); strcat(p, username); strcat(p, "> "); strcat(p, message);
+    display_conversation(p);
+    free(p); p = NULL;
 
 	// and put it in the log file    
-    put_timestamp(f);
-    fprintf(f     , "<%s> %s\r\n", username, message);
+    put_timestamp(f); fprintf(f, "<%s> %s\r\n", username, message); fflush(f);
     
-    fprintf(stderr, "[icon url    = %s ]\n\n", usericonurl);
+    // gere si la user icon est sur le serveur (avec une adresse relative ./)
+    // (ne pas oublier d'alouer pour "http://", ":12345" et le \0 de fin de chaine)
+    if (usericonurl[0] == '.' && usericonurl[1] == '/') {
+        //p = malloc(strlen(host)+strlen(path)+strlen(usericonurl)+20);
+        //sprintf(p, "http://%s:%d%s%s", host, port, path, &usericonurl[2]);
+        //usericonurl = p;
+    }
+
+    
+    //fprintf(stderr, "[icon url    = %s ]\n\n", usericonurl);
     
     //fprintf(stderr, "[profile url = http://"HOST""PATH"%s ]\n", &userprofileurl[2]);
 	userprofileurl[0] = userprofileurl[0]; // dont show a warning message for unused variable...
     
-    fflush(f);
-
-    if (p) { free(p); p = NULL; }
+    if (p) { free(p); p = NULL; } 
 
 
 }
@@ -183,6 +167,20 @@ int test_html_parser(char *filename){
     return 0;
 }*/
 
+int ishttpresponseok(char *buf, unsigned int bytes){
+	unsigned int i; char tmp;
+	for(i=0; i<bytes; i++){ 
+		if (buf[i] == '\r' || buf[i] == '\n'){ 
+			tmp = buf[i];
+			buf[i] = '\0'; 
+			display_debug(buf, 0); 
+			buf[i] = tmp;
+			break; 
+		}
+	}
+	return 1; // TODO: analyze the response to know if it is ok !
+}
+
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// ENTRY POINT /////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -192,6 +190,7 @@ int main(void) {
 	char buf[BUFSIZE+1]; // rx buffer
 	int bytes;
 	int k; // flag for any use
+	char *outgoingmsg = NULL;
 
 	int t; // timeslots remaining before next polling
     unsigned int nberr = 0;
@@ -206,17 +205,20 @@ int main(void) {
 
     memset(&cookies[0], 0, sizeof(cookies));
     memset(&msg,        0, sizeof(msg));
-
-    fprintf(stdout, "\n\
-    *******************************************************************\n\
-    *** Welcome to minichatclient for rmcgirr83.org's phpBB's addon ***\n\
-    ***          http://minichatclient.sourceforge.net/             ***\n\
-    *******************************************************************\n\
-    \n");
+    
+    display_init();
+	display_conversation(
+      "*****************************************************************\n"
+      "** Welcome to minichatclient for rmcgirr83.org's phpBB's addon **\n"
+      "**          http://minichatclient.sourceforge.net/             **\n"
+      "*****************************************************************\n"
+    );
 
 	f = fopen("output.log", "a");
 	if (!f){
-		fprintf(stderr, "Can't open output.log for writing !\n");
+		//fprintf(stderr, "Can't open output.log for writing !\n");
+		display_debug("Can't open output.log for writing !", 0);
+		display_waitforchar("Press any key to continue");
 		return -1;
 	}
 
@@ -231,20 +233,26 @@ int main(void) {
 	wait_time_mini  = read_conf_int   ("wait_time_mini",       5)  * (1000/WAITING_TIME_GRANOLOSITY);
 	wait_time_awake = read_conf_int   ("wait_time_awake",      3)  * (1000/WAITING_TIME_GRANOLOSITY);
 	
-	fprintf(stdout, "Server from the configuration file is: http://%s:%u%s\n", host, port, path);
-	fprintf(stdout, "User-Agent: %s\n", useragent);
-	fprintf(stdout, "Timmings: maxi=%0.2fs / mini=%0.2fs / awake=%0.2fs\n", (float)wait_time_maxi/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_mini/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_awake/(1000/WAITING_TIME_GRANOLOSITY));
+	
+	//snprintf(stdout, "Server from the configuration file is: http://%s:%u%s", host, port, path);
+	//snprintf(stdout, "User-Agent: %s\n", useragent);
+	{
+		char buf2show[200];
+		snprintf(buf2show, 200, "Timmings: maxi=%0.2fs / mini=%0.2fs / awake=%0.2fs\n", (float)wait_time_maxi/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_mini/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_awake/(1000/WAITING_TIME_GRANOLOSITY));
+		display_debug(buf2show, 0);
+	}	
 	
 	if (!host || !path || !useragent){
-		fprintf(stdout, "Error: Server informations missing. Please edit your mchatclient.conf file ! Exiting now...\n");
-		Sleep(2000);
+		//fprintf(stdout, "Error: Server informations missing. Please edit your mchatclient.conf file ! Exiting now...\n");
+		display_debug("Error: Server informations missing. Please edit your mchatclient.conf file !", 0);
+		display_waitforchar("Press any key to quit");
 		return -1;
 	}
 	
 	if (read_conf_int("read_parser_rules", 0)){
 		if(parser_loadrules()){
-			fprintf(stdout, "Warning: Unable to load the parser rules. They will not be used.\n");
-			Sleep(2000);
+			//fprintf(stdout, "Warning: Unable to load the parser rules. They will not be used.\n");
+			display_conversation("Warning: Unable to load the parser rules. They will not be used.");
 		}
 	}
 	
@@ -255,23 +263,23 @@ int main(void) {
 			s = maketcpconnexion(host, port);
 			if (!s) { //
                 nberr++;
-                if (nberr == 2) {
-					put_timestamp(f);
-                    fprintf(f, "Unable to connect to the server anymore !\r\n");
-                    fflush(f);
+                if (nberr == 5) {
+					put_timestamp(f); 
+					fprintf(f, "Unable to connect to the server anymore !\r\n"); 
+					fflush(f);
                 }
                 wait_time = 10 * (1000/WAITING_TIME_GRANOLOSITY);
                 futurestate = state;
                 state = WAIT;
             }
             else { 
-                if (nberr >= 2) {
+                if (nberr >= 5) {
 					put_timestamp(f);
                     fprintf(f, "The server seem to be back now !\r\n");
+                    fflush(f);
                     if (nberr >= 30) { // 5' ? reconnect from beginning.
                         state = LOADING_LOGIN_PAGE;
                     }
-                    fflush(f);
                 }
                 nberr = 0; 
             }
@@ -291,7 +299,10 @@ int main(void) {
 				}
         		k=1;
         		while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
+                    if(k) { 
+						ishttpresponseok(buf, bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, bytes);
+					}
                     k=0;
         		}
         		state = SUBMIT_AUTHENTIFICATION;
@@ -311,12 +322,13 @@ int main(void) {
 					
 					username = read_conf_string("username", username, 0);
 					password = read_conf_string("password", password, 0);
+					close_conf_file();
 					
 				    if (!username || !password) { 
-						if (!username) { free(username); username=NULL; }
-						if (!password) { free(password); password=NULL; }
-						fprintf(stderr, "Username/password informations missing or incomplete, skipping authentification. Tying to switch to the reading states though.");
-						close_conf_file();
+						if (username) { free(username); username=NULL; }
+						if (password) { free(password); password=NULL; }
+						//fprintf(stderr, "Username/password informations missing or incomplete, skipping authentification. Tying to switch to the reading states though.");
+						display_debug("Username/password informations missing or incomplete, skipping authentification. Tying to switch to the reading states though.", 0);
 						state = GET_THE_BACKLOG; 
 						break;
 					}
@@ -332,7 +344,6 @@ int main(void) {
 	                strcat(postdata, "&redirect=index.php&login=Connexion");
 	                free(username); username=NULL;
 	                free(password); password=NULL;
-				    close_conf_file();
 				    
 				    referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(LOGIN_PAGE)+1);
 					strcpy(referer, "http://");
@@ -349,8 +360,11 @@ int main(void) {
 				}
                 k=1;
         	    while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
-                    k=0;
+                    if(k) {
+						ishttpresponseok(buf, bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, bytes);
+					}
+					k=0;
         		}
         		state = GET_THE_BACKLOG;
     			break;
@@ -381,10 +395,13 @@ int main(void) {
 				}
         		k=1;
                 while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
+                    if(k) { 
+						ishttpresponseok(buf, bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, bytes);
+					}
         			parse_minichat_mess(buf, bytes, &msg, k);
         			k=0;
-                }
+	            }
         		state = RETRIEVING_THE_LIST_OF_USERS;
     			break;
 
@@ -421,18 +438,24 @@ int main(void) {
 				}
 				{
 					unsigned short nbmessages = 0, old_wait_time;
+					char buf2show[200];
+					
+					snprintf(buf2show, 200, "Delay %0.2fs ", (float)wait_time*(WAITING_TIME_GRANOLOSITY/1000));
+					display_debug(buf2show, 0);
+					
 	        		k=1;
 	                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-	                    if(k) { parsehttpheadersforgettingcookies(cookies, buf); }
+	                    if(k) { 
+							ishttpresponseok(buf, bytes);
+							parsehttpheadersforgettingcookies(cookies, buf, bytes); 
+						}
 	        			nbmessages = parse_minichat_mess(buf, bytes, &msg, k);
-	                    if(k) {{ int i; for(i=0; i<bytes; i++){ fprintf(stderr, "%c", buf[i]); if (buf[i] == '\n'){break;} }}}
-						////fwrite(buf, bytes, 1, stderr); } // envoi vers console
 	        			k=0;
 	        		}   
-
+					
 					old_wait_time = wait_time;
 	        		if (nbmessages == 0) {
-						wait_time*=1.5; //*(1000/WAITING_TIME_GRANOLOSITY);
+						wait_time*=1.5;
 						if (wait_time>wait_time_maxi) { wait_time = wait_time_maxi; }
 					}
 	                else {
@@ -442,6 +465,12 @@ int main(void) {
 							if (old_wait_time < wait_time) { wait_time = old_wait_time; }
 						}
 					}
+					
+						
+					snprintf(buf2show, 200, "%u new message(s). Delay ajusted from %u to %u.", nbmessages, old_wait_time, wait_time);
+					display_debug(buf2show, 0);
+					snprintf(buf2show, 200, "Timmings: maxi=%0.2fs / mini=%0.2fs / awake=%0.2fs\n", (float)wait_time_maxi/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_mini/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_awake/(1000/WAITING_TIME_GRANOLOSITY));
+					display_debug(buf2show, 0);
 				}
                 futurestate = WATCHING_NEW_MESSAGES;
         		state = WAIT;
@@ -473,7 +502,10 @@ int main(void) {
 				}
                 k=1;
                 while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
+                    if(k) {
+						ishttpresponseok(buf, bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, bytes);
+					}
        				parse_minichat_mess(buf, bytes, &msg, k);
        				k=0;
                 }
@@ -483,8 +515,17 @@ int main(void) {
         		state = WATCHING_NEW_MESSAGES;
                 break;
 
+#define POSTDATALEFT   "mode=add&message="
+#define POSTDATARIGHT  "&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23"
+
     		case POSTING_A_MESSAGE:
                 // et enfin, ça, c'est pour y poster quelque chose. faire gaffe de ne pas flooder sinon Timmy va se fâcher.
+                if (!outgoingmsg){
+					display_debug("Error: doing a posting cycle but there is no outgoing message to send.", 0);
+					state = WATCHING_NEW_MESSAGES;
+					break;
+				}
+                
                 {
 					char *req        = NULL;
 					char *postdata   = NULL;
@@ -494,8 +535,12 @@ int main(void) {
 					req = malloc(strlen(path)+strlen(MCHAT_PAGE)+1);
 					strcpy(req, path);
 					strcat(req, MCHAT_PAGE);
-					
-					//"mode=add&message="TESTMSG"&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23"
+
+					// mode=add&message=TESTMSG&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23
+					postdata = malloc(strlen(POSTDATALEFT) + strlen(outgoingmsg) + strlen(POSTDATARIGHT) + 1);
+					strcpy(postdata, POSTDATALEFT);
+					strcat(postdata, outgoingmsg);
+					strcat(postdata, POSTDATARIGHT);
 					
 					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(MCHAT_PAGE)+1);
 					strcpy(referer, "http://");
@@ -506,17 +551,22 @@ int main(void) {
 					storecookie(cookies, "mChatShowUserList", "yes");
 					cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
 					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
+					outgoingmsg = NULL; // don't be afraid, a copy of this buffer is keep internally in the function providing it
 	        	    
 					free(req);        req=NULL;
-					free(postdata);   postdata=NULL;
 					free(referer);    referer=NULL;
+					free(postdata);	  postdata=NULL;
 					free(cookiesstr); cookiesstr=NULL;
 				}
                 k=1;
                 while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-                    if(k) parsehttpheadersforgettingcookies(cookies, buf);
-        			fwrite(buf, bytes, 1, stderr); // envoi vers console
-        			k=0;
+                    if(k) {
+						ishttpresponseok(buf, bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, bytes);
+
+					}
+        			//fwrite(buf, bytes, 1, stderr); // envoi vers console
+					k=0;
         		}
         		wait_time = wait_time_awake;
     			state = WATCHING_NEW_MESSAGES; // le changement d'état est important ;)
@@ -526,28 +576,47 @@ int main(void) {
                 // on attends un peu entre chaque refresh pour ne pas saturer le serveur
                 if (state != oldstate) {
                     t = wait_time;
-                    fprintf(stderr, "\n[Waiting     ]\b");
+                    //display_status(stderr, "\n[Waiting     ]\b");
+                    display_debug("Waiting......", 0);
+                    //oldstate = state;
                 }
 				if (t){{
 					const char anim[4] = {'\\', '-', '/', '|'};
-					t--; fprintf(stderr, "\b\b\b\b%c%3.0d", anim[t%4], (int)(t/(1000/WAITING_TIME_GRANOLOSITY))); 
+					char buf2show[15];
+					t--; 
+					//fprintf(stderr, "\b\b\b\b%c%3.0d", anim[t%4], (int)(t/(1000/WAITING_TIME_GRANOLOSITY))); 
+					//snprintf(buf, 15, "Waiting%3us %c", (unsigned int)(t/(1000/WAITING_TIME_GRANOLOSITY)), anim[t%4]); 
+					//display_statusbar(buf);
+					snprintf(buf2show, 15, "\b\b\b\b\b\b%3us %c", (unsigned int)(t/(1000/WAITING_TIME_GRANOLOSITY)), anim[t%4]); 
+					display_debug(buf2show, 1);
+					//oldstate = state;
 				}}
 				else {
 					state = futurestate;
-					fprintf(stderr, "\r              \r");
+					//fprintf(stderr, "\r              \r");
+					//display_statusbar(NULL);
+					display_debug("\b\b\b\b\b\b\b\b\b\b\b\b\b             \b\b\b\b\b\b\b\b\b\b\b\b\b", 1);
 				}
 
-                Sleep(WAITING_TIME_GRANOLOSITY);
-                oldstate = state;
+				// timebase and checks for keyboard inputs. eg, like "Sleep(WAITING_TIME_GRANOLOSITY);"
+                outgoingmsg = display_driver(); // please don't free(), it will happen it the next time.
+                if (outgoingmsg) {
+					state = POSTING_A_MESSAGE;
+				}
+				oldstate = state; // bug if not here ? why ?
                 break;
     	}
      
         // if a TCP connexion to the server is present, terminate it !
-        if (s) { close(s); s = 0; }
+        if (s) { closesocket(s); s = 0; }
+        
+        // separate cycles in the debug console (delay countdown let a blank line)
+        //if (oldstate != WAIT) { display_debug("", 0); }
     }
 	fclose(f);
 	freecookies(cookies);
 	parser_freerules();
     ws_cleanup();
+    display_end();
 	return 0;
 }

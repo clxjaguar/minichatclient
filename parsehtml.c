@@ -15,6 +15,7 @@
 #include "entities.h"
 #include "parsehtml.h"
 #include "parser.h"
+#include "display_interfaces.h"
 
 typedef enum {
     READY=0,
@@ -31,8 +32,8 @@ typedef enum {
 
 parser_config *config = NULL;
 
-#define FREE(p) if (p != NULL) { free(p); p = NULL; }
-#define DEBUG 0
+#define FREE(p); if (p != NULL) { free(p); p = NULL; }
+//#define DEBUG
 
 int parser_freerules(void){
 	if (config != NULL){
@@ -57,11 +58,11 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
     static int nbmessages = 0;
     //char *ptmp = NULL;
         
-    char str1[] = "<div id=\"mess";
-    char str2[] = "<a href=\".";
-    char str3[] = "<img src=\"";
-    char str4[] = "<div class=\"avatarMessage mChatMessage\">";
-    char str5[] = "</div>";
+    const char str1[] = "<div id=\"mess";
+    const char str2[] = "<a href=\".";
+    const char str3[] = "<img src=\"";
+    const char str4[] = "<div class=\"avatarMessage mChatMessage\">";
+    const char str5[] = "</div>";
 
     static unsigned int o = 0;
     static char buffer[4000]; //TODO: rendre ce truc dynamique
@@ -74,27 +75,28 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
         j=0; 
         o=0;
         nbmessages = 0;
-        FREE(msg->username)
-        FREE(msg->message)
-        FREE(msg->usericonurl)
-        FREE(msg->userprofileurl)
-    }
-    else {
-        if (DEBUG) fprintf(stderr, "[CONT]"); 
-    }
+        FREE(msg->username);
+        FREE(msg->message);
+        FREE(msg->usericonurl);
+        FREE(msg->userprofileurl);
+	}
 
-    if (o>=sizeof(buffer)) { o--; fprintf(stderr, "Buffer full when parsing responses !\n"); }
+#ifdef DEBUG
+	else {
+		fprintf(stderr, "[CONT]"); 
+	}
+#endif
+
+    if (o>=sizeof(buffer)) { o--; display_debug("Buffer full when parsing responses !", 0); }
 
     for (i=0; i<bytes; i++){
-        
-        if (DEBUG) { 
-            if (state != oldstate) {
-                fprintf(stderr, "[S%u=>S%u]", oldstate, state); 
-                oldstate = state;
-            }
-            fprintf(stderr, "%c", input[i]); 
-        }
-        
+#ifdef DEBUG      
+		if (state != oldstate) {
+			fprintf(stderr, "[S%u=>S%u]", oldstate, state); 
+			oldstate = state;
+		}
+		fprintf(stderr, "%c", input[i]); 
+#endif
         if (input[i] == '\r') { continue; }
         if (input[i] == '\n') { continue; }
         
@@ -114,12 +116,10 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                 if (input[i] == '\"') {
                     msg->msgid[j] = '\0'; j = 0;
                     state = LOOKING_FOR_USERICON_URL;
-                    //printf(" ");
                 }
                 else { 
                     if (j>=20){ j-=5; } // very ugly but can save the day !
                     msg->msgid[j++] = input[i];
-                    //printf("%c", input[i]);
                 }
                 break;
                 
@@ -137,7 +137,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
             case IN_USERICON_URL:
                 if (input[i] == '\"'){
                     buffer[o] = '\0';
-                    FREE(msg->usericonurl)
+                    FREE(msg->usericonurl);
                     msg->usericonurl = malloc((o+1)*sizeof(char));
                     //strcpy(msg->usericonurl, buffer);
                     decode_html_entities_utf8(msg->usericonurl, buffer);
@@ -162,7 +162,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
             case IN_PROFILE_URL:
                 if (input[i] == '"') {
                     buffer[o] = '\0';
-                    FREE(msg->userprofileurl)
+                    FREE(msg->userprofileurl);
                     msg->userprofileurl = malloc((o+1)*sizeof(char));
                     //strcpy(msg->userprofileurl, buffer);
                     decode_html_entities_utf8(msg->userprofileurl, buffer);
@@ -183,7 +183,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
             case IN_USERNAME:
                 if (input[i] == '<'){
                     buffer[o] = '\0';
-                    FREE(msg->username)
+                    FREE(msg->username);
                     msg->username = malloc((o+1)*sizeof(char));
                     //strcpy(msg->username, buffer);
                     decode_html_entities_utf8(msg->username, buffer);
@@ -192,7 +192,6 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                 }
                 else {
                     buffer[o++] = input[i];
-                    //printf("%c", input[i]);
                 }
                 break;
                                  
@@ -213,7 +212,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
                     if (j >= strlen(str5)) {
                         o-=strlen(str5);
                         buffer[o] = '\0';
-                        FREE(msg->message)
+                        FREE(msg->message);
                         msg->message = malloc((o+1)*sizeof(char));
 
 						{
