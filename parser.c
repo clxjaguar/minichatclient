@@ -201,22 +201,15 @@ void free_message_part_node(clist_node* node) {
 }
 
 /**
- * Process a message against a single config_line.
- *
  * Process the message against a signle config_line. It will be called by process_message on each
  * config_line for each message_part.
  *
- * @param out:
- * 	the cstring on which to work
- * @param config_line:
- * 	the configuration line to test against
- * @param context_stack:
- * 	the context stack (list of char *)
- * @param part:
- *	the message to process
+ * @param out the cstring on which to work
+ * @param config_line the configuration line to test against
+ * @param context_stack the context stack (list of char *)
+ * @param part the message to process
  * 
- * @return
- * 	true if the rule was used
+ * @return true if the rule was used
  */
 int process_message_part_sub(cstring *out, config_line *line, clist *context_stack, message_part *part) {
 	clist_node *cnode;
@@ -305,10 +298,12 @@ int process_message_part_sub(cstring *out, config_line *line, clist *context_sta
 
 /**
  * Process a message_part and return the replacement string according to the rules in parser_config.
- * groups:
- * 	the list of config_lines
- * context_stack:
- * 	the context stack (a list of char*)
+ *
+ * @param groups the list of config_lines
+ * @param context_stack the context stack (a list of char*)
+ * @param part the message to process
+ * 
+ * @return the processed message 
  */
 char *process_message_part(clist *config_lines, clist *context_stack, message_part *part) {
 	cstring *out;
@@ -407,8 +402,8 @@ clist_node *process_part(char *data, int text) {
 
 /**
  * Process and return the message_parts found in this message.
- * return:
- * 	A list of message_part*
+ *
+ * @return a list of message_part*
  */
 clist *get_parts(char *message) {
 	clist *list, *parts_stack;
@@ -427,8 +422,8 @@ clist *get_parts(char *message) {
 	bracket = 0;
 	i = 0;
 	
-	// @ <-UTF8-> (40/64 C2/194)
-	const char s_at[4] = {0x40, 0xC2, 0xA0, 0};
+	// @ <-UTF8-> (Ox40/64 OxC2/194)
+	//const char s_at1[4] = {0x40, 0xC2, 0xA0, '\0'};
 	
 	for (car = message[i] ; car != '\0' ; car = message[++i]) {
 		if (!bracket && car == '<') {	
@@ -522,21 +517,14 @@ clist *get_parts(char *message) {
 		part = (message_part *)ptr->data;
 		cdata = new_cstring();
 		cstring_adds(cdata, part->data);
-		if (part->type == TYPE_MESSAGE && cstring_ends_withs(cdata, s_at, 0)) {
+		if (part->type == TYPE_MESSAGE && cstring_starts_withs(cdata, "@", 0) && cdata->length <= 3) {
 			// '@ <span ...>NICK</span>, '
 			// remove the "@ " and point 'ptr' to the fist span
-			if (!strcmp(cdata->string, s_at)) {
-				node = ptr->next;
-				clist_remove(list, ptr);
-				free_clist_node(ptr);
-				ptr = node;
-			} else {
-				cstring_cut_at(cdata, cdata->length - strlen(s_at));
-				free(part->data);
-				part->data = cstring_convert(cdata);
-				cdata = NULL;
-				ptr = ptr->next;
-			}
+			node = ptr->next;
+			clist_remove(list, ptr);
+			free_clist_node(ptr);
+			ptr = node;
+
 			if (ptr != NULL) {
 				// process the first <span>
 				part = (message_part *)ptr->data;
@@ -551,9 +539,8 @@ clist *get_parts(char *message) {
 				}
 				part->attributes = new_clist();		
 				ptr = ptr->next;
-			
+
 				if (ptr != NULL && ptr->next != NULL) {
-					// process the NICK
 					ptr = ptr->next;
 					
 					// process the second </span>
@@ -679,9 +666,9 @@ parser_config *get_parser_config(char filename[]) {
 	
 	file = fopen(filename, "r");
 	
-	// <patch> niki, tu segfault si le fichier n'est pas trouvé! 
-	if (!file) { return NULL; } 
-	// </patch>
+	if (!file) {
+		return NULL;
+	}
 	
 	rul = NULL;
 	config = NULL;
