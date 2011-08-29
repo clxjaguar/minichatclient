@@ -11,15 +11,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include "cookies.h"
+#include "display_interfaces.h"
 
 int debug = 1;
 
 int storecookie(cookie_t *cookies, char* name, char* value){
     int i;
+	char debugbuf[300];
     for (i=0; i<MAXCOOKIES; i++){
         if (cookies[i].name == NULL){
             // oh, a free location. we'll store it here!
-            if (debug) fprintf(stderr, "Cookie slot %d was free. Storing \"%s\" here, its value is \"%s\"\n", i, name, value);
+            if (debug) {
+				snprintf(debugbuf, 300, "Cookie slot %d was free. Storing \"%s\" here, its value is \"%s\".", i, name, value);
+				display_debug(debugbuf, 0);
+			}
             cookies[i].name = malloc((strlen(name)+1)*sizeof(char));
             strcpy(cookies[i].name, name);
             if (cookies[i].value) { free(cookies[i].value); }
@@ -30,7 +35,15 @@ int storecookie(cookie_t *cookies, char* name, char* value){
         else {
             if (!strcmp(cookies[i].name, name)) {
                 // match!
-                if (debug) fprintf(stderr, "Cookie slot %d already containing \"%s\". We change \"%s\" for \"%s\".\n", i, name, cookies[i].value, value);
+                if (debug) {
+					if (!strcmp(cookies[i].value, value)){
+						snprintf(debugbuf, 300, "Cookie slot %d already containing \"%s=%s\".", i, name, cookies[i].value);
+					}
+					else {
+						snprintf(debugbuf, 300, "Cookie slot %d already containing \"%s\". We change \"%s\" for \"%s\".", i, name, cookies[i].value, value);
+					}
+					display_debug(debugbuf, 0);
+				}	
                 free(cookies[i].name);
                 cookies[i].name = malloc((strlen(name)+1)*sizeof(char));
                 strcpy(cookies[i].name, name);
@@ -120,15 +133,15 @@ typedef enum {
 #define MAXBUFNAME  50
 #define MAXBUFVALUE 200
 
-int parsehttpheadersforgettingcookies(cookie_t *cookies, const char *string) {
+int parsehttpheadersforgettingcookies(cookie_t *cookies, const char *string, unsigned int bytes) {
     const char header[] = "Set-Cookie:";
-    int i, j;
+    unsigned int i, j;
     char bufname[MAXBUFNAME+1], bufvalue[MAXBUFVALUE+1];
     tstate state = WAITINGFORNEWLINE;
 
     i=0; // index de "string"
     j=0; // index pour la chaine à détecter
-    while(string[i]) {
+    while(string[i] && i < bytes) {
         switch(state){
             case WAITINGFORNEWLINE:
                  if (string[i] == 10) { //line feed
@@ -167,7 +180,9 @@ int parsehttpheadersforgettingcookies(cookie_t *cookies, const char *string) {
             case IN_COOKIENAME:
                  if (string[i] < ' ' || string[i] == ';') { // caractères invalides ou fin de cookie prématurée
                      bufname[j++] = 0; j=0;
-                     if (debug) fprintf(stderr, "I got the half of a cookie ?!\n");
+                     if (debug) { 
+							display_debug("I got the half of a cookie ?!", 0);
+					 }
                      storecookie(cookies, bufname, "");
                      state = WAITINGFORNEWLINE;
                      if (string[i] == '\n') { state = IN_HEADER; }
@@ -175,7 +190,8 @@ int parsehttpheadersforgettingcookies(cookie_t *cookies, const char *string) {
                  else if (string[i] != '=') {
                      if (j >= MAXBUFNAME) {
                            bufname[j++] = 0; j=0;
-                           fprintf(stderr, "\rOOOOPPs! Cookie name too long ! Begins with: \"%s\"\n", bufname);
+                           display_debug("\rOOOOPPs! Cookie name too long ! Begins with: ", 0); 
+						   display_debug(bufname, 1);
                            state = WAITINGFORNEWLINE;
                      }
                      else {
@@ -191,7 +207,6 @@ int parsehttpheadersforgettingcookies(cookie_t *cookies, const char *string) {
             case IN_COOKIE_VALUE:
                  if (string[i] < ' ' || string[i] == ';') { // fin du contenu du cookie
                      bufvalue[j] = 0; j=0;
-                     //if (debug) fprintf(stderr, "Yummy, I got a nice cookie !\n");
                      storecookie(cookies, bufname, bufvalue);
                      state = WAITINGFORNEWLINE;
                      if (string[i] == '\n') { state = IN_HEADER; }
@@ -199,7 +214,11 @@ int parsehttpheadersforgettingcookies(cookie_t *cookies, const char *string) {
                  else {
                      if (j >= MAXBUFVALUE) {
                            bufvalue[j++] = 0; j=0;
-                           fprintf(stderr, "\rOOOOPPs! Cookie \"%s\"'s value is too long ! Begins with: \"%s\"\n", bufname, bufvalue);
+                           
+                           display_debug("\rOOOOPPs! Cookie \"", 0);
+						   display_debug(bufname, 1);
+						   display_debug("\"'s value is too long ! Begins with: ", 1);
+						   display_debug(bufvalue, 1);
                            state = WAITINGFORNEWLINE;
                      }
                      else {

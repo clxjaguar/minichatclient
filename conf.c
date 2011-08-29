@@ -2,13 +2,14 @@
   Name:         conf.c
   Author:       cLx
   Date:         21/06/11
-  Description:  Simple solution for reading a configuration file
+  Description:  Simple enough solution for reading a configuration file
   Copyright:    CC-BY-NC 2011
 */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "display_interfaces.h"
 
 #define CONFIGURATION_FILE      "mchatclient.conf"
 #define KEY_VALUE_BUFFER_SIZE   200
@@ -36,16 +37,16 @@ char *read_conf_string(const char *key, char *pvalue, size_t valuebufsize) {
 	bool lastpass = false;
 	
 	if (!key || !key[0]) {
-		fprintf(stderr, "read_conf_string : you have to specify the key's name !\n");
-		return 0;
+		display_debug("*read_conf_string() : you must specify the key's name !", 0);
+		return NULL;
 	}
 			
 	if (!fd) {
-		fprintf(stderr, "Opening the configuration file...\n");
+		display_debug("Opening the configuration file...", 0);
 		
 		fd = fopen(CONFIGURATION_FILE, "r");
 		if (!fd) {
-			perror("Unable to open "CONFIGURATION_FILE);
+			display_debug("Unable to open "CONFIGURATION_FILE" !\a", 0);
 			return NULL;
 		}
 		lastpass = true;
@@ -127,7 +128,8 @@ char *read_conf_string(const char *key, char *pvalue, size_t valuebufsize) {
 				else {
 					buf[o++] = c;
 					if (o>=sizeof(buf)) {
-						fprintf(stderr, "Buffer full (o=%u) for reading configuration value of \"%s\" !\n", o, key);
+						display_debug("Buffer full reading value of :", 0);
+						display_debug(key, 1);
 						state = END;
 					}
 				}
@@ -157,7 +159,7 @@ char *read_conf_string(const char *key, char *pvalue, size_t valuebufsize) {
 
 void close_conf_file(void) {
 	if (fd) {
-		fprintf(stderr, "Closing configuration file.\n");
+		display_debug("Closing configuration file.", 0);
 		fclose(fd);
 		fd = NULL;
 	}
