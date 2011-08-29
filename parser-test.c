@@ -9,8 +9,10 @@ int main(int argc, char *argv[]) {
 	
 	if (argc < 2) {
 		string = ""
-"<span style=\"font-weight: bold\">span bold</span> <strong>strong</strong> <i>italic</i>\n"
-"<p>@ <span style=\"font-weight: bold\">FeNr1s</span>, LU'\n"
+"<span style=\"font-weight: bold\">span bold</span> <strong>strong</strong> <i>italic</i>_\n"
+"@ <span style=\"font-weight: bold\">FeNr1s</span>, LU' from fenris1\n"
+"@ <span><span>FeNr1s_modo</span></span>, LU' from fenris modo\n"
+"@ <span style=\"font-weight: bold\">FeNr1s</span>, <span style=\"font-weight: bold\">FeNr1s</span>, LU' from fenris 3\n"
 "<strong>Nouveau Sujet</strong> -- <a href=\"http://forum.francefurs.org/viewtopic.php?p_176959#p176959\" class=\"postlink\">Un jeu plein de furries pour l'été :3</a>\n"
 "<!-- m --><a class=\"postlink\" href=\"http://www.youtube.com/watch?v_0YJR-doOWf8\">http://www.youtube.com/watch?v_0YJR-doOWf8</a><!-- m -->\n"
 "<img src=\"http://t3.gstatic.com/images?q_tbn:ANd9GcRFSm3Ll9aQLTiG6xiJ1uRXr90ws-NtHWiWZO44sSOjihPfWCrM&t=1\" alt=\"Image\" />\n"
