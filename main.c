@@ -438,10 +438,7 @@ int main(void) {
 				}
 				{
 					unsigned short nbmessages = 0, old_wait_time;
-					char buf2show[200];
-					
-					snprintf(buf2show, 200, "Delay %0.2fs ", (float)wait_time*(WAITING_TIME_GRANOLOSITY/1000));
-					display_debug(buf2show, 0);
+					//char buf2show[200];
 					
 	        		k=1;
 	                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
@@ -467,10 +464,10 @@ int main(void) {
 					}
 					
 						
-					snprintf(buf2show, 200, "%u new message(s). Delay ajusted from %u to %u.", nbmessages, old_wait_time, wait_time);
-					display_debug(buf2show, 0);
-					snprintf(buf2show, 200, "Timmings: maxi=%0.2fs / mini=%0.2fs / awake=%0.2fs\n", (float)wait_time_maxi/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_mini/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_awake/(1000/WAITING_TIME_GRANOLOSITY));
-					display_debug(buf2show, 0);
+					//snprintf(buf2show, 200, "%u new message(s). Delay ajusted from %u to %u.", nbmessages, old_wait_time, wait_time);
+					//display_debug(buf2show, 0);
+					//snprintf(buf2show, 200, "Timmings: maxi=%0.2fs / mini=%0.2fs / awake=%0.2fs\n", (float)wait_time_maxi/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_mini/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_awake/(1000/WAITING_TIME_GRANOLOSITY));
+					//display_debug(buf2show, 0);
 				}
                 futurestate = WATCHING_NEW_MESSAGES;
         		state = WAIT;
@@ -611,7 +608,7 @@ int main(void) {
         if (s) { closesocket(s); s = 0; }
         
         // separate cycles in the debug console (delay countdown let a blank line)
-        //if (oldstate != WAIT) { display_debug("", 0); }
+		//if (oldstate != WAIT) { display_debug("", 0); } //TODO: bug
     }
 	fclose(f);
 	freecookies(cookies);
