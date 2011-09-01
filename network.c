@@ -191,7 +191,7 @@ int http_post(int s, char* req, char* host, char* datas, char* referer, char* co
 		sendline(s, cookies);
 	}
 	sendline(s, "Content-Type: application/x-www-form-urlencoded");
-	snprintf(buf, 200, "Content-Length: %d", strlen(datas));
+	snprintf(buf, 200, "Content-Length: %zu", strlen(datas));
 	sendline(s, buf);
 	if (mischeaders && mischeaders[0] != '\0') { sendline(s, mischeaders); }
 	sendline(s, ""); // une ligne vide signifie au serveur qu'on a fini avec les headers, c'est a lui maintenant

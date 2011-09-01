@@ -13,7 +13,7 @@
 #include "cookies.h"
 #include "display_interfaces.h"
 
-int debug = 1;
+int debug_cookie = 1;
 
 int storecookie(cookie_t *cookies, char* name, char* value){
     int i;
@@ -21,7 +21,7 @@ int storecookie(cookie_t *cookies, char* name, char* value){
     for (i=0; i<MAXCOOKIES; i++){
         if (cookies[i].name == NULL){
             // oh, a free location. we'll store it here!
-            if (debug) {
+            if (debug_cookie) {
 				snprintf(debugbuf, 300, "Cookie slot %d was free. Storing \"%s\" here, its value is \"%s\".", i, name, value);
 				display_debug(debugbuf, 0);
 			}
@@ -35,7 +35,7 @@ int storecookie(cookie_t *cookies, char* name, char* value){
         else {
             if (!strcmp(cookies[i].name, name)) {
                 // match!
-                if (debug) {
+                if (debug_cookie) {
 					if (!strcmp(cookies[i].value, value)){
 						snprintf(debugbuf, 300, "Cookie slot %d already containing \"%s=%s\".", i, name, cookies[i].value);
 					}
@@ -64,11 +64,11 @@ int listcookies(cookie_t *cookies){
     printf("\nArray of cookies stored at %p (%u bytes) :\n", cookies, (unsigned int)sizeof(cookies));
     for (i=0; i<MAXCOOKIES; i++){
         if (cookies[i].name == NULL && cookies[i].value == NULL) {
-            if (!debug) { continue; }
+            if (!debug_cookie) { continue; }
         }
         printf("Slot %d (%p): ", i, &cookies[i]);
         if (cookies[i].name == NULL && cookies[i].value == NULL) {
-            if (debug) {
+            if (debug_cookie) {
                 printf("[UNOCCUPED]\n");
             }
         }
@@ -180,7 +180,7 @@ int parsehttpheadersforgettingcookies(cookie_t *cookies, const char *string, uns
             case IN_COOKIENAME:
                  if (string[i] < ' ' || string[i] == ';') { // caractères invalides ou fin de cookie prématurée
                      bufname[j++] = 0; j=0;
-                     if (debug) { 
+                     if (debug_cookie) { 
 							display_debug("I got the half of a cookie ?!", 0);
 					 }
                      storecookie(cookies, bufname, "");
