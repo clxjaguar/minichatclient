@@ -10,10 +10,10 @@
 */
 
 #ifdef _X_OPEN_SOURCE_EXTENDED
-#include <ncursesw/curses.h>
-#include <locale.h>
+	#include <ncursesw/curses.h>
+	#include <locale.h>
 #else
-#include <curses.h>
+	#include <curses.h>
 #endif
 #include <stdlib.h>
 #include <string.h>
@@ -23,7 +23,9 @@
 
 //TODO: translation of character set ?
 
-int maxrows = 0, maxcols = 0;
+//int maxrows = 0, maxcols = 0;
+#define maxrows LINES
+#define maxcols COLS
 WINDOW *create_newwin(int height, int width, int starty, int startx){
 	WINDOW *lwin;
 	lwin = newwin(height, width, starty, startx);
@@ -58,6 +60,8 @@ void destrow_dwin(dwin *w){
 	if (w->decoration) { destroy_win(w->decoration); }
 }
 
+// interfaces (display_)
+
 void display_statusbar(const char *text){
 	if (text && text[0]) {
 		attron(A_REVERSE);
@@ -70,9 +74,6 @@ void display_statusbar(const char *text){
 	clrtoeol();
 	wrefresh(stdscr);
 }
-
-
-// interfaces
 
 #define NICKLIST_WIDTH 19
 #define DEBUG_HEIGHT   15
@@ -89,7 +90,7 @@ void display_init(void){
 	//intrflush(stdscr, FALSE);
 	noecho();  // curses call set to no echoing
 	refresh(); // m'a pas mal fait chier quand il était pas là, celui là.
-	getmaxyx(stdscr, maxrows, maxcols); // macro returning terminal's size
+	//getmaxyx(stdscr, maxrows, maxcols); // macro returning terminal's size
 
 	create_dwin(&debug, DEBUG_HEIGHT, maxcols, 0, 0, "minichatclient internals");
 	create_dwin(&conversation, maxrows-DEBUG_HEIGHT-4-1, maxcols-NICKLIST_WIDTH, DEBUG_HEIGHT, 0, "chat log");
@@ -117,11 +118,13 @@ void display_debug(const char *text, int nonewline){
 	if (!nonewline) { wprintw(debug.content, "\n"); }
 	wprintw(debug.content, "%s", text);
 	wrefresh(debug.content);
+	//TODO: mvcur to typing_area.content ?
 }
 
 void display_conversation(const char *text){
 	wprintw(conversation.content, "\n%s", text);
 	wrefresh(conversation.content);
+	//TODO: mvcur to typing_area.content ?
 }
 
 void display_nicklist(char *text[], unsigned int nbrofnicks){ // ce truc va changer
@@ -147,8 +150,9 @@ char* display_driver(void){
 	unsigned int j = 0;
 	static unsigned int nbrofcars=0; //, nbrofbytes=0, currentcar = 0;
 	static char *buf = NULL;
+	static int dbgchrs[4];
 
-	if (!nbrofcars && buf) { free(buf); buf=NULL; }
+	if (!nbrofcars && buf) { free(buf); buf=NULL; display_statusbar("Typing buffer freed after sent"); }
 
 	while ((ch = wgetch(typing_area.content)) != ERR){
 		j++;
@@ -172,7 +176,7 @@ char* display_driver(void){
 			case 0x7f: //  "^?" backspace
 				if (buf) {
 					if(nbrofcars){
-						if (!--nbrofcars) { free(buf); buf = NULL; }
+						if (!--nbrofcars) { free(buf); buf = NULL; display_statusbar("Typing buffer freed"); }
 						wprintw(typing_area.content, "\b \b");
 					}
 				}
@@ -180,20 +184,42 @@ char* display_driver(void){
 				break;
 			
 			case 0x0c: // ^L. wanna some refresh?
+				touchwin(typing_area.decoration);
 				wclear(typing_area.content);
 				if (buf){
 					buf[nbrofcars] = '\0';
 					wprintw(typing_area.content, "%s", buf);
 				}
-				wrefresh(typing_area.content);
+				touchwin(stdscr); wrefresh(stdscr);
+				
+				touchwin(debug.decoration);        touchwin(debug.content);
+				touchwin(conversation.decoration); touchwin(conversation.content);
+				touchwin(nicklist.decoration);     touchwin(nicklist.content);
+				
+				wrefresh(nicklist.decoration);     wrefresh(nicklist.content);
+				wrefresh(conversation.decoration); wrefresh(conversation.content);
+				wrefresh(typing_area.decoration);  wrefresh(typing_area.content);
+				wrefresh(debug.decoration);        wrefresh(debug.content);
 				refresh();
 				break;
 				
 			default: // any other character?
-				if (ch<0x20) { break; }
+				if (ch<0x20) {{
+					char tmpchar[120]; char tmpchar2[20]; unsigned int i = 0;
+					if (j>4){ break; }
+					dbgchrs[j-1] = ch;
+					strncpy(tmpchar, "Unknow keys show in decimal notation:", 120);
+					
+					for(i=0; i<j; i++){
+						snprintf(tmpchar2, 20, " %d", dbgchrs[i]);
+						strncat(tmpchar, tmpchar2, 120);
+					}
+					display_statusbar(tmpchar);
+					break; 
+				}}
 				if (buf == NULL){
 					buf = malloc(1002);
-					//display_statusbar("Buffer created...");
+					display_statusbar("Buffer allocated for typing...");
 				}
 				else {
 					if (nbrofcars>=1000){
