@@ -125,6 +125,8 @@ clean:
 	@echo "*** Erasing objects files and test executables..."
 	@rm -f *.o cookies-test ini-test cstring-test parser-test
 
+mrpropre: mrproper
+
 mrproper: clean
 	@echo "*** Erasing main executable file..."
 	@rm -f mchatclient
