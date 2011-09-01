@@ -61,7 +61,7 @@ int storecookie(cookie_t *cookies, char* name, char* value){
 
 int listcookies(cookie_t *cookies){
     int i;
-    printf("\nArray of cookies stored at %p (%d bytes) :\n", cookies, sizeof(cookies));
+    printf("\nArray of cookies stored at %p (%u bytes) :\n", cookies, (unsigned int)sizeof(cookies));
     for (i=0; i<MAXCOOKIES; i++){
         if (cookies[i].name == NULL && cookies[i].value == NULL) {
             if (!debug) { continue; }
