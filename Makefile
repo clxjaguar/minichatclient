@@ -4,7 +4,6 @@
 
 COMPILER = gcc 
 CCFLAGS = -Wall -Wextra -fshort-enums
-LIBS = -lncurses
 .PHONY: all rebuild clean mrproper love
 
 all: mchatclient
@@ -12,9 +11,14 @@ all: mchatclient
 rebuild: mrproper all
 
 mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o
-	@echo "*** Linking all main objects files..."
-	@gcc ${LIBS} cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o -o mchatclient
+	@echo "*** Linking all main objects files (ncurses version) ..."
+	@gcc -lncurses cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o -o mchatclient
 	@strip mchatclient
+
+mchatclient-wc: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o
+	@echo "*** Linking all main objects files (ncursesw version) ..."
+	@gcc -lncursesw cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-wc.o -o mchatclient-wc
+	@strip mchatclient-wc
 
 #### USED OBJECTS ####
 
@@ -38,9 +42,15 @@ conf.o: conf.c conf.h display_interfaces.h
 	@echo "*** Compiling conf.o"
 	@${COMPILER} ${CCFLAGS} -c conf.c -o conf.o
 
+# DISPLAY OUTPUTS
+
 gotcurses.o: gotcurses.c display_interfaces.h commons.h
 	@echo "*** Compiling gotcurses.o"
 	@${COMPILER} ${CCFLAGS} -c gotcurses.c -o gotcurses.o
+
+gotcurses-wc.o: gotcurses.c display_interfaces.h commons.h
+	@echo "*** Compiling gotcurses-wc.o"
+	@${COMPILER} ${CCFLAGS} -D_X_OPEN_SOURCE_EXTENDED -c gotcurses.c -o gotcurses-wc.o
 
 # PARSING HTML ENTITIES
 

@@ -1,17 +1,22 @@
 /*
   Name:         gotcurses.c
-  Copyright:    GPL v3        
+  Copyright:    GPL v3
   Author:       cLx - http://clx.freeshell.org/
   Date:         22/08/11 14:36
   Description:  Curses text interface for the minichatclient project.
-		
+
   In order to compile under Dev-C++, please install pdcurses-3.2-1mol.DevPak
   For Debian: # apt-get install ncurses-dev
 */
 
+#ifdef _X_OPEN_SOURCE_EXTENDED
+#include <ncursesw/curses.h>
+#include <locale.h>
+#else
+#include <curses.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
-#include <curses.h>
 
 #include "display_interfaces.h" // prototypes of theses display_* fonctions
 #include "commons.h" // for nicklist struct and timming value
@@ -22,7 +27,7 @@ int maxrows = 0, maxcols = 0;
 WINDOW *create_newwin(int height, int width, int starty, int startx){
 	WINDOW *lwin;
 	lwin = newwin(height, width, starty, startx);
-	wrefresh(lwin); 
+	wrefresh(lwin);
 	return lwin;
 }
 
@@ -73,6 +78,10 @@ void display_statusbar(const char *text){
 #define DEBUG_HEIGHT   15
 
 void display_init(void){
+#ifdef _X_OPEN_SOURCE_EXTENDED
+	char *p = NULL;
+	p = setlocale(LC_ALL, "");
+#endif
 	initscr(); // start curses mode
 	cbreak();  // line input buffering disabled ("raw" mode)
 	//nocbreak(); // ("cooked" mode)
@@ -81,7 +90,7 @@ void display_init(void){
 	noecho();  // curses call set to no echoing
 	refresh(); // m'a pas mal fait chier quand il était pas là, celui là.
 	getmaxyx(stdscr, maxrows, maxcols); // macro returning terminal's size
-	
+
 	create_dwin(&debug, DEBUG_HEIGHT, maxcols, 0, 0, "minichatclient internals");
 	create_dwin(&conversation, maxrows-DEBUG_HEIGHT-4-1, maxcols-NICKLIST_WIDTH, DEBUG_HEIGHT, 0, "chat log");
 	create_dwin(&nicklist, maxrows-DEBUG_HEIGHT-4-1, NICKLIST_WIDTH, DEBUG_HEIGHT, maxcols-NICKLIST_WIDTH, "nicklist");
@@ -90,6 +99,10 @@ void display_init(void){
 	scrollok(conversation.content, TRUE);
 	meta(typing_area.content, TRUE);
 	wtimeout(typing_area.content, WAITING_TIME_GRANOLOSITY);
+#ifdef _X_OPEN_SOURCE_EXTENDED
+	wprintw(debug.content, "Curses interface initialyzed with locale: %s", p);
+	wrefresh(debug.content);
+#endif
 }
 
 char display_waitforchar(const char *msg){
@@ -103,7 +116,7 @@ char display_waitforchar(const char *msg){
 void display_debug(const char *text, int nonewline){
 	if (!nonewline) { wprintw(debug.content, "\n"); }
 	wprintw(debug.content, "%s", text);
-	wrefresh(debug.content); 
+	wrefresh(debug.content);
 }
 
 void display_conversation(const char *text){
@@ -114,7 +127,7 @@ void display_conversation(const char *text){
 void display_nicklist(char *text[], unsigned int nbrofnicks){ // ce truc va changer
 	unsigned int i;
 	wclear(nicklist.content); // TODO: virer ça car ça redraw le terminal entier
-	
+
 	for (i=0; i<nbrofnicks; i++){
 		mvwprintw(nicklist.content, i, 0, "%s", text[i]);
 	}
@@ -134,9 +147,9 @@ char* display_driver(void){
 	unsigned int j = 0;
 	static unsigned int nbrofcars=0; //, nbrofbytes=0, currentcar = 0;
 	static char *buf = NULL;
-	
+
 	if (!nbrofcars && buf) { free(buf); buf=NULL; }
-	
+
 	while ((ch = wgetch(typing_area.content)) != ERR){
 		j++;
 		switch (ch){
@@ -147,11 +160,11 @@ char* display_driver(void){
 					nbrofcars = 0;
 					// on n'utilise pas wclear() parce que lui en fait
 					// il fait redessiner la fenêtre entière!
-					wmove(typing_area.content, 0, 0);  
+					wmove(typing_area.content, 0, 0);
 					wclrtobot(typing_area.content);
 					//wmove(typing_area.content, 0, 0);  clrtoeol();
 					wrefresh(typing_area.content);
-					return buf;					
+					return buf;
 				}
 				break;
 				
@@ -171,7 +184,7 @@ char* display_driver(void){
 				if (buf){
 					buf[nbrofcars] = '\0';
 					wprintw(typing_area.content, "%s", buf);
-				}	
+				}
 				wrefresh(typing_area.content);
 				refresh();
 				break;
@@ -195,11 +208,11 @@ char* display_driver(void){
 		}
 		//mvwprintw(debug.content, 0, 0, "%u: %s  ", nbrofcars, NULL); 
 		//wprintw(debug.content, "%d ", ch);
-		//wrefresh(debug.content); 
+		//wrefresh(debug.content);
 		wtimeout(typing_area.content, 10);
 	}
 	wtimeout(typing_area.content, WAITING_TIME_GRANOLOSITY);
-	if (j) { 
+	if (j) {
 		wrefresh(typing_area.content); 
 	}
 	return NULL;
