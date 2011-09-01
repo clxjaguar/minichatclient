@@ -4,12 +4,6 @@
   Author:       cLx
   Date:         08/04/11 14:55
   Description:  ce qu'il faut pour se connecter vers des trucs en TCP.
-
-  05/04/11 : cLx       Début du programme (connexions vers un serveur HTTP), fonctionne sous Debian
-  05/04/11 : Nejaa     Portabilisation du code existant vers Windows (testé sous Seven x86)
-  06/04/11 : cLx       Test sous XP => OK!
-  11/04/11 : cLx       Légeres modifications, entre autre afin que ça fonctionne aussi sous BSD (suffit de ne pas faire de #if defined (linux) en fait :D)
-  22/06/11 : cLx       Ajout de unistd.h dans les includes pour autre chose que windows pour éviter un warning quand on compile avec -Wall
 */
 
 #include "display_interfaces.h"
@@ -19,26 +13,26 @@
 #include <string.h>
 
 #if defined (WIN32)
-    #include <winsock2.h>
-    #define close(s) closesocket(s)
+	#include <winsock2.h>
+	#define close(s) closesocket(s)
 #else
-    #include <unistd.h>
-    #include <arpa/inet.h>
-    #include <sys/types.h>
-    #include <sys/socket.h>
-    #include <netdb.h>
+	#include <unistd.h>
+	#include <arpa/inet.h>
+	#include <sys/types.h>
+	#include <sys/socket.h>
+	#include <netdb.h>
 #endif
 
 void ws_init(void){
 #if defined (WIN32)
-    WSADATA WSAData;
-    WSAStartup(MAKEWORD(2,2), &WSAData);
+	WSADATA WSAData;
+	WSAStartup(MAKEWORD(2,2), &WSAData);
 #endif
 }
 
 void ws_cleanup(void){
 #if defined (WIN32)
-    WSACleanup();
+	WSACleanup();
 #endif
 }
 
@@ -48,11 +42,11 @@ int maketcpconnexion(char* hostname, int port){
 	int sockfd;
 	char *p;
 
-    //fprintf(stderr, "Resolving %s ...", hostname);
-    display_debug("Resolving ", 0);
-    display_debug(hostname, 1);
+	//fprintf(stderr, "Resolving %s ...", hostname);
+	display_debug("Resolving ", 0);
+	display_debug(hostname, 1);
 	display_debug(" ... ", 1);
-    
+	
 	/* resolve host to an IP */
 	if ((he = (void *)gethostbyname(hostname)) == NULL) { // deprécié !
 		//fprintf(stderr, "Error resolving hostname.\n");
@@ -127,10 +121,10 @@ int sendline(int s, char* buf){
 
 int http_get(int s, char* req, char* host, char* referer, char* cookies, char* useragent, char* mischeaders){
 	char buf[200];
-    //fprintf(stderr, "GET http://%s%s%s\n", host, req[0]=='/'?"":"/", req);
-    snprintf(buf, 200, "GET http://%s%s%s", host, req[0]=='/'?"":"/", req);
-    display_debug(buf, 0);
-    
+	//fprintf(stderr, "GET http://%s%s%s\n", host, req[0]=='/'?"":"/", req);
+	snprintf(buf, 200, "GET http://%s%s%s", host, req[0]=='/'?"":"/", req);
+	display_debug(buf, 0);
+	
 	sendstr(s, "GET ");
 	sendstr(s, req);
 	sendline(s, " HTTP/1.1");
@@ -162,10 +156,10 @@ int http_get(int s, char* req, char* host, char* referer, char* cookies, char* u
 
 int http_post(int s, char* req, char* host, char* datas, char* referer, char* cookies, char* useragent, char* mischeaders){
 	char buf[200];
-    //fprintf(stderr, "POST http://%s%s%s [%s]\n", host, req[0]=='/'?"":"/", req, datas);
-    snprintf(buf, 200, "POST http://%s%s%s [%s]", host, req[0]=='/'?"":"/", req, datas);
-    display_debug(buf, 0);
-    
+	//fprintf(stderr, "POST http://%s%s%s [%s]\n", host, req[0]=='/'?"":"/", req, datas);
+	snprintf(buf, 200, "POST http://%s%s%s [%s]", host, req[0]=='/'?"":"/", req, datas);
+	display_debug(buf, 0);
+
 	sendstr(s, "POST ");
 	sendstr(s, req);
 	sendline(s, " HTTP/1.1");
@@ -191,7 +185,6 @@ int http_post(int s, char* req, char* host, char* datas, char* referer, char* co
 		sendline(s, cookies);
 	}
 	sendline(s, "Content-Type: application/x-www-form-urlencoded");
-	// Do not use "%zu" -- it is not working on some obscure architectude like HP-UX, and on some buggy architecture like Microsoft Windows
 	snprintf(buf, 200, "Content-Length: %lu", (unsigned long)strlen(datas));
 	sendline(s, buf);
 	if (mischeaders && mischeaders[0] != '\0') { sendline(s, mischeaders); }
