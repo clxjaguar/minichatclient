@@ -15,7 +15,7 @@ mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o c
 	@gcc -lncurses cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o -o mchatclient
 	@strip mchatclient
 
-mchatclient-wc: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o
+mchatclient-wc: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-wc.o
 	@echo "*** Linking all main objects files (ncursesw version) ..."
 	@gcc -lncursesw cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-wc.o -o mchatclient-wc
 	@strip mchatclient-wc
