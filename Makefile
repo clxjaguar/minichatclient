@@ -3,7 +3,8 @@
 ################################
 
 COMPILER = gcc 
-CCFLAGS = -Wall -Wextra -fshort-enums
+CCFLAGS = -O2 -Wall -Wextra -fshort-enums -W -Wconversion -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
+CCFLAGS = -O2 -Wall -Wextra -fshort-enums -W -Wshadow -Wpointer-arith -Wcast-align
 .PHONY: all rebuild clean mrproper love
 
 all: mchatclient

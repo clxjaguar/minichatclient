@@ -144,11 +144,11 @@ void free_parser_config(parser_config *pconfig) {
 	free(pconfig);
 }
 
-clist_node *new_rule_node(rule *rule) {
+clist_node *new_rule_node(rule *rrule) {
 	clist_node *node;
 	
 	node = new_clist_node();
-	node->data = rule;
+	node->data = rrule;
 	node->free_node = free_rule_node;
 	
 	return node;
