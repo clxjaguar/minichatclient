@@ -3,23 +3,22 @@
 ################################
 
 COMPILER = gcc 
-CCFLAGS = -O2 -Wall -Wextra -fshort-enums -W -Wconversion -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings
-CCFLAGS = -O2 -Wall -Wextra -fshort-enums -W -Wshadow -Wpointer-arith -Wcast-align
+CCFLAGS = -Wall -Wextra -fshort-enums
 .PHONY: all rebuild clean mrproper love
 
 all: mchatclient
 
 rebuild: mrproper all
 
-mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o
-	@echo "*** Linking all main objects files (ncurses version) ..."
-	@gcc -lncurses cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o -o mchatclient
+mchatclient-iso: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-iso.o
+	@echo "*** Linking all main objects files (ISO only, compatibility version) ..."
+	@gcc -lncurses cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-iso.o -o mchatclient
 	@strip mchatclient
 
-mchatclient-wc: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-wc.o
-	@echo "*** Linking all main objects files (ncursesw version) ..."
-	@gcc -lncursesw cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-wc.o -o mchatclient-wc
-	@strip mchatclient-wc
+mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o
+	@echo "*** Linking all main objects files ..."
+	@gcc -lncursesw cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o -o mchatclient
+	@strip mchatclient
 
 #### USED OBJECTS ####
 
@@ -45,13 +44,14 @@ conf.o: conf.c conf.h display_interfaces.h
 
 # DISPLAY OUTPUTS
 
+gotcurses-iso.o: gotcurses.c display_interfaces.h commons.h
+	@echo "*** Compiling gotcurses-iso.o (for ISO only systems)"
+	@${COMPILER} ${CCFLAGS} -c gotcurses.c -o gotcurses-iso.o
+
 gotcurses.o: gotcurses.c display_interfaces.h commons.h
 	@echo "*** Compiling gotcurses.o"
-	@${COMPILER} ${CCFLAGS} -c gotcurses.c -o gotcurses.o
-
-gotcurses-wc.o: gotcurses.c display_interfaces.h commons.h
-	@echo "*** Compiling gotcurses-wc.o"
-	@${COMPILER} ${CCFLAGS} -D_X_OPEN_SOURCE_EXTENDED -c gotcurses.c -o gotcurses-wc.o
+	@echo "    In case of faillure, try \"make mchatclient-iso\" or install ncursesw-dev !"
+	@${COMPILER} ${CCFLAGS} -D_X_OPEN_SOURCE_EXTENDED -c gotcurses.c -o gotcurses.o
 
 # PARSING HTML ENTITIES
 
@@ -124,8 +124,6 @@ clist-test.o: clist-test.c
 clean:
 	@echo "*** Erasing objects files and test executables..."
 	@rm -f *.o cookies-test ini-test cstring-test parser-test
-
-mrpropre: mrproper
 
 mrproper: clean
 	@echo "*** Erasing main executable file..."
