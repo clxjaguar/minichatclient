@@ -26,12 +26,14 @@
 //int maxrows = 0, maxcols = 0;
 #define maxrows LINES
 #define maxcols COLS
+/*
 WINDOW *create_newwin(int height, int width, int starty, int startx){
 	WINDOW *lwin;
 	lwin = newwin(height, width, starty, startx);
 	wrefresh(lwin);
 	return lwin;
 }
+*/
 
 void destroy_win(WINDOW *lwin){
 	wborder(lwin, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
@@ -46,8 +48,10 @@ typedef struct {
 dwin typing_area, conversation, debug, nicklist;
 
 void create_dwin(dwin *w, int rows, int cols, int startrow, int startcol, char *title){
-	w->decoration = create_newwin(rows,   cols,   startrow, startcol);
-	w->content    = create_newwin(rows-2, cols-4, startrow+1, startcol+2);
+	//w->decoration = create_newwin(rows,   cols,   startrow, startcol);
+	//w->content    = create_newwin(rows-2, cols-4, startrow+1, startcol+2);
+	w->decoration = newwin(rows,   cols,   startrow, startcol);
+	w->content    = subwin(w->decoration, rows-2, cols-4, startrow+1, startcol+2);
 	box(w->decoration, 0, 0); // 0, 0 gives default characters
 	if (title) {
 		mvwprintw(w->decoration, 0, cols-strlen(title)-4, " %s ", title);
