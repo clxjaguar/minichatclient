@@ -2,9 +2,15 @@
 #### MINICHATCLIENT MAKEFILE ###
 ################################
 
-COMPILER = gcc 
+COMPILER = gcc
+
 CCFLAGS = -Wall -Wextra -fshort-enums
-.PHONY: all rebuild clean mrproper love
+
+ifeq ($(DEBUG), 1)
+	override CCFLAGS = -fshort-enums -Wall -Wextra -Wdouble-promotion -Wformat -Winit-self -Wmissing-include-dirs -Wparentheses -Wswitch-default -Wswitch-enum -Wunused-parameter -Wuninitialized -Wundef -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wwrite-strings -Wconversion
+endif
+
+.PHONY: all rebuild clean mrproper mrpropre love
 
 all: mchatclient
 
@@ -94,9 +100,9 @@ cookies-test.o: cookies-test.c
 	@echo "*** Compiling cookies-test.o"
 	@${COMPILER} ${CCFLAGS} -c cookies-test.c -o cookies-test.o
 
-cstring-test: cstring.o cstring-test.o
+cstring-test: cstring.o cstring-test.o clist.o
 	@echo "*** Linking cstring-test executable..."
-	@${COMPILER} cstring.o cstring-test.o -o cstring-test
+	@${COMPILER} cstring.o cstring-test.o clist.o -o cstring-test
 
 cstring-test.o: cstring-test.c
 	@echo "*** Compiling cstring-test.o"
@@ -124,6 +130,8 @@ clist-test.o: clist-test.c
 clean:
 	@echo "*** Erasing objects files and test executables..."
 	@rm -f *.o cookies-test ini-test cstring-test parser-test
+
+mrpropre: mrproper
 
 mrproper: clean
 	@echo "*** Erasing main executable file..."

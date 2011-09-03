@@ -5,22 +5,6 @@
   Date:         20/06/11
 */
 
-/*
-  Hey niki ! tu pourrais gerer le cas suivant chiant ou il y a plusieurs gens qui sont citÃes avec cette putain d'arobase de merde :
-  [2011-08-18 20:57] <Teobryn> Mairusu Paua: @Â *WildRaven*, HyRo: @Â *Brek Wolf*, Furthick: @Â *Deoloup*, youpla / re
-
-  il vaudrait mieux faire en sorte que ca fasse :
-  [2011-08-18 20:57] <Teobryn> Mairusu Paua, WildRaven, HyRo, Brek Wolf, Furthick, Deoloup: youpla / re
-
-  pour le moment t'as vu Ãca le gere un coup sur deux *gg*
-  
-                                                                 -- cLx
-
-
-*/
-
-
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -268,6 +252,8 @@ int process_message_part_sub(cstring *out, config_line *line, clist *context_sta
 				case TYPE_CLOSING_TAG:
 					cstring_adds(text_to_apply, rul->stop);
 					break;
+				default:
+				break;
 				}
 
 				from = new_cstring();
@@ -313,7 +299,7 @@ char *process_message_part(clist *config_lines, clist *context_stack, message_pa
 
 	out = new_cstring();
 	switch (part->type) {
-	case TYPE_CLOSING_TAG: //TODO: check
+	case TYPE_CLOSING_TAG:
 	case TYPE_OPENING_TAG:
 		applied = 0;
 		for (ptr = config_lines->first ; !applied && ptr != NULL ; ptr = ptr->next) {
@@ -321,13 +307,8 @@ char *process_message_part(clist *config_lines, clist *context_stack, message_pa
 			applied = process_message_part_sub(out, line, context_stack, part);
 		}
 		break;
-	/*case TYPE_CLOSING_TAG:
-		applied = 0;
-		for (ptr = config_lines->last ; !applied && ptr != NULL ; ptr = ptr->prev) {			
-			line = (config_line *)ptr->data;
-			applied = process_message_part_sub(out, line, context_stack, part);
-		}
-		break;*/
+	default:
+	break;
 	}
 	
 	return cstring_convert(out);
@@ -339,9 +320,9 @@ clist_node *process_part(char *data, int text) {
 	clist *tab;
 	cstring *tmp;
 	cstring *string;
-	int i;
+	size_t i;
 	attribute *att;
-	int first_equ;
+	size_t first_equ;
 	
 	part = malloc(sizeof(message_part));
 
@@ -381,7 +362,7 @@ clist_node *process_part(char *data, int text) {
 				}
 
 				att = new_attribute();
-				att->value = cstring_convert(cstring_substring(string, first_equ + 1, -1));
+				att->value = cstring_convert(cstring_substring(string, first_equ + 1, 0));
 				cstring_cut_at(string, first_equ);			
 				att->name = cstring_convert(string);
 
@@ -400,7 +381,7 @@ clist_node *process_part(char *data, int text) {
 	return node;
 }
 
-clist *cut_string(char *message) {
+clist *cut_string(const char *message) {
 	clist *list;
 	cstring *prev_data;
 	int bracket;
@@ -486,6 +467,7 @@ void associate_links(clist *list) {
 			}
 			break;
 		case TYPE_MESSAGE:
+		default:
 			break;
 		}
 	}
@@ -517,6 +499,8 @@ void force_close_tags(clist *list) {
 				
 				ptr = node;
 			}
+		break;
+		default:
 		break;
 		}
 	}
@@ -593,7 +577,8 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 	clist_node *node;
 	message_part *part;
 	char blast, bblast; // before last, before before last chars
-	int size, num_of_spans, i;
+	size_t size;
+	int num_of_spans, i;
 	
 	blast = '\0';
 	bblast = '\0';
@@ -607,9 +592,7 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 		num_of_spans = count_span_data_span(ptr->next);
 		if (num_of_spans > 0) {
 			// remove the @
-			if (blast == '@') size -= 2;
-			if (bblast == '@') size -= 3;
-			if (size < 0) {
+			if ((blast == '@' && size == 2) || (bblast == '@' && size == 3)) {
 				// The "@xx" is on its own message_part
 				node = ptr->next;
 				clist_remove(list, ptr);
@@ -618,9 +601,9 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 			} else {
 				// The "@xx" is at the end of a message_part
 				cdata = new_cstring();
-				cstring_adds(cdata, part->data);
+				cstring_addns(cdata, part->data, size);
 				free(part->data);
-				part->data = cstring_convert(cstring_substring(cdata, 0, size));
+				part->data = cstring_convert(cdata);
 				ptr = ptr->next;
 			}
 		}
@@ -642,7 +625,9 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 			}
 			
 			// skip the nickname
-			ptr = ptr->next;
+			if (ptr != NULL) {
+				ptr = ptr->next;
+			}
 			
 			// delete the </span>'s
 			for (i = 0 ; i < num_of_spans - 1; i++) {
@@ -653,11 +638,14 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 			}
 			
 			// change the </span> into </nick>
-			part = (message_part *)ptr->data;
-			cdata = new_cstring();
-			cstring_adds(cdata, "nick");
-			part->data = cstring_convert(cdata);
-			ptr = ptr->next;
+			if (ptr != NULL) {
+				part = (message_part *)ptr->data;
+				cdata = new_cstring();
+				cstring_adds(cdata, "nick");
+				free(part->data);
+				part->data = cstring_convert(cdata);
+				ptr = ptr->next;
+			}
 			
 			// remove the ", " if it exists
 			if (ptr != NULL) {
@@ -674,7 +662,7 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 					} else {
 						// The ", " is at the start of another line
 						free(part->data);
-						part->data = cstring_convert(cstring_substring(cdata, 2, -1));
+						part->data = cstring_convert(cstring_substring(cdata, 2, 0));
 					}
 				}
 				free_cstring(cdata);
@@ -698,7 +686,8 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
  */
 clist_node *check_reduce_link_rule(clist_node *ptr) {
 	cstring *prev_data, *cdata, *cdata2, *starting, *ending;
-	int i, do_apply;
+	long long i;
+	int do_apply;
 	char *string;
 	clist_node *node;
 	message_part *part, *linked_part;
@@ -736,8 +725,8 @@ clist_node *check_reduce_link_rule(clist_node *ptr) {
 				// cut starting into 'starting' and 'ending' (separated by " ... ")
 				// and set cdata2 to the value associated with the href attribute
 				ending = new_cstring();
-				cstring_addf(ending, starting, i + 5);
-				cstring_cut_at(starting, i);
+				cstring_addf(ending, starting, (size_t)(i + 5));
+				cstring_cut_at(starting, (size_t)i);
 			
 				if (cstring_starts_with(cdata2, starting, 0) && cstring_ends_with(cdata2, ending, 0)) {
 					do_apply = 1;
@@ -776,7 +765,7 @@ clist_node *check_reduce_link_rule(clist_node *ptr) {
  *
  * @return a list of message_part *
  */
-clist *get_parts(char *message) {
+clist *get_parts(const char *message) {
 	clist *list;
 	clist_node *ptr, *ptr2;
 	
@@ -804,7 +793,7 @@ clist *get_parts(char *message) {
 
 // Those are the functions defined in a (public) .h:
 
-parser_config *get_parser_config(char filename[]) {
+parser_config *get_parser_config(const char filename[]) {
 	config_line *config;
 	clist *config_lines;
 	attribute *att;
@@ -878,7 +867,7 @@ parser_config *get_parser_config(char filename[]) {
 	return parserconf;
 }
 
-char *parse_html_in_message(char *message, parser_config *pconfig) {
+char *parse_html_in_message(const char *message, parser_config *pconfig) {
 	clist *parts;
 	clist_node *ptr;
 	message_part *part;
@@ -900,11 +889,6 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 		part = (message_part *)ptr->data;
 		
 		switch(part->type) {
-		case TYPE_MESSAGE:
-			if (part->data != NULL) {
-				cstring_adds(out, part->data);
-			}
-		break;
 		case TYPE_OPENING_TAG:
 			tmp = new_cstring();
 			if (part->data != NULL) {
@@ -920,6 +904,12 @@ char *parse_html_in_message(char *message, parser_config *pconfig) {
 				
 				context_node = clist_remove(context_stack, context_stack->last);
 				free_clist_node(context_node);
+			}
+		break;
+		case TYPE_MESSAGE:
+		default:
+			if (part->data != NULL) {
+				cstring_adds(out, part->data);
 			}
 		break;
 		}

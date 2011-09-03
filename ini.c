@@ -29,7 +29,7 @@ attribute *get_attribute(char data[]);
 /**
  * Remove a trailing LN, or CRLN, and replace it by '\0'.
  */
-void remove_crlf(char data[], int length);
+void remove_crlf(char data[], size_t length);
 
 char *mmask;
 int match(attribute *att);
@@ -130,7 +130,7 @@ clist *ini_get_select(FILE *file, int (*filter)(attribute *att)) {
 }
 
 attribute *get_attribute(char data[]) {
-	int i;
+	size_t i;
 	cstring *key, *value;
 	attribute *att;
 	cstring *line;
@@ -162,9 +162,9 @@ attribute *get_attribute(char data[]) {
 	return att;
 }
 
-void remove_crlf(char data[], int size) {
+void remove_crlf(char data[], size_t size) {
 	// do not store the \n, convert CRLF to LF
-	if (size > 0 && data[size-1] == '\n') {
+	if (data[size-1] == '\n') {
 		data[size-1] = '\0';
 		if (size > 1 && data[size-2] == '\r')
 			data[size-2] = '\0';
