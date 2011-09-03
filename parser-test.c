@@ -3,7 +3,7 @@
 #include "parser.h"
 
 int main(int argc, char *argv[]) {
-	char *string;
+	const char *string;
 	char *test;
 	parser_config *config;
 	

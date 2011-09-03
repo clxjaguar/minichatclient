@@ -62,7 +62,7 @@ void cstring_add(cstring *self, cstring *source);
  * @param index:
  * 	the starting index at which to copy from the source
  */
-void cstring_addf(cstring *self, cstring *source, int index);
+void cstring_addf(cstring *self, cstring *source, size_t index);
 
 /**
  * Add another cstring at the end of the first one, up to N chars long.
@@ -76,7 +76,7 @@ void cstring_addf(cstring *self, cstring *source, int index);
  * @param n:
  * 	the maximum number of chars to add (excluding the NUL byte)
  */
-void cstring_addn(cstring *self, cstring *source, int n);
+void cstring_addn(cstring *self, cstring *source, size_t n);
 
 /**
  * Add another cstring at the end of the first one, starting from index, up to N chars long.
@@ -92,7 +92,7 @@ void cstring_addn(cstring *self, cstring *source, int n);
  * @param n:
  * 	the maximum number of chars to add (excluding the NUL byte)
  */
-void cstring_addfn(cstring *self, cstring *source, int index, int n);
+void cstring_addfn(cstring *self, cstring *source, size_t index, size_t n);
 
 /**
  * Add a char at the end of the given cstring.
@@ -130,7 +130,7 @@ void cstring_adds(cstring *self, const char source[]);
  * @param index:
  * 	the starting index at which to copy from the source
  */
-void cstring_addfs(cstring *self, const char source[], int index);
+void cstring_addfs(cstring *self, const char source[], size_t index);
 
 /**
  * Add a string at the end of the given cstring, up to N chars long.
@@ -144,7 +144,7 @@ void cstring_addfs(cstring *self, const char source[], int index);
  * @param n:
  * 	the maximum number of chars to add (excluding the NUL byte)
  */
-void cstring_addns(cstring *self, const char source[], int n);
+void cstring_addns(cstring *self, const char source[], size_t n);
 
 /**
  * Add a string at the end of the given cstring, starting from index, up to N chars long.
@@ -160,7 +160,7 @@ void cstring_addns(cstring *self, const char source[], int n);
  * @param n:
  * 	the maximum number of chars to add (excluding the NUL byte)
  */
-void cstring_addfns(cstring *self, const char source[], int index, int n);
+void cstring_addfns(cstring *self, const char source[], size_t index, size_t n);
 
 /**
  * Add an int at the end of the given cstring.
@@ -237,11 +237,11 @@ void cstring_cut_at(cstring *self, size_t size);
  * @param start:
  * 	the index to start at
  * @param length:
- * 	the number of characters to copy, -1 for 'up to the end'
+ * 	the number of characters to copy, 0 for 'up to the end'
  * @return:
  * 	a newly allocated cstring
  */
-cstring *cstring_substring(cstring *self, int start, int length);
+cstring *cstring_substring(cstring *self, size_t start, size_t length);
 
 /**
  * Split a cstring into "smaller" cstrings every time the given separator is found.
@@ -376,7 +376,7 @@ int cstring_ends_with(cstring *self, cstring *find, size_t start_index);
  * @return:
  * 	true if it does
  */
-int cstring_ends_withs(cstring *self, const char find[], int start_index);
+int cstring_ends_withs(cstring *self, const char find[], size_t start_index);
 
 /*
  * Check if the given string is contained by this one.
@@ -390,7 +390,7 @@ int cstring_ends_withs(cstring *self, const char find[], int start_index);
  * @return:
  * 	the start index of the found string if found, or a negative value if not
  */
-int cstring_find(cstring *self, cstring *find, int start_index);
+long long cstring_find(cstring *self, cstring *find, size_t start_index);
 
 /*
  * Check if the given string is contained by this one.
@@ -404,7 +404,7 @@ int cstring_find(cstring *self, cstring *find, int start_index);
  * @return:
  * 	the start index of the found string if found, or a negative value if not
  */
-int cstring_finds(cstring *self, const char find[], int start_index);
+long long cstring_finds(cstring *self, const char find[], size_t start_index);
 
 /*
  * Clear the given cstring.
