@@ -195,7 +195,7 @@ void free_message_part_node(clist_node* node) {
  * 
  * @return true if the rule was used
  */
-int process_message_part_sub(cstring *out, config_line *line, clist *context_stack, message_part *part) {
+rule *process_message_part_sub(config_line *line, clist *context_stack, message_part *part) {
 	clist_node *cnode;
 	clist_node *rnode;
 	clist_node *tnode;
@@ -204,9 +204,7 @@ int process_message_part_sub(cstring *out, config_line *line, clist *context_sta
 	char *context;
 	attribute *att;
 	int in_context, do_apply, global_tag, global_value, tag_equals, value_equals;
-	cstring *text_to_apply, *from, *to;
-	clist_node *att_node;
-
+	
 	do_apply = 0;
 	
 	atts = part->attributes;
@@ -243,43 +241,12 @@ int process_message_part_sub(cstring *out, config_line *line, clist *context_sta
 			}
 			
 			if (do_apply) {
-				text_to_apply = new_cstring();
-				
-				switch (part->type) {
-				case TYPE_OPENING_TAG:
-					cstring_adds(text_to_apply, rul->start);
-					break;
-				case TYPE_CLOSING_TAG:
-					cstring_adds(text_to_apply, rul->stop);
-					break;
-				default:
-				break;
-				}
-
-				from = new_cstring();
-				to = new_cstring();
-				for (att_node = atts->first ; att_node != NULL ; att_node = att_node->next) {
-					att = (attribute *)att_node->data;
-					cstring_clear(from);
-					cstring_adds(from, "\\{");
-					cstring_adds(from, att->name);
-					cstring_addc(from, '}');
-
-					cstring_clear(to);
-					cstring_adds(to, att->value);
-					
-					cstring_replace(text_to_apply, from, to);
-				}
-				free_cstring(to);
-				free_cstring(from);					
-				
-				cstring_add(out, text_to_apply);
-				free_cstring(text_to_apply);
+				return rul;
 			}
 		}
 	}
 	
-	return do_apply;
+	return NULL;
 }
 
 /**
@@ -291,27 +258,34 @@ int process_message_part_sub(cstring *out, config_line *line, clist *context_sta
  * 
  * @return the processed message 
  */
-char *process_message_part(clist *config_lines, clist *context_stack, message_part *part) {
-	cstring *out;
+void process_message_part(void (*operation)(message_part *part, rule *rul, void *argument), void *argument, clist *config_lines, clist *context_stack, message_part *part) {
 	config_line *line;
 	clist_node *ptr;
 	int applied;
+	rule *rul;
 
-	out = new_cstring();
+	applied = 0;
+	
 	switch (part->type) {
 	case TYPE_CLOSING_TAG:
 	case TYPE_OPENING_TAG:
-		applied = 0;
 		for (ptr = config_lines->first ; !applied && ptr != NULL ; ptr = ptr->next) {
 			line = (config_line *)ptr->data;
-			applied = process_message_part_sub(out, line, context_stack, part);
+			rul = process_message_part_sub(line, context_stack, part);
+			if (rul != NULL) {
+				operation(part, rul, argument);
+				applied = 1;
+			}
 		}
 		break;
 	default:
+		// should not happen
 	break;
 	}
 	
-	return cstring_convert(out);
+	if (!applied) {
+		operation(part, NULL, argument);
+	}
 }
 
 clist_node *process_part(char *data, int text) {
@@ -868,11 +842,65 @@ parser_config *get_parser_config(const char filename[]) {
 	return parserconf;
 }
 
-char *parse_html_in_message(const char *message, parser_config *pconfig) {
+void process_tag(message_part *part, rule *rul, void *argument) {
+	clist *atts;
+	attribute *att;
+	cstring *text_to_apply, *from, *to;
+	clist_node *att_node;
+	
+	cstring *out = (cstring *)argument;
+	
+	if (rul == NULL) {
+		if (part->type == TYPE_MESSAGE) {
+			cstring_adds(out, part->data);
+		}
+	} else {
+		atts = part->attributes;
+		if (part->type == TYPE_CLOSING_TAG) {
+			if (part->link != NULL) {
+				atts = part->link->attributes;
+			}
+		}
+		
+		text_to_apply = new_cstring();
+	
+		switch (part->type) {
+		case TYPE_OPENING_TAG:
+			cstring_adds(text_to_apply, rul->start);
+			break;
+		case TYPE_CLOSING_TAG:
+			cstring_adds(text_to_apply, rul->stop);
+			break;
+		default:
+		break;
+		}
+
+		from = new_cstring();
+		to = new_cstring();
+		for (att_node = atts->first ; att_node != NULL ; att_node = att_node->next) {
+			att = (attribute *)att_node->data;
+			cstring_clear(from);
+			cstring_adds(from, "\\{");
+			cstring_adds(from, att->name);
+			cstring_addc(from, '}');
+
+			cstring_clear(to);
+			cstring_adds(to, att->value);
+		
+			cstring_replace(text_to_apply, from, to);
+		}
+		free_cstring(to);
+		free_cstring(from);					
+	
+		cstring_add(out, text_to_apply);
+		free_cstring(text_to_apply);
+	}
+}
+
+void parse_html(const char *message, parser_config *pconfig, void (*operation)(message_part *part, rule *rul, void *argument), void *argument) {
 	clist *parts;
 	clist_node *ptr;
 	message_part *part;
-	cstring *out;
 	cstring *tmp;
 	clist *context_stack;
 	clist_node *context_node;	
@@ -882,7 +910,6 @@ char *parse_html_in_message(const char *message, parser_config *pconfig) {
 	data = (parser_config_private *)pconfig->data;
 	config_lines = data->config_lines;
 	
-	out = new_cstring();
 	parts = get_parts(message);
 	
 	context_stack = new_clist();
@@ -897,11 +924,10 @@ char *parse_html_in_message(const char *message, parser_config *pconfig) {
 			}
 
 			clist_add(context_stack, new_string_node(cstring_convert(tmp)));
-			cstring_adds(out, process_message_part(config_lines, context_stack, part));
-		break;
+			process_message_part(operation, argument, config_lines, context_stack, part);		break;
 		case TYPE_CLOSING_TAG:
 			if(context_stack->size > 0 && !strcmp(part->data, (char *)context_stack->last->data)) {
-				cstring_adds(out, process_message_part(config_lines, context_stack, part));
+				process_message_part(operation, argument, config_lines, context_stack, part);
 				
 				context_node = clist_remove(context_stack, context_stack->last);
 				free_clist_node(context_node);
@@ -910,7 +936,7 @@ char *parse_html_in_message(const char *message, parser_config *pconfig) {
 		case TYPE_MESSAGE:
 		default:
 			if (part->data != NULL) {
-				cstring_adds(out, part->data);
+				operation(part, NULL, argument);
 			}
 		break;
 		}
@@ -918,7 +944,13 @@ char *parse_html_in_message(const char *message, parser_config *pconfig) {
 
 	free_clist(context_stack);
 	free_clist(parts);
-
-	return cstring_convert(out);
 }
 
+char *parse_html_in_message(const char *message, parser_config *pconfig) {
+	cstring *out;
+	
+	out = new_cstring();
+	parse_html(message, pconfig, process_tag, out);
+	
+	return cstring_convert(out);	
+}
