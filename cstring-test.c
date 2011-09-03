@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "cstring.h"
 #include "clist.h"
 
@@ -9,7 +10,6 @@
 
 boolean test(const char *name, const char *expected, const char *value, boolean verbose);
 boolean test_i(const char *name, int expected, int value, boolean verbose);
-
 boolean do_operations(boolean verbose);
 
 boolean test(const char *name, const char *expected, const char *value, boolean verbose) {
@@ -48,6 +48,7 @@ boolean test_i(const char *name, int expected, int value, boolean verbose) {
 		if (!result) {
 			printf("'%i' should have been '%i'\n", value, expected);
 		}
+		fflush(NULL);
 	}
 	
 	return result;
@@ -56,6 +57,11 @@ boolean test_i(const char *name, int expected, int value, boolean verbose) {
 int main (int argc, char **argv) {
 	unsigned long i;
 	boolean result;
+	
+	if (argc > 1) {
+		printf("This programme does not support argument.\nYou passed: %s\n", argv[1]);
+		return 1;
+	}
 
 	result = do_operations(true);
 
