@@ -85,6 +85,7 @@ boolean do_operations(boolean verbose) {
 	boolean b;
 	boolean result = true;
 	clist_node *node;
+	int i;
 
 	string = new_cstring();
 	result = result && test("Empty string", "", string->string, verbose);
@@ -100,6 +101,13 @@ boolean do_operations(boolean verbose) {
 	result = result && test("reverse non-empty string", ".tseT 9876543210 9876543210 9876543210 9876543210 9876543210 9876543210 9876543210 9876543210", string->string, verbose);
 	cstring_addi(string, 98);
 	result = result && test("addi", ".tseT 9876543210 9876543210 9876543210 9876543210 9876543210 9876543210 9876543210 987654321098", string->string, verbose);
+	free_cstring(string);
+	
+	string = new_cstring();
+	for (i = 0 ; i < 255 ; i++) {
+		cstring_adds(string, "0");
+	}
+	result = result && test("255 times adds with 1 char", "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", string->string, verbose);
 	free_cstring(string);
 	
 	string = new_cstring();

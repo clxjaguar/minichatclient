@@ -613,6 +613,7 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 			part = (message_part *)ptr->data;
 			cdata = new_cstring();
 			cstring_adds(cdata, "nick");
+			free(part->data);
 			part->data = cstring_convert(cdata);
 			ptr = ptr->next;
 			
@@ -776,14 +777,14 @@ clist *get_parts(const char *message) {
 	force_close_tags(list);
 	
 	// Apply some special rules (eg: "@ ")
-	for (ptr = list->first ; ptr != NULL ; ) {
+	for (ptr = list->first ; ptr != NULL ; ) {	
 		ptr2 = ptr;
 		
-		ptr2 = check_at_rule(list, ptr2);
-		ptr2 = check_reduce_link_rule(ptr2);
+		ptr = check_at_rule(list, ptr);
+		ptr = check_reduce_link_rule(ptr);
 		
 		// If nothing changed, we still need to increment the counter
-		if (ptr2 == ptr) {
+		if (ptr == ptr2) {
 			ptr = ptr->next;
 		}
 	}
