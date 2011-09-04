@@ -35,10 +35,11 @@ typedef struct {
  * - stop
  *
  * @param att the attribute to filter
+ * @param argument an unused argument (e.g. NULL)
  *
  * @return true if the attribute is to be kept
  */
-bool filter_config(attribute *att);
+bool filter_config(attribute *att, void *argument);
 
 /**
  * Process a message_part according to the rules in parser_config, and give
@@ -157,7 +158,7 @@ void free_group_node(clist_node *node);
 void free_parser_config(parser_config *pconfig);
 clist_node *new_rule_node(parser_rule *rrule);
 clist_node *new_string_node(char *string);
-clist_node *new_group_node(config_line *group);
+clist_node *new_config_line_node(config_line *group);
 void free_message_part(message_part* message);
 void free_message_part_node(clist_node* node);
 
