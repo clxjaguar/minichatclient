@@ -428,4 +428,11 @@ void cstring_clear(cstring *self);
  */
 char *cstring_convert(cstring *self);
 
+/**
+ * Compact the memory used by this cstring.
+ * 
+ * @param self the cstring to work on
+ */
+void *cstring_compact(cstring *self);
+
 #endif

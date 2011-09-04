@@ -47,14 +47,25 @@ void free_cstring(cstring *string) {
 char *cstring_convert(cstring *self) {
 	char *string;
 	
-	if (self == NULL)
+	if (self == NULL) {
 		return NULL;
-
+	}
+	
+	// Note: this could be skipped.
+	cstring_compact(self);
+	
 	free(self->private);
 	string = (self->string);
 	free(self);
 
 	return string;
+}
+
+void *cstring_compact(cstring *self) {
+	if (self != NULL) {
+		self->private->buffer_length = self->length + 1;
+		self->string = (char *)realloc(self->string, self->length + 1);
+	}
 }
 
 void cstring_cut_at(cstring *self, size_t size) {
@@ -341,7 +352,7 @@ void cstring_addfs(cstring *self, const char source[], size_t indexi) {
 			self->private->buffer_length += BUFFER_SIZE;
 			self->string = (char *)realloc(self->string, sizeof(char) * self->private->buffer_length);
 		}
-	
+		
 		for (ptr = self->length ; ptr <= (self->length + ss) ; ptr++) {
 			self->string[ptr] = source[ptr - self->length + indexi];
 		}
@@ -368,7 +379,6 @@ void cstring_addfns(cstring *self, const char source[], size_t indexi, size_t n)
 		free(tmp);
 	}
 }
-
 
 void free_cstring_node(clist_node *node) {
 	if (node->data != NULL) {
