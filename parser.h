@@ -59,7 +59,9 @@ char *parse_html_in_message(clist *parts, parser_config *config);
  * @param operation the function to use to parse each message_part
  * @param argument the user argument to pass to the function
  */
-void parse_html(clist *parts, parser_config *config, void (*operation)(message_part *part, parser_rule *rul, void *argument), void *argument);
+void parse_html(clist *parts, parser_config *config, 
+	void (*operation)(message_part *part, parser_rule *rul, void *argument),
+	void *argument);
 
 /**
  * Parse the given file for an output configuration.

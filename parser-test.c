@@ -4,6 +4,10 @@
 #include "parser.h"
 #include "cstring.h"
 
+#define bool int
+#define true 1
+#define false 0
+
 int main(int argc, char *argv[]) {
 	const char *string;
 	cstring *cs;
@@ -13,6 +17,8 @@ int main(int argc, char *argv[]) {
 	FILE *file;
 	cs = NULL;
 	int car;
+	bool cont;
+	char *new_argv[2];
 	
 	if (argc < 2) {
 		string = ""
@@ -27,7 +33,7 @@ int main(int argc, char *argv[]) {
 	} else {
 		if (argc < 3) {
 			string = argv[1];
-		} else if (!strcmp(argv[1], "-f")) {
+		} else if (!strcmp(argv[1], "-F")) {
 			file = fopen(argv[2], "r");
 			if (!file) {
 				fprintf(stderr, "Cannot open the given file.");
@@ -36,28 +42,61 @@ int main(int argc, char *argv[]) {
 			cs = new_cstring();
 			while (!feof(file)) {
 				car = fgetc(file);
-				if (car >= 0) {
+				if (car >= 0 && car != '\r') {
 					cstring_addc(cs, (char)car);
 				}
 			}
 			string = cs->string;
+		} else if (!strcmp(argv[1], "-f")) {
+			file = fopen(argv[2], "r");
+			if (!file) {
+				fprintf(stderr, "Cannot open the given file.");
+				return 2;
+			}
+			cs = new_cstring();
+			cont = true;
+			while (cont && !feof(file)) {
+				car = fgetc(file);
+				if (car >= 0 && car != '\r') {
+					if (car == '\n') {
+						new_argv[0] = argv[0];
+						new_argv[1] = cs->string;
+						cont = !main(2, new_argv);
+						cstring_clear(cs);
+					} else {
+						cstring_addc(cs, (char)car);
+					}
+				}
+			}
+			if (car >= 0 && car != '\n') {
+				new_argv[0] = argv[0];
+				new_argv[1] = cs->string; 
+				cont = !main(2, new_argv);
+			}
+			free_cstring(cs);
+			cs = NULL;
+			string = NULL;
 		} else {
-			fprintf(stderr, "Syntax not correct.\nUsage:\n\t%s "
-				"[string to parse]\n\t%s -f [file to parse]\n"
-				, argv[0], argv[0]);
+			fprintf(stderr, "Syntax not correct.\nUsage:\n"
+				"\t%s [string to parse]\n"
+				"\t%s -f [file to parse (line per line)]\n"
+				"\t%s -F [file to parse (at once)]\n"
+				, argv[0], argv[0], argv[0]);
 			return 1;
 		}
 	}
 	
-	config = get_parser_config("parser_rules.conf");
-	parts = get_parser_parts(string);
-	test = parse_html_in_message(parts, config);
-	free_clist(parts);
-	free_parser_config(config);
-	printf("%s\n", test);
-
-	if (test != NULL) {
-		free(test);
+	if (string != NULL) {
+		config = get_parser_config("parser_rules.conf");
+		parts = get_parser_parts(string);
+		test = parse_html_in_message(parts, config);
+		free_clist(parts);
+		free_parser_config(config);
+		printf("%s\n", test);
+		
+		if (test != NULL) {
+			free(test);
+		}
 	}
 	
 	if (cs != NULL) {

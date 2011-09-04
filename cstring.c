@@ -61,7 +61,7 @@ char *cstring_convert(cstring *self) {
 	return string;
 }
 
-void *cstring_compact(cstring *self) {
+void cstring_compact(cstring *self) {
 	if (self != NULL) {
 		self->private->buffer_length = self->length + 1;
 		self->string = (char *)realloc(self->string, self->length + 1);
