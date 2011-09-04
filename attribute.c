@@ -59,6 +59,7 @@ clist_node *attribute_add_to_clist(clist *list, attribute *att) {
 	
 	node = new_attribute_node();
 	node->data = att;
+	node->free_node = free_attribute_node;
 	clist_add(list, node);
 	
 	return node;

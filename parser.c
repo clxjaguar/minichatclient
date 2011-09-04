@@ -80,6 +80,8 @@ parser_config *get_parser_config(const char filename[]) {
 			}
 		}
 	}
+	
+	free_clist(atts);
 
 	parserconf = (parser_config *)malloc(sizeof(parser_config));
 	data = (parser_config_private *)malloc(sizeof(parser_config_private));
@@ -154,6 +156,7 @@ clist *get_parser_parts(const char *message) {
 	clist_node *ptr, *ptr2;
 	
 	list = create_parts(message);
+	
 	associate_links(list);
 	force_close_tags(list);
 	
@@ -306,6 +309,7 @@ clist_node *create_part(char *data, bool text) {
 				i = 1;
 			} else {
 				string = (cstring*)node->data;
+				node->data = NULL;
 				
 				for (first_equ = 0 ; string->string[first_equ] != '\0' && string->string[first_equ] != '=' ; first_equ++);
 				if (string->string[first_equ] != '=') {
@@ -320,6 +324,8 @@ clist_node *create_part(char *data, bool text) {
 				attribute_add_to_clist(part->attributes, att);
 			}
 		}
+		free_clist(tab);
+		free_cstring(tmp);
 		
 		// The links are not linked here, but in a second pass.
 		part->link = NULL;
@@ -355,8 +361,7 @@ clist *create_parts(const char *message) {
 				clist_add(list, create_part(cstring_convert(prev_data), true));
 				prev_data = new_cstring();
 			}
-		} 
-		else if (bracket && car == '>') {
+		} else if (bracket && car == '>') {
 			bracket = false;
 			if (prev_data->length > 0) {
 				if ((i > 0 && message[i - 1] != '/') || prev_data->length > 1) {
@@ -374,14 +379,15 @@ clist *create_parts(const char *message) {
 					prev_data = new_cstring();
 				}
 			}
-		}
-		else {
+		} else {
 			cstring_addc(prev_data, car);
 		}
 	}
 	
 	if (prev_data->length > 0) {
 		clist_add(list, create_part(cstring_convert(prev_data), true));
+	} else {
+		free_cstring(prev_data);
 	}
 	
 	return list;
@@ -766,6 +772,7 @@ clist_node *clone_message_part_node(clist_node *node) {
 	}
 
 	new_node->data = new_message;
+	new_node->free_node = node->free_node;
 	return new_node;
 }
 
@@ -786,6 +793,7 @@ void free_rule_node(clist_node *node) {
 		if (rul->stop != NULL) {
 			free(rul->stop);
 		}
+		free(rul);
 	}
 	
 	free(node);
@@ -802,7 +810,7 @@ void free_group_node(clist_node *node) {
 		if (group->rules != NULL) {
 			free_clist(group->rules);
 		}
-		
+		free(group);
 	}
 	free(node);
 }
@@ -851,19 +859,16 @@ clist_node *new_config_line_node(config_line *group) {
 }
 
 void free_message_part(message_part* message) {
-	clist_node *node;
-	clist_node *next;
-	
 	if (message->data != NULL) {
 		free(message->data);
 	}
 	
 	if (message->attributes != NULL) {
-		for (node = message->attributes->first ; node != NULL ; ) {
-			next = node->next;
-			free_clist_node(node);
-			node = next;
-		}
+		free_clist(message->attributes);
+	}
+	
+	if (message->link != NULL) {
+		message->link->link = NULL;
 	}
 	
 	free(message);
