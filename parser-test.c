@@ -62,8 +62,8 @@ int main(int argc, char *argv[]) {
 						new_argv[0] = argv[0];
 						new_argv[1] = cs->string;
 						cont = !main(2, new_argv);
-						cstring_clear(cs);
 						cstring_compact(cs);
+						cstring_clear(cs);
 					} else {
 						cstring_addc(cs, (char)car);
 					}
@@ -91,6 +91,7 @@ int main(int argc, char *argv[]) {
 		test = NULL;
 		config = get_parser_config("parser_rules.conf");
 		parts = get_parser_parts(string);
+		// TODO: can crash:
 		test = parse_html_in_message(parts, config);
 		free_clist(parts);
 		free_parser_config(config);
