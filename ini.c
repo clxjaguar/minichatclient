@@ -18,11 +18,21 @@
 #include <stdio.h>
 #include "attribute.h"
 
+#define bool int
+#define true 1
+#define false 0
+
 // start of privates prototypes
+
 /**
- * Create an attribute from a string (it will cut it in half at the sign '=' if found,
- * or just put the whole string in the 'name' field).
+ * Create an attribute from a string (it will cut it in half at the sign '='
+ * if found, or just put the whole string in the 'name' field).
  * It will return NULL if the given string describes a comment.
+ * Data *MUST* end with '\0', or be NULL (which will return NULL).
+ *
+ * @param data the attribute in its text form
+ *
+ * @return the attribute, or NULL
  */
 attribute *get_attribute(char data[]);
 
@@ -31,8 +41,8 @@ attribute *get_attribute(char data[]);
  */
 void remove_crlf(char data[], size_t length);
 
-char *mmask;
-int match(attribute *att);
+bool match(attribute *att, void *argument);
+
 // end of privates prototypes
 
 
@@ -55,30 +65,28 @@ char *ini_get(FILE *file, char name[]) {
 }
 
 clist *ini_get_all(FILE *file, char mask[]) {
-	clist *list;
-
-	mmask = mask;
-	list = ini_get_select(file, match);
-	mmask = NULL;
-
-	return list;
+	return ini_get_select(file, match, mask);
 }
 
-int match(attribute *att) {
+bool match(attribute *att, void *argument) {
 	//TODO: allow real masks instead of exact match?
-	if (mmask == NULL) {
-		return 1;
+	if (argument == NULL) {
+		return true;
 	} else {
-		return !strcmp(att->name, mmask);
+		if (att == NULL || att->name == NULL) {
+			return false;
+		} else {
+			return !strcmp(att->name, (char *)argument);
+		}
 	}
 }
 
-clist *ini_get_select(FILE *file, int (*filter)(attribute *att)) {
+clist *ini_get_select(FILE *file, bool (*filter)(attribute *att, void *argument), void *argument) {
 	clist *atts;
 	attribute *att;
 	char buffer[81];
 	size_t size;
-	int full_line;
+	bool full_line;
 	cstring *string;
 	
 	atts = new_clist();
@@ -89,8 +97,10 @@ clist *ini_get_select(FILE *file, int (*filter)(attribute *att)) {
 		while (!feof(file)) {
 			buffer[0]='\0';
 			fgets(buffer, 80, file);
+			// Note: strlen() could return 0 if the file contains \0
+			// at the start of a line
 			size = strlen(buffer);
-			full_line = (feof(file) || buffer[size-1] == '\n');
+			full_line = (feof(file) || size == 0 || buffer[size - 1] == '\n');
 			remove_crlf(buffer, size);
 			
 			// No luck, we need to continue getting data
@@ -100,24 +110,24 @@ clist *ini_get_select(FILE *file, int (*filter)(attribute *att)) {
 				while (!full_line) {
 					fgets(buffer, 80, file);
 					size = strlen(buffer);
-					full_line = (feof(file) || buffer[size-1] == '\n');
+					full_line = (feof(file) || size == 0 || buffer[size - 1] == '\n');
 					remove_crlf(buffer, size);
 					cstring_adds(string, buffer);
 				}
-				full_line = 0;
+				full_line = false;
 			}
 			
 			// get the attribute, and add it if it is not a comment
-			if (full_line)
+			if (full_line) {
 				att = get_attribute(buffer);
-			else
+			} else {
 				att = get_attribute(string->string);
+			}
 			
 			if (att != NULL) {
-				if (att->name[0] != '#' && (filter == NULL || filter(att))) {
+				if (att->name[0] != '#' && att->name[0] != '\0' && (filter == NULL || filter(att, argument))) {
 					attribute_add_to_clist(atts, att);
-				}
-				else {
+				} else {
 					free_attribute(att);
 				}
 			}
@@ -134,6 +144,11 @@ attribute *get_attribute(char data[]) {
 	cstring *key, *value;
 	attribute *att;
 	cstring *line;
+	
+	// Validity check.
+	if (data == NULL) {
+		return NULL;
+	}
 	
 	line = new_cstring();
 	cstring_adds(line, data);
@@ -156,6 +171,7 @@ attribute *get_attribute(char data[]) {
 		
 		att = new_attribute();
 		att->name = cstring_convert(key);
+		// Note: cstring_convert will return NULL if NULL is given
 		att->value = cstring_convert(value);
 	}
 	
@@ -163,10 +179,10 @@ attribute *get_attribute(char data[]) {
 }
 
 void remove_crlf(char data[], size_t size) {
-	// do not store the \n, convert CRLF to LF
-	if (data[size-1] == '\n') {
-		data[size-1] = '\0';
-		if (size > 1 && data[size-2] == '\r')
-			data[size-2] = '\0';
+	// convert CRLF to LF, do not store the final \n
+	if (size > 0 && data[size - 1] == '\n') {
+		data[size - 1] = '\0';
+		if (size > 1 && data[size - 2] == '\r')
+			data[size - 2] = '\0';
 	}
 }

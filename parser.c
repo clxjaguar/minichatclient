@@ -37,14 +37,14 @@ parser_config *get_parser_config(const char filename[]) {
 	rul = NULL;
 	config = NULL;
 	config_lines = new_clist();
-	atts = ini_get_select(file, filter_config);
+	atts = ini_get_select(file, filter_config, NULL);
 
 	for (ptr = atts->first ; ptr != NULL ; ptr = ptr->next) {
 		att = (attribute *)ptr->data;
 		if(!strcmp(att->name, "context")) {
 			config = (config_line *)malloc(sizeof(config_line));
 			config->rules = new_clist();
-			clist_add(config_lines, new_group_node(config));
+			clist_add(config_lines, new_config_line_node(config));
 			
 			tmp = new_cstring();
 			cstring_adds(tmp, att->value);
@@ -100,7 +100,7 @@ void parse_html(clist *parts, parser_config *config, void (*operation)(message_p
 	parser_config_private *data;
 	
 	// Validity check.
-	if (parts == NULL || parts->size == 0) {
+	if (parts == NULL || operation == NULL) {
 		return;
 	}
 	
@@ -151,7 +151,12 @@ char *parse_html_in_message(clist *parts, parser_config *pconfig) {
 
 // Those are the functions are only defined in a private (_p) .h:
 
-bool filter_config(attribute *att) {
+bool filter_config(attribute *att, void *argument) {
+	// useless test, to remove a compile warning...
+	if (argument == NULL && argument != NULL) {
+		return false;
+	}
+	
 	return (!strcmp(att->name, "context") || !strcmp(att->name, "tag") || !strcmp(att->name, "value") || !strcmp(att->name, "start") || !strcmp(att->name, "stop"));
 }
 
@@ -474,6 +479,11 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 	// @ <-UTF8-> (Ox40/64 OxC2/194)
 	//const char s_at1[4] = {0x40, 0xC2, 0xA0, '\0'};
 	
+	// Validity check.
+	if (list == NULL || ptr == NULL) {
+		return ptr;
+	}
+		
 	cstring *cdata;
 	clist_node *node;
 	message_part *part;
@@ -584,6 +594,11 @@ clist_node *check_reduce_link_rule(clist_node *ptr) {
 	message_part *part, *linked_part;
 	attribute *att;
 	
+	// Validity check.
+	if (ptr == NULL) {
+		return ptr;
+	}
+	
 	part = (message_part *)ptr->data;
 	cdata = new_cstring();
 	cstring_adds(cdata, part->data);
@@ -686,6 +701,7 @@ void process_tag(message_part *part, parser_rule *rul, void *argument) {
 	cstring *out = (cstring *)argument;
 	
 	if (rul == NULL) {
+		// If no rule for <tag> (or </tag>): do_nothing()
 		if (part->type == TYPE_MESSAGE) {
 			cstring_adds(out, part->data);
 		}
@@ -710,23 +726,25 @@ void process_tag(message_part *part, parser_rule *rul, void *argument) {
 		break;
 		}
 
-		from = new_cstring();
-		to = new_cstring();
-		for (att_node = atts->first ; att_node != NULL ; att_node = att_node->next) {
-			att = (attribute *)att_node->data;
-			cstring_clear(from);
-			cstring_adds(from, "\\{");
-			cstring_adds(from, att->name);
-			cstring_addc(from, '}');
+		if (atts != NULL && atts->size > 0) {
+			from = new_cstring();
+			to = new_cstring();
+			for (att_node = atts->first ; att_node != NULL ; att_node = att_node->next) {
+				att = (attribute *)att_node->data;
+				cstring_clear(from);
+				cstring_adds(from, "\\{");
+				cstring_adds(from, att->name);
+				cstring_addc(from, '}');
 
-			cstring_clear(to);
-			cstring_adds(to, att->value);
-		
-			cstring_replace(text_to_apply, from, to);
+				cstring_clear(to);
+				cstring_adds(to, att->value);
+				
+				cstring_replace(text_to_apply, from, to);
+			}
+			free_cstring(to);
+			free_cstring(from);
 		}
-		free_cstring(to);
-		free_cstring(from);					
-	
+			
 		cstring_add(out, text_to_apply);
 		free_cstring(text_to_apply);
 	}
@@ -827,7 +845,7 @@ clist_node *new_string_node(char *string) {
 	return context_node;
 }
 
-clist_node *new_group_node(config_line *group) {
+clist_node *new_config_line_node(config_line *group) {
 	clist_node *node;
 	
 	node = new_clist_node();
