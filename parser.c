@@ -157,9 +157,10 @@ clist *get_parser_parts(const char *message) {
 	
 	list = create_parts(message);
 	
+	// close them BEFORE
+	force_close_tags(list); // TODO: can cause crashes
 	associate_links(list);
-	force_close_tags(list);
-	
+			
 	// Apply some special rules (eg: "@ ")
 	for (ptr = list->first ; ptr != NULL ; ) {	
 		ptr2 = ptr;

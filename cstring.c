@@ -346,9 +346,9 @@ void cstring_adds(cstring *self, const char source[]) {
 void cstring_addfs(cstring *self, const char source[], size_t indexi) {
 	size_t ss, ptr;
 	
-	if (source != NULL) {
+	if (source != NULL && strlen(source) > indexi) {
 		ss = strlen(source) - indexi;
-		while ((self->length + ss) > (self->private->buffer_length)) {
+		while ((self->length + ss) >= (self->private->buffer_length)) {
 			self->private->buffer_length += BUFFER_SIZE;
 			self->string = (char *)realloc(self->string, sizeof(char) * self->private->buffer_length);
 		}
