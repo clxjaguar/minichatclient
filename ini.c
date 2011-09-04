@@ -143,20 +143,17 @@ attribute *get_attribute(char data[]) {
 	size_t i;
 	cstring *key, *value;
 	attribute *att;
-	cstring *line;
 	
 	// Validity check.
 	if (data == NULL) {
 		return NULL;
 	}
 	
-	line = new_cstring();
-	cstring_adds(line, data);
 	att = NULL;
 	key = NULL;
 	value = NULL;
 	
-	if (line->length > 0) {
+	if (strlen(data) > 0) {
 		for (i = 0 ; data[i] != '\0' && data[i] != '=' ; i++);
 		
 		if (data[i] == '=') {

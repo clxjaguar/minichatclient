@@ -63,6 +63,7 @@ int main(int argc, char *argv[]) {
 						new_argv[1] = cs->string;
 						cont = !main(2, new_argv);
 						cstring_clear(cs);
+						cstring_compact(cs);
 					} else {
 						cstring_addc(cs, (char)car);
 					}
@@ -87,6 +88,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	if (string != NULL) {
+		test = NULL;
 		config = get_parser_config("parser_rules.conf");
 		parts = get_parser_parts(string);
 		test = parse_html_in_message(parts, config);
