@@ -23,17 +23,28 @@
 
 //TODO: translation of character set ?
 
-//int maxrows = 0, maxcols = 0;
 #define maxrows LINES
 #define maxcols COLS
-/*
-WINDOW *create_newwin(int height, int width, int starty, int startx){
-	WINDOW *lwin;
-	lwin = newwin(height, width, starty, startx);
-	wrefresh(lwin);
-	return lwin;
+
+char* transliterate(const char *utf){
+	char *target;
+	unsigned int i;
+	//char utf[] = "j'ai pas le droit aux fÃ©culents pour mon rÃ©gime";
+	target = malloc(strlen(utf)+1);
+
+	i=0;
+	while(utf[i]){
+		if(!(utf[i]&128)){
+			target[i] = utf[i];
+		}
+		else {
+			target[i] = '?';
+		}
+		i++;
+	}
+	target[i] = '\0';
+	return target;
 }
-*/
 
 void destroy_win(WINDOW *lwin){
 	wborder(lwin, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
@@ -48,13 +59,11 @@ typedef struct {
 dwin typing_area, conversation, debug, nicklist;
 
 void create_dwin(dwin *w, int rows, int cols, int startrow, int startcol, char *title){
-	//w->decoration = create_newwin(rows,   cols,   startrow, startcol);
-	//w->content    = create_newwin(rows-2, cols-4, startrow+1, startcol+2);
 	w->decoration = newwin(rows,   cols,   startrow, startcol);
 	w->content    = subwin(w->decoration, rows-2, cols-4, startrow+1, startcol+2);
 	box(w->decoration, 0, 0); // 0, 0 gives default characters
 	if (title) {
-		mvwprintw(w->decoration, 0, cols-strlen(title)-4, " %s ", title);
+		mvwprintw(w->decoration, 0, cols-(unsigned int)strlen(title)-4, " %s ", title);
 	}
 	wrefresh(w->decoration);
 }
@@ -65,6 +74,9 @@ void destrow_dwin(dwin *w){
 }
 
 // interfaces (display_)
+
+unsigned int DEBUG_HEIGHT   = 0; //12;
+unsigned int NICKLIST_WIDTH = 19;
 
 void display_statusbar(const char *text){
 	if (text && text[0]) {
@@ -79,8 +91,43 @@ void display_statusbar(const char *text){
 	wrefresh(stdscr);
 }
 
-#define NICKLIST_WIDTH 19
-#define DEBUG_HEIGHT   15
+char display_waitforchar(const char *msg){
+	char rep;
+	display_statusbar(msg);
+	rep = getch();
+	display_statusbar(NULL);
+	return rep;
+}
+
+void display_debug(const char *text, int nonewline){
+	if (DEBUG_HEIGHT) {
+		if (!nonewline) { wprintw(debug.content, "\n"); }
+		wprintw(debug.content, "%s", text);
+		wrefresh(debug.content);
+	}
+	else {
+		if (!nonewline) { 
+			//display_statusbar(NULL); 
+			wmove(stdscr, maxrows-1, 0); 
+		}
+		attron(A_REVERSE);
+		wprintw(stdscr, "%s", text);
+		clrtoeol();
+		attroff(A_REVERSE);
+		wrefresh(stdscr);
+	}
+	//TODO: mvcur to typing_area.content ?
+}
+
+void display_conversation(const char *text){
+	//char *p;
+	//p = transliterate(text);
+	//wprintw(conversation.content, "\n%s", p);
+	wprintw(conversation.content, "\n%s", text);
+	wrefresh(conversation.content);
+	//free(p);
+	//TODO: mvcur to typing_area.content ?
+}
 
 void display_init(void){
 #ifdef _X_OPEN_SOURCE_EXTENDED
@@ -95,41 +142,25 @@ void display_init(void){
 	noecho();  // curses call set to no echoing
 	refresh(); // m'a pas mal fait chier quand il était pas là, celui là.
 	//getmaxyx(stdscr, maxrows, maxcols); // macro returning terminal's size
-
-	create_dwin(&debug, DEBUG_HEIGHT, maxcols, 0, 0, "minichatclient internals");
 	create_dwin(&conversation, maxrows-DEBUG_HEIGHT-4-1, maxcols-NICKLIST_WIDTH, DEBUG_HEIGHT, 0, "chat log");
 	create_dwin(&nicklist, maxrows-DEBUG_HEIGHT-4-1, NICKLIST_WIDTH, DEBUG_HEIGHT, maxcols-NICKLIST_WIDTH, "nicklist");
 	create_dwin(&typing_area, 4, maxcols, maxrows-5, 0, "typing area");
-	scrollok(debug.content, TRUE);
-	scrollok(conversation.content, TRUE);
+	if (DEBUG_HEIGHT) {
+		create_dwin(&debug, DEBUG_HEIGHT, maxcols, 0, 0, "minichatclient internals");
+		scrollok(debug.content, TRUE);
+		scrollok(conversation.content, TRUE);
+	}
 	meta(typing_area.content, TRUE);
 	wtimeout(typing_area.content, WAITING_TIME_GRANOLOSITY);
 #ifdef _X_OPEN_SOURCE_EXTENDED
-	wprintw(debug.content, "Curses interface initialyzed with locale: %s", p);
-	wrefresh(debug.content);
+	display_debug("Curses interface initialyzed with locale: ", 0);
+	display_debug(p, 1);
+	//wprintw(debug.content, "Curses interface initialyzed with locale: %s", p);
+	//wrefresh(debug.content);
 #endif
 }
 
-char display_waitforchar(const char *msg){
-	char rep;
-	display_statusbar(msg);
-	rep = getch();
-	display_statusbar(NULL);
-	return rep;
-}
 
-void display_debug(const char *text, int nonewline){
-	if (!nonewline) { wprintw(debug.content, "\n"); }
-	wprintw(debug.content, "%s", text);
-	wrefresh(debug.content);
-	//TODO: mvcur to typing_area.content ?
-}
-
-void display_conversation(const char *text){
-	wprintw(conversation.content, "\n%s", text);
-	wrefresh(conversation.content);
-	//TODO: mvcur to typing_area.content ?
-}
 
 void display_nicklist(char *text[], unsigned int nbrofnicks){ // ce truc va changer
 	unsigned int i;
@@ -142,7 +173,7 @@ void display_nicklist(char *text[], unsigned int nbrofnicks){ // ce truc va chan
 }
 
 void display_end(void){
-	destrow_dwin(&debug);
+	if (DEBUG_HEIGHT) destrow_dwin(&debug);
 	destrow_dwin(&typing_area);
 	destrow_dwin(&conversation);
 	destrow_dwin(&nicklist);
@@ -175,7 +206,7 @@ char* display_driver(void){
 					return buf;
 				}
 				break;
-				
+
 			case 0x08: // ascii backspace
 			case 0x7f: //  "^?" backspace
 				if (buf) {
@@ -186,34 +217,36 @@ char* display_driver(void){
 				}
 				else { nbrofcars = 0; }
 				break;
-			
+
 			case 0x0c: // ^L. wanna some refresh?
-				touchwin(typing_area.decoration);
+				clear();
+				touchwin(stdscr);
+				refresh();
+
 				wclear(typing_area.content);
 				if (buf){
 					buf[nbrofcars] = '\0';
 					wprintw(typing_area.content, "%s", buf);
 				}
-				touchwin(stdscr); wrefresh(stdscr);
-				
-				touchwin(debug.decoration);        touchwin(debug.content);
-				touchwin(conversation.decoration); touchwin(conversation.content);
-				touchwin(nicklist.decoration);     touchwin(nicklist.content);
-				
-				wrefresh(nicklist.decoration);     wrefresh(nicklist.content);
-				wrefresh(conversation.decoration); wrefresh(conversation.content);
-				wrefresh(typing_area.decoration);  wrefresh(typing_area.content);
-				wrefresh(debug.decoration);        wrefresh(debug.content);
-				refresh();
+
+				touchwin(typing_area.decoration);
+				if (DEBUG_HEIGHT) touchwin(debug.decoration);
+				touchwin(conversation.decoration);
+				touchwin(nicklist.decoration);
+
+				wrefresh(typing_area.decoration);
+				wrefresh(conversation.decoration);
+				if (DEBUG_HEIGHT) wrefresh(debug.decoration);
+				wrefresh(nicklist.decoration);
 				break;
-				
+
 			default: // any other character?
 				if (ch<0x20) {{
 					char tmpchar[120]; char tmpchar2[20]; unsigned int i = 0;
 					if (j>4){ break; }
 					dbgchrs[j-1] = ch;
 					strncpy(tmpchar, "Unknow keys show in decimal notation:", 120);
-					
+
 					for(i=0; i<j; i++){
 						snprintf(tmpchar2, 20, " %d", dbgchrs[i]);
 						strncat(tmpchar, tmpchar2, 120);
@@ -231,7 +264,7 @@ char* display_driver(void){
 						break;
 					}
 				}
-				buf[nbrofcars] = ch;
+				buf[nbrofcars] = (char)ch;
 				nbrofcars++;
 				wprintw(typing_area.content, "%c", ch);
 				break;
