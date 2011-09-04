@@ -149,6 +149,31 @@ char *parse_html_in_message(clist *parts, parser_config *pconfig) {
 	return cstring_convert(out);	
 }
 
+clist *get_parser_parts(const char *message) {
+	clist *list;
+	clist_node *ptr, *ptr2;
+	
+	list = create_parts(message);
+	associate_links(list);
+	force_close_tags(list);
+	
+	// Apply some special rules (eg: "@ ")
+	for (ptr = list->first ; ptr != NULL ; ) {	
+		ptr2 = ptr;
+		
+		// The check..() functions can accept NULL as input
+		ptr = check_at_rule(list, ptr);
+		ptr = check_reduce_link_rule(ptr);
+		
+		// If nothing changed, we still need to increment the counter
+		if (ptr == ptr2) {
+			ptr = ptr->next;
+		}
+	}
+	
+	return list;
+}
+
 // Those are the functions are only defined in a private (_p) .h:
 
 bool filter_config(attribute *att, void *argument) {
@@ -161,9 +186,7 @@ bool filter_config(attribute *att, void *argument) {
 }
 
 parser_rule *process_message_part_sub(config_line *line, clist *context_stack, message_part *part) {
-	clist_node *cnode;
-	clist_node *rnode;
-	clist_node *tnode;
+	clist_node *cnode, *rnode, *tnode;
 	clist *atts;
 	parser_rule *rul;
 	char *context;
@@ -248,11 +271,9 @@ clist_node *create_part(char *data, bool text) {
 	message_part *part;
 	clist_node *node;
 	clist *tab;
-	cstring *tmp;
-	cstring *string;
-	size_t i;
+	cstring *tmp, *string;
 	attribute *att;
-	size_t first_equ;
+	size_t i, first_equ;
 	
 	part = malloc(sizeof(message_part));
 
@@ -315,7 +336,7 @@ clist *create_parts(const char *message) {
 	clist *list;
 	cstring *prev_data;
 	bool bracket;
-	int i;
+	size_t i;
 	char car;
 	clist_node *node;
 	message_part *part;
@@ -328,7 +349,7 @@ clist *create_parts(const char *message) {
 	
 	// cut the string at every '<' and '>'
 	for (car = message[i] ; car != '\0' ; car = message[++i]) {
-		if (!bracket && car == '<') {	
+		if (!bracket && car == '<') {
 			bracket = true;
 			if (prev_data->length > 0) {
 				clist_add(list, create_part(cstring_convert(prev_data), true));
@@ -353,7 +374,7 @@ clist *create_parts(const char *message) {
 					prev_data = new_cstring();
 				}
 			}
-		} 
+		}
 		else {
 			cstring_addc(prev_data, car);
 		}
@@ -478,11 +499,6 @@ int count_span_data_span(clist_node *ptr) {
 clist_node *check_at_rule(clist *list, clist_node *ptr) {
 	// @ <-UTF8-> (Ox40/64 OxC2/194)
 	//const char s_at1[4] = {0x40, 0xC2, 0xA0, '\0'};
-	
-	// Validity check.
-	if (list == NULL || ptr == NULL) {
-		return ptr;
-	}
 		
 	cstring *cdata;
 	clist_node *node;
@@ -490,6 +506,11 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 	char blast, bblast; // before last, before before last chars
 	size_t size;
 	int num_of_spans, i;
+	
+	// Validity check.
+	if (list == NULL || ptr == NULL) {
+		return ptr;
+	}
 	
 	blast = '\0';
 	bblast = '\0';
@@ -664,32 +685,6 @@ clist_node *check_reduce_link_rule(clist_node *ptr) {
 	}
 	
 	return ptr;
-}
-
-clist *get_parser_parts(const char *message) {
-	clist *list;
-	clist_node *ptr, *ptr2;
-	
-	list = create_parts(message);
-	
-	associate_links(list);
-	
-	force_close_tags(list);
-	
-	// Apply some special rules (eg: "@ ")
-	for (ptr = list->first ; ptr != NULL ; ) {	
-		ptr2 = ptr;
-		
-		ptr = check_at_rule(list, ptr);
-		ptr = check_reduce_link_rule(ptr);
-		
-		// If nothing changed, we still need to increment the counter
-		if (ptr == ptr2) {
-			ptr = ptr->next;
-		}
-	}
-	
-	return list;
 }
 
 void process_tag(message_part *part, parser_rule *rul, void *argument) {

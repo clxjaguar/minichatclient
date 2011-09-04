@@ -1,12 +1,18 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "parser.h"
+#include "cstring.h"
 
 int main(int argc, char *argv[]) {
 	const char *string;
+	cstring *cs;
 	char *test;
 	parser_config *config;
 	clist *parts;
+	FILE *file;
+	cs = NULL;
+	int car;
 	
 	if (argc < 2) {
 		string = ""
@@ -19,7 +25,28 @@ int main(int argc, char *argv[]) {
 "<img src=\"http://t3.gstatic.com/images?q_tbn:ANd9GcRFSm3Ll9aQLTiG6xiJ1uRXr90ws-NtHWiWZO44sSOjihPfWCrM&t=1\" alt=\"Image\" />\n"
 "";
 	} else {
-		string = argv[1];
+		if (argc < 3) {
+			string = argv[1];
+		} else if (!strcmp(argv[1], "-f")) {
+			file = fopen(argv[2], "r");
+			if (!file) {
+				fprintf(stderr, "Cannot open the given file.");
+				return 2;
+			}
+			cs = new_cstring();
+			while (!feof(file)) {
+				car = fgetc(file);
+				if (car >= 0) {
+					cstring_addc(cs, (char)car);
+				}
+			}
+			string = cs->string;
+		} else {
+			fprintf(stderr, "Syntax not correct.\nUsage:\n\t%s "
+				"[string to parse]\n\t%s -f [file to parse]\n"
+				, argv[0], argv[0]);
+			return 1;
+		}
 	}
 	
 	config = get_parser_config("parser_rules.conf");
@@ -31,6 +58,10 @@ int main(int argc, char *argv[]) {
 
 	if (test != NULL) {
 		free(test);
+	}
+	
+	if (cs != NULL) {
+		free_cstring(cs);
 	}
 	
 	return 0;
