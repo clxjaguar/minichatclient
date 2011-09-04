@@ -494,8 +494,12 @@ int count_span_data_span(clist_node *ptr) {
 	int num_of_spans, num_of_sspans;
 	
 	num_of_spans = 0;
-	part = (message_part *)ptr->data;
+	part = NULL;
 	
+	if (ptr != NULL) {
+		part = (message_part *)ptr->data;
+	}
+		
 	while (ptr != NULL && !strcmp(part->data, "span") && part->type == TYPE_OPENING_TAG) {
 		num_of_spans++;
 		ptr = ptr->next;
@@ -504,7 +508,7 @@ int count_span_data_span(clist_node *ptr) {
 		}
 	}
 	
-	if (part->type != TYPE_MESSAGE) {
+	if (part == NULL || part->type != TYPE_MESSAGE) {
 		return 0;
 	}
 	
