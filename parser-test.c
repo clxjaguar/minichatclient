@@ -6,6 +6,7 @@ int main(int argc, char *argv[]) {
 	const char *string;
 	char *test;
 	parser_config *config;
+	clist *parts;
 	
 	if (argc < 2) {
 		string = ""
@@ -22,7 +23,9 @@ int main(int argc, char *argv[]) {
 	}
 	
 	config = get_parser_config("parser_rules.conf");
-	test = parse_html_in_message(string, config);
+	parts = get_parser_parts(string);
+	test = parse_html_in_message(parts, config);
+	free_clist(parts);
 	free_parser_config(config);
 	printf("%s\n", test);
 

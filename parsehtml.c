@@ -218,7 +218,9 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 						{
 							char *buffer2 = NULL;
 							if (config != NULL){
-								buffer2 = parse_html_in_message(buffer, config);
+								clist *parts = get_parser_parts(buffer);
+								buffer2 = parse_html_in_message(parts, config);
+								free_clist(parts);
 							}
 							
 							if (buffer2 != NULL){

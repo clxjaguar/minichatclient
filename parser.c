@@ -11,201 +11,161 @@
 #include "cstring.h"
 #include "clist.h"
 #include "parser.h"
+#include "parser_p.h"
 #include "ini.h"
 
-#define TYPE_MESSAGE      0
-#define TYPE_OPENING_TAG  1
-#define TYPE_CLOSING_TAG  2
-#define TYPE_NICK         3
+// Those are the functions defined in the (public) .h:
 
-// This should be in a separate .h, try to forget it is not.
-
-/*
- * This is the content of parser_config.
- */
-typedef struct {
+parser_config *get_parser_config(const char filename[]) {
+	config_line *config;
 	clist *config_lines;
-} parser_config_private;
+	attribute *att;
+	clist *atts;
+	clist_node *ptr;
+	parser_rule *rul;
+	cstring *tmp;
+	parser_config *parserconf;
+	parser_config_private *data;
+	FILE *file;
+	
+	file = fopen(filename, "r");
+	
+	if (!file) {
+		return NULL;
+	}
+	
+	rul = NULL;
+	config = NULL;
+	config_lines = new_clist();
+	atts = ini_get_select(file, filter_config);
 
-typedef struct {
-	char *tag;
-	char *value;
-	char *start;
-	char *stop;
-} rule;
+	for (ptr = atts->first ; ptr != NULL ; ptr = ptr->next) {
+		att = (attribute *)ptr->data;
+		if(!strcmp(att->name, "context")) {
+			config = (config_line *)malloc(sizeof(config_line));
+			config->rules = new_clist();
+			clist_add(config_lines, new_group_node(config));
+			
+			tmp = new_cstring();
+			cstring_adds(tmp, att->value);
+			config->context = cstring_convert(tmp);
+		} else {
+			// config can be NULL if bad INI
+			if (config != NULL) {
+				if(!strcmp(att->name, "tag")) {			
+					rul = (parser_rule *)malloc(sizeof(parser_rule));					
+					clist_add(config->rules, new_rule_node(rul));
+					
+					tmp = new_cstring();
+					cstring_adds(tmp, att->value);
+					rul->tag = cstring_convert(tmp);
+				} else {
+					// rule can be NULL if bad INI
+					if (rul != NULL) {
+						if(!strcmp(att->name, "value")) {
+							tmp = new_cstring();
+							cstring_adds(tmp, att->value);
+							rul->value = cstring_convert(tmp);
+						} else if(!strcmp(att->name, "start")) {
+							tmp = new_cstring();
+							cstring_adds(tmp, att->value);
+							rul->start = cstring_convert(tmp);
+						} else if(!strcmp(att->name, "stop")) {
+							tmp = new_cstring();
+							cstring_adds(tmp, att->value);
+							rul->stop = cstring_convert(tmp);
+						}
+					}
+				}
+			}
+		}
+	}
 
-typedef struct {
-	char *context;
-	clist *rules;
-} config_line;
+	parserconf = (parser_config *)malloc(sizeof(parser_config));
+	data = (parser_config_private *)malloc(sizeof(parser_config_private));
+	data->config_lines = config_lines;
+	parserconf->data = data;
 
-typedef struct message_part_struct message_part;
-struct message_part_struct {
-	int type; // (0 or 1 or 2: 0 is text, 1 is <>, 2 is </>)
-	char *data;
-	message_part *link; // (NULL for text)
-	clist *attributes; // (NULL for text)
-};
+	fclose(file);
+	return parserconf;
+}
 
-//
+void parse_html(clist *parts, parser_config *config, void (*operation)(message_part *part, parser_rule *rul, void *argument), void *argument) {
+	clist_node *ptr;
+	message_part *part;
+	cstring *tmp;
+	clist *context_stack;
+	clist_node *context_node;	
+	clist *config_lines;
+	parser_config_private *data;
+	
+	// Validity check.
+	if (parts == NULL || parts->size == 0) {
+		return;
+	}
+	
+	data = (parser_config_private *)config->data;
+	config_lines = data->config_lines;
+	
+	context_stack = new_clist();
+	for (ptr = parts->first ; ptr != NULL ; ptr = ptr->next) {
+		part = (message_part *)ptr->data;
+		
+		switch(part->type) {
+		case TYPE_OPENING_TAG:
+			tmp = new_cstring();
+			if (part->data != NULL) {
+				cstring_adds(tmp, part->data);
+			}
 
-// The following functions are NOT declared, do not look for a .h for them:
+			clist_add(context_stack, new_string_node(cstring_convert(tmp)));
+			process_message_part(operation, argument, config_lines, context_stack, part);		break;
+		case TYPE_CLOSING_TAG:
+			if(context_stack->size > 0 && !strcmp(part->data, (char *)context_stack->last->data)) {
+				process_message_part(operation, argument, config_lines, context_stack, part);
+				
+				context_node = clist_remove(context_stack, context_stack->last);
+				free_clist_node(context_node);
+			}
+		break;
+		case TYPE_MESSAGE:
+		default:
+			if (part->data != NULL) {
+				operation(part, NULL, argument);
+			}
+		break;
+		}
+	}
 
-int filter_config(attribute *att) {
+	free_clist(context_stack);
+}
+
+char *parse_html_in_message(clist *parts, parser_config *pconfig) {
+	cstring *out;
+	
+	out = new_cstring();
+	parse_html(parts, pconfig, process_tag, out);
+	
+	return cstring_convert(out);	
+}
+
+// Those are the functions are only defined in a private (_p) .h:
+
+bool filter_config(attribute *att) {
 	return (!strcmp(att->name, "context") || !strcmp(att->name, "tag") || !strcmp(att->name, "value") || !strcmp(att->name, "start") || !strcmp(att->name, "stop"));
 }
 
-clist_node *clone_message_part_node(clist_node *node) {
-	message_part *message, *new_message;
-	clist_node *new_node;
-	
-	message = (message_part *) node->data;
-	new_node = new_clist_node();
-	new_message = (message_part *)malloc(sizeof(message_part));
-	
-	new_message->type = message->type;
-	new_message->attributes = new_clist(); //TODO: not correct for a clone operation!
-	new_message->link = NULL;
-	if (message->data == NULL) {	
-		new_message->data = NULL;
-	} else {
-		new_message->data = malloc((strlen(message->data) + 1) * sizeof(char));
-		strcpy(new_message->data, message->data);
-	}
-
-	new_node->data = new_message;
-	return new_node;
-}
-
-void free_rule_node(clist_node *node) {
-	rule *rul;
-	
-	if (node->data != NULL) {
-		rul = (rule *)node->data;
-		if (rul->tag != NULL) {
-			free(rul->tag);
-		}
-		if (rul->value != NULL) {
-			free(rul->value);
-		}
-		if (rul->start != NULL) {
-			free(rul->start);
-		}
-		if (rul->stop != NULL) {
-			free(rul->stop);
-		}
-	}
-	
-	free(node);
-}
-
-void free_group_node(clist_node *node) {
-	config_line *group;
-	
-	if (node->data != NULL) {
-		group = (config_line *)node->data;
-		if (group->context != NULL) {
-			free(group->context);
-		}
-		if (group->rules != NULL) {
-			free_clist(group->rules);
-		}
-		
-	}
-	free(node);
-}
-
-void free_parser_config(parser_config *pconfig) {
-	parser_config_private *data;
-	
-	data = (parser_config_private *)pconfig->data;
-	
-	if (data->config_lines != NULL) {
-		free_clist(data->config_lines);
-	}
-
-	free(pconfig->data);
-	free(pconfig);
-}
-
-clist_node *new_rule_node(rule *rrule) {
-	clist_node *node;
-	
-	node = new_clist_node();
-	node->data = rrule;
-	node->free_node = free_rule_node;
-	
-	return node;
-}
-
-clist_node *new_string_node(char *string) {
-	clist_node *context_node;
-	
-	context_node = new_clist_node();
-	context_node->free_node = free_clist_node_data;
-	context_node->data = string;
-
-	return context_node;
-}
-
-clist_node *new_group_node(config_line *group) {
-	clist_node *node;
-	
-	node = new_clist_node();
-	node->data = group;
-	node->free_node = free_group_node;
-	
-	return node;
-}
-
-void free_message_part(message_part* message) {
-	clist_node *node;
-	clist_node *next;
-	
-	if (message->data != NULL) {
-		free(message->data);
-	}
-	
-	if (message->attributes != NULL) {
-		for (node = message->attributes->first ; node != NULL ; ) {
-			next = node->next;
-			free_clist_node(node);
-			node = next;
-		}
-	}
-	
-	free(message);
-}
-
-void free_message_part_node(clist_node* node) {
-	if(node->data != NULL) {
-		free_message_part((message_part *)node->data);
-	}
-	free(node);
-}
-
-/**
- * Process the message against a signle config_line. It will be called by process_message
- * on each config_line for each message_part.
- *
- * @param out the cstring on which to work
- * @param config_line the configuration line to test against
- * @param context_stack the context stack (list of char *)
- * @param part the message to process
- * 
- * @return true if the rule was used
- */
-rule *process_message_part_sub(config_line *line, clist *context_stack, message_part *part) {
+parser_rule *process_message_part_sub(config_line *line, clist *context_stack, message_part *part) {
 	clist_node *cnode;
 	clist_node *rnode;
 	clist_node *tnode;
 	clist *atts;
-	rule *rul;
+	parser_rule *rul;
 	char *context;
 	attribute *att;
-	int in_context, do_apply, global_tag, global_value, tag_equals, value_equals;
+	bool in_context, do_apply, global_tag, global_value, tag_equals, value_equals;
 	
-	do_apply = 0;
+	do_apply = false;
 	
 	atts = part->attributes;
 	if (part->type == TYPE_CLOSING_TAG) {
@@ -214,17 +174,17 @@ rule *process_message_part_sub(config_line *line, clist *context_stack, message_
 		}
 	}
 	
-	in_context = 0;
+	in_context = false;
 	for (cnode = context_stack->first ; !in_context && cnode != NULL ; cnode = cnode->next) {
 		context = (char *)cnode->data;
 		if (line->context == NULL || line->context[0] == '\0' || !strcmp(line->context, context)) {
-			in_context = 1;
+			in_context = true;
 		}
 	}
 	
 	if (in_context) {
 		for (rnode = line->rules->first ; rnode != NULL ; rnode = rnode->next) {
-			rul = (rule *)rnode->data;
+			rul = (parser_rule *)rnode->data;
 			global_tag = (rul->tag == NULL || rul->tag[0] == '\0');
 			
 			do_apply = global_tag;
@@ -236,7 +196,7 @@ rule *process_message_part_sub(config_line *line, clist *context_stack, message_
 				value_equals = (!strcmp(rul->value, att->value));
 				
 				if (tag_equals && (global_value || value_equals)) {
-					do_apply = 1;
+					do_apply = true;
 				}
 			}
 			
@@ -249,22 +209,13 @@ rule *process_message_part_sub(config_line *line, clist *context_stack, message_
 	return NULL;
 }
 
-/**
- * Process a message_part and return the replacement string according to the rules in parser_config.
- *
- * @param groups the list of config_lines
- * @param context_stack the context stack (a list of char *)
- * @param part the message to process
- * 
- * @return the processed message 
- */
-void process_message_part(void (*operation)(message_part *part, rule *rul, void *argument), void *argument, clist *config_lines, clist *context_stack, message_part *part) {
+void process_message_part(void (*operation)(message_part *part, parser_rule *rul, void *argument), void *argument, clist *config_lines, clist *context_stack, message_part *part) {
 	config_line *line;
 	clist_node *ptr;
-	int applied;
-	rule *rul;
+	bool applied;
+	parser_rule *rul;
 
-	applied = 0;
+	applied = false;
 	
 	switch (part->type) {
 	case TYPE_CLOSING_TAG:
@@ -274,7 +225,7 @@ void process_message_part(void (*operation)(message_part *part, rule *rul, void 
 			rul = process_message_part_sub(line, context_stack, part);
 			if (rul != NULL) {
 				operation(part, rul, argument);
-				applied = 1;
+				applied = true;
 			}
 		}
 		break;
@@ -288,7 +239,7 @@ void process_message_part(void (*operation)(message_part *part, rule *rul, void 
 	}
 }
 
-clist_node *process_part(char *data, int text) {
+clist_node *create_part(char *data, bool text) {
 	message_part *part;
 	clist_node *node;
 	clist *tab;
@@ -344,7 +295,7 @@ clist_node *process_part(char *data, int text) {
 			}
 		}
 		
-		//TODO
+		// The links are not linked here, but in a second pass.
 		part->link = NULL;
 	}
 	
@@ -355,10 +306,10 @@ clist_node *process_part(char *data, int text) {
 	return node;
 }
 
-clist *cut_string(const char *message) {
+clist *create_parts(const char *message) {
 	clist *list;
 	cstring *prev_data;
-	int bracket;
+	bool bracket;
 	int i;
 	char car;
 	clist_node *node;
@@ -367,23 +318,23 @@ clist *cut_string(const char *message) {
 	list = new_clist();
 	prev_data = new_cstring();
 	
-	bracket = 0;
+	bracket = false;
 	i = 0;
 	
 	// cut the string at every '<' and '>'
 	for (car = message[i] ; car != '\0' ; car = message[++i]) {
 		if (!bracket && car == '<') {	
-			bracket = 1;
+			bracket = true;
 			if (prev_data->length > 0) {
-				clist_add(list, process_part(cstring_convert(prev_data), 1));
+				clist_add(list, create_part(cstring_convert(prev_data), true));
 				prev_data = new_cstring();
 			}
 		} 
 		else if (bracket && car == '>') {
-			bracket = 0;
+			bracket = false;
 			if (prev_data->length > 0) {
 				if ((i > 0 && message[i - 1] != '/') || prev_data->length > 1) {
-					node = process_part(cstring_convert(prev_data), 0);
+					node = create_part(cstring_convert(prev_data), false);
 					part = (message_part *)node->data;
 					clist_add(list, node);
 			
@@ -404,16 +355,12 @@ clist *cut_string(const char *message) {
 	}
 	
 	if (prev_data->length > 0) {
-		clist_add(list, process_part(cstring_convert(prev_data), 1));
+		clist_add(list, create_part(cstring_convert(prev_data), true));
 	}
 	
 	return list;
 }
 
-/**
- * Associate the links between them (the parameters in the <> tags will be 
- * tranferred into the pending </> tags, and vice-versa.
- */
 void associate_links(clist *list) {
 	clist *parts_stack;
 	clist_node *ptr, *node;
@@ -448,9 +395,6 @@ void associate_links(clist *list) {
 	free_clist(parts_stack);
 }
 
-/**
- * Force-close tags which are not closed.
- */
 void force_close_tags(clist *list) {
 	cstring *cdata;
 	clist_node *ptr, *node;
@@ -466,7 +410,7 @@ void force_close_tags(clist *list) {
 				cstring_addc(cdata, '/');
 				cstring_adds(cdata, part->data);
 				
-				node = process_part(cstring_convert(cdata), 0);
+				node = create_part(cstring_convert(cdata), 0);
 				node->next = ptr->next;
 				node->prev = ptr;
 				ptr->next = node;
@@ -480,15 +424,6 @@ void force_close_tags(clist *list) {
 	}
 }
 
-/**
- * Count the number of <span>/</span> you have that follow the pattern:
- * "<span><span>DATA</span></span>" (this one would return 2).
- *
- * @param list the list to look into
- * @param ptr the item to start the check at from the list
- *
- * @return the number of <span></span>'s
- */
 int count_span_data_span(clist_node *ptr) {
 	message_part *part;
 	int num_of_spans, num_of_sspans;
@@ -535,18 +470,6 @@ int count_span_data_span(clist_node *ptr) {
 	return 0;
 }
 
-/**
- * Check the rule that says that someone is called by "@ <span>Someone</span>, ".
- * If it is the case, we will remove the <span> and the </span>, the "@ ", and
- * replace it with "<nick>Someone</nick>".
- * Note that you can have <span><span>Someone</span></span>, too.
- *
- * @param list the list of message_part from which we will process one item
- * @param ptr the item to process from the list
- *
- * @return the new current pointer (so, the next message_part to check against
- * 	special rules)
- */
 clist_node *check_at_rule(clist *list, clist_node *ptr) {
 	// @ <-UTF8-> (Ox40/64 OxC2/194)
 	//const char s_at1[4] = {0x40, 0xC2, 0xA0, '\0'};
@@ -652,21 +575,10 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 	return ptr;
 }
 
-/**
- * Check the rule that says that a reduced URL must be remove.
- * So, change "<a href="abcdefghi">abc ... ghi</a>" into 
- * "<a nohref="abc ... ghi">abcdefghi</a>".
- *
- * @param list the list of message_part from which we will process one item
- * @param ptr the item to process from the list
- *
- * @return the new current pointer (so, the next message_part to check against
- * 	special rules)
- */
 clist_node *check_reduce_link_rule(clist_node *ptr) {
 	cstring *prev_data, *cdata, *cdata2, *starting, *ending;
 	long long i;
-	int do_apply;
+	bool do_apply;
 	char *string;
 	clist_node *node;
 	message_part *part, *linked_part;
@@ -678,7 +590,7 @@ clist_node *check_reduce_link_rule(clist_node *ptr) {
 	if (part->type == TYPE_OPENING_TAG && (strcmp(part->data, "a") == 0 || strcmp(part->data, "A") == 0)) {
 		// Change <a href="abcdefghi">abc ... ghi</a> into <a href="abc ... ghi">abcdefghi</a>
 		if (ptr->next != NULL) {
-			do_apply = 0;
+			do_apply = false;
 			linked_part = (message_part *)ptr->next->data;
 			starting = new_cstring();
 			cstring_adds(starting, (char *)linked_part->data);
@@ -696,7 +608,7 @@ clist_node *check_reduce_link_rule(clist_node *ptr) {
 
 			// option 1: both links are equals
 			if (att != NULL && strcmp((char *)linked_part->data, att->value) == 0) {
-				do_apply = 1;
+				do_apply = true;
 			}
 
 			// option 2: displayed link is "truncated" href link (abc ... ghi)
@@ -708,7 +620,7 @@ clist_node *check_reduce_link_rule(clist_node *ptr) {
 				cstring_cut_at(starting, (size_t)i);
 			
 				if (cstring_starts_with(cdata2, starting, 0) && cstring_ends_with(cdata2, ending, 0)) {
-					do_apply = 1;
+					do_apply = true;
 				}
 
 				free_cstring(ending);
@@ -739,16 +651,11 @@ clist_node *check_reduce_link_rule(clist_node *ptr) {
 	return ptr;
 }
 
-/**
- * Process and return the message_parts found in this message.
- *
- * @return a list of message_part *
- */
-clist *get_parts(const char *message) {
+clist *get_parser_parts(const char *message) {
 	clist *list;
 	clist_node *ptr, *ptr2;
 	
-	list = cut_string(message);
+	list = create_parts(message);
 	
 	associate_links(list);
 	
@@ -770,83 +677,7 @@ clist *get_parts(const char *message) {
 	return list;
 }
 
-// Those are the functions defined in a (public) .h:
-
-parser_config *get_parser_config(const char filename[]) {
-	config_line *config;
-	clist *config_lines;
-	attribute *att;
-	clist *atts;
-	clist_node *ptr;
-	rule *rul;
-	cstring *tmp;
-	parser_config *parserconf;
-	parser_config_private *data;
-	FILE *file;
-	
-	file = fopen(filename, "r");
-	
-	if (!file) {
-		return NULL;
-	}
-	
-	rul = NULL;
-	config = NULL;
-	config_lines = new_clist();
-	atts = ini_get_select(file, filter_config);
-
-	for (ptr = atts->first ; ptr != NULL ; ptr = ptr->next) {
-		att = (attribute *)ptr->data;
-		if(!strcmp(att->name, "context")) {
-			config = (config_line *)malloc(sizeof(config_line));
-			config->rules = new_clist();
-			clist_add(config_lines, new_group_node(config));
-			
-			tmp = new_cstring();
-			cstring_adds(tmp, att->value);
-			config->context = cstring_convert(tmp);
-		} else {
-			// config can be NULL if bad INI
-			if (config != NULL) {
-				if(!strcmp(att->name, "tag")) {			
-					rul = (rule *)malloc(sizeof(rule));					
-					clist_add(config->rules, new_rule_node(rul));
-					
-					tmp = new_cstring();
-					cstring_adds(tmp, att->value);
-					rul->tag = cstring_convert(tmp);
-				} else {
-					// rule can be NULL if bad INI
-					if (rul != NULL) {
-						if(!strcmp(att->name, "value")) {
-							tmp = new_cstring();
-							cstring_adds(tmp, att->value);
-							rul->value = cstring_convert(tmp);
-						} else if(!strcmp(att->name, "start")) {
-							tmp = new_cstring();
-							cstring_adds(tmp, att->value);
-							rul->start = cstring_convert(tmp);
-						} else if(!strcmp(att->name, "stop")) {
-							tmp = new_cstring();
-							cstring_adds(tmp, att->value);
-							rul->stop = cstring_convert(tmp);
-						}
-					}
-				}
-			}
-		}
-	}
-
-	parserconf = (parser_config *)malloc(sizeof(parser_config));
-	data = (parser_config_private *)malloc(sizeof(parser_config_private));
-	data->config_lines = config_lines;
-	parserconf->data = data;
-
-	fclose(file);
-	return parserconf;
-}
-
-void process_tag(message_part *part, rule *rul, void *argument) {
+void process_tag(message_part *part, parser_rule *rul, void *argument) {
 	clist *atts;
 	attribute *att;
 	cstring *text_to_apply, *from, *to;
@@ -901,60 +732,134 @@ void process_tag(message_part *part, rule *rul, void *argument) {
 	}
 }
 
-void parse_html(const char *message, parser_config *pconfig, void (*operation)(message_part *part, rule *rul, void *argument), void *argument) {
-	clist *parts;
-	clist_node *ptr;
-	message_part *part;
-	cstring *tmp;
-	clist *context_stack;
-	clist_node *context_node;	
-	clist *config_lines;
+// Functions relative to clist_node's (allocate/free/clone):
+
+clist_node *clone_message_part_node(clist_node *node) {
+	message_part *message, *new_message;
+	clist_node *new_node;
+	
+	message = (message_part *) node->data;
+	new_node = new_clist_node();
+	new_message = (message_part *)malloc(sizeof(message_part));
+	
+	new_message->type = message->type;
+	new_message->attributes = new_clist(); //TODO: not correct for a clone operation!
+	new_message->link = NULL;
+	if (message->data == NULL) {	
+		new_message->data = NULL;
+	} else {
+		new_message->data = malloc((strlen(message->data) + 1) * sizeof(char));
+		strcpy(new_message->data, message->data);
+	}
+
+	new_node->data = new_message;
+	return new_node;
+}
+
+void free_rule_node(clist_node *node) {
+	parser_rule *rul;
+	
+	if (node->data != NULL) {
+		rul = (parser_rule *)node->data;
+		if (rul->tag != NULL) {
+			free(rul->tag);
+		}
+		if (rul->value != NULL) {
+			free(rul->value);
+		}
+		if (rul->start != NULL) {
+			free(rul->start);
+		}
+		if (rul->stop != NULL) {
+			free(rul->stop);
+		}
+	}
+	
+	free(node);
+}
+
+void free_group_node(clist_node *node) {
+	config_line *group;
+	
+	if (node->data != NULL) {
+		group = (config_line *)node->data;
+		if (group->context != NULL) {
+			free(group->context);
+		}
+		if (group->rules != NULL) {
+			free_clist(group->rules);
+		}
+		
+	}
+	free(node);
+}
+
+void free_parser_config(parser_config *pconfig) {
 	parser_config_private *data;
 	
 	data = (parser_config_private *)pconfig->data;
-	config_lines = data->config_lines;
 	
-	parts = get_parts(message);
-	
-	context_stack = new_clist();
-	for (ptr = parts->first ; ptr != NULL ; ptr = ptr->next) {
-		part = (message_part *)ptr->data;
-		
-		switch(part->type) {
-		case TYPE_OPENING_TAG:
-			tmp = new_cstring();
-			if (part->data != NULL) {
-				cstring_adds(tmp, part->data);
-			}
-
-			clist_add(context_stack, new_string_node(cstring_convert(tmp)));
-			process_message_part(operation, argument, config_lines, context_stack, part);		break;
-		case TYPE_CLOSING_TAG:
-			if(context_stack->size > 0 && !strcmp(part->data, (char *)context_stack->last->data)) {
-				process_message_part(operation, argument, config_lines, context_stack, part);
-				
-				context_node = clist_remove(context_stack, context_stack->last);
-				free_clist_node(context_node);
-			}
-		break;
-		case TYPE_MESSAGE:
-		default:
-			if (part->data != NULL) {
-				operation(part, NULL, argument);
-			}
-		break;
-		}
+	if (data->config_lines != NULL) {
+		free_clist(data->config_lines);
 	}
 
-	free_clist(context_stack);
-	free_clist(parts);
+	free(pconfig->data);
+	free(pconfig);
 }
 
-char *parse_html_in_message(const char *message, parser_config *pconfig) {
-	cstring *out;
+clist_node *new_rule_node(parser_rule *rrule) {
+	clist_node *node;
 	
-	out = new_cstring();
-	parse_html(message, pconfig, process_tag, out);
+	node = new_clist_node();
+	node->data = rrule;
+	node->free_node = free_rule_node;
 	
-	return cstring_convert(out);	
+	return node;
 }
+
+clist_node *new_string_node(char *string) {
+	clist_node *context_node;
+	
+	context_node = new_clist_node();
+	context_node->free_node = free_clist_node_data;
+	context_node->data = string;
+
+	return context_node;
+}
+
+clist_node *new_group_node(config_line *group) {
+	clist_node *node;
+	
+	node = new_clist_node();
+	node->data = group;
+	node->free_node = free_group_node;
+	
+	return node;
+}
+
+void free_message_part(message_part* message) {
+	clist_node *node;
+	clist_node *next;
+	
+	if (message->data != NULL) {
+		free(message->data);
+	}
+	
+	if (message->attributes != NULL) {
+		for (node = message->attributes->first ; node != NULL ; ) {
+			next = node->next;
+			free_clist_node(node);
+			node = next;
+		}
+	}
+	
+	free(message);
+}
+
+void free_message_part_node(clist_node* node) {
+	if(node->data != NULL) {
+		free_message_part((message_part *)node->data);
+	}
+	free(node);
+}
+
