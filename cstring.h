@@ -433,6 +433,6 @@ char *cstring_convert(cstring *self);
  * 
  * @param self the cstring to work on
  */
-void *cstring_compact(cstring *self);
+void cstring_compact(cstring *self);
 
 #endif

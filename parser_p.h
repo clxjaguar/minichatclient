@@ -51,11 +51,13 @@ bool filter_config(attribute *att, void *argument);
  * @param context_stack the context stack (a list of char *)
  * @param part the message to process
  */
-void process_message_part(void (*operation)(message_part *part, parser_rule *rul, void *argument), void *argument, clist *config_lines, clist *context_stack, message_part *part);
+void process_message_part(void (*operation)(message_part *part,
+	parser_rule *rul, void *argument), void *argument, clist *config_lines,
+	clist *context_stack, message_part *part);
 
 /**
- * Process the message against a signle config_line. It will be called by process_message
- * on each config_line for each message_part.
+ * Process the message against a signle config_line. It will be called by 
+ * process_message on each config_line for each message_part.
  *
  * @param out the cstring on which to work
  * @param config_line the configuration line to test against
@@ -64,7 +66,8 @@ void process_message_part(void (*operation)(message_part *part, parser_rule *rul
  * 
  * @return true if the rule was used
  */
-parser_rule *process_message_part_sub(config_line *line, clist *context_stack, message_part *part);
+parser_rule *process_message_part_sub(config_line *line, clist *context_stack,
+	message_part *part);
 
 /**
  * Cut a string into message_part's, checking if they are opening tags, closing
@@ -112,7 +115,7 @@ void force_close_tags(clist *list);
 int count_span_data_span(clist_node *ptr);
 
 /**
- * Check the rule that says that someone is called by "@ <span>Someone</span>, ".
+ * Check the rule that marks someone as 'called' by "@ <span>Someone</span>, ".
  * If it is the case, we will remove the <span> and the </span>, the "@ ", and
  * replace it with "<nick>Someone</nick>".
  * Note that you can have <span><span>Someone</span></span>, too.
