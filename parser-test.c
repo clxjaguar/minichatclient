@@ -39,6 +39,8 @@ int main(int argc, char *argv[]) {
 				fprintf(stderr, "Cannot open the given file.");
 				return 2;
 			}
+			
+			printf("Reading file...\n");
 			cs = new_cstring();
 			while (!feof(file)) {
 				car = fgetc(file);
@@ -47,6 +49,7 @@ int main(int argc, char *argv[]) {
 				}
 			}
 			string = cs->string;
+			printf("Done!\n");
 		} else if (!strcmp(argv[1], "-f")) {
 			file = fopen(argv[2], "r");
 			if (!file) {
@@ -91,7 +94,6 @@ int main(int argc, char *argv[]) {
 		test = NULL;
 		config = get_parser_config("parser_rules.conf");
 		parts = get_parser_parts(string);
-		// TODO: can crash:
 		test = parse_html_in_message(parts, config);
 		free_clist(parts);
 		free_parser_config(config);
