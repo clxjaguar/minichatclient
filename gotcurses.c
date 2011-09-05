@@ -21,17 +21,17 @@
 #include "display_interfaces.h" // prototypes of theses display_* fonctions
 #include "commons.h" // for nicklist struct and timming value
 
-//TODO: translation of character set ?
-
 #define maxrows LINES
 #define maxcols COLS
 
+/*
+//TODO: translation of character set ?
 char* transliterate(const char *utf){
 	char *target;
 	unsigned int i;
 	//char utf[] = "j'ai pas le droit aux féculents pour mon régime";
 	target = malloc(strlen(utf)+1);
-
+	
 	i=0;
 	while(utf[i]){
 		if(!(utf[i]&128)){
@@ -45,6 +45,7 @@ char* transliterate(const char *utf){
 	target[i] = '\0';
 	return target;
 }
+*/
 
 void destroy_win(WINDOW *lwin){
 	wborder(lwin, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
@@ -75,7 +76,7 @@ void destrow_dwin(dwin *w){
 
 // interfaces (display_)
 
-unsigned int DEBUG_HEIGHT   = 12;
+unsigned int DEBUG_HEIGHT   = 10;
 unsigned int NICKLIST_WIDTH = 19;
 
 void display_statusbar(const char *text){
