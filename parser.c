@@ -158,7 +158,7 @@ clist *get_parser_parts(const char *message) {
 	list = create_parts(message);
 	
 	associate_links(list);
-	force_close_tags(list); // TODO: can cause crashes
+	force_close_tags(list);
 	
 	// Apply some special rules (eg: "@ ")
 	for (ptr = list->first ; ptr != NULL ; ) {
@@ -300,17 +300,17 @@ clist_node *create_part(char *data, bool text) {
 		cstring_addfs(tmp, data, i);
 		free(data);
 		
-		i = 0;
 		tab = cstring_splitc(tmp, ' ', '\"');
-		for (node = tab->first ; node != NULL ; node = node->next) {
-			if (!i) {
-				part->data = cstring_convert(node->data);
-				node->data = NULL;
-				i = 1;
-			} else {
+		node = tab->first;
+		if (node == NULL) {
+			part->data = cstring_convert(new_cstring());
+		} else {
+			part->data = cstring_convert(node->data);
+			node->data = NULL; // Because we don't want to free() it
+			for (node = node->next ; node != NULL ; node = node->next) {
 				string = (cstring*)node->data;
 				node->data = NULL;
-				
+			
 				for (first_equ = 0 ; string->string[first_equ] != '\0' && string->string[first_equ] != '=' ; first_equ++);
 				if (string->string[first_equ] != '=') {
 					first_equ = 0;
@@ -442,12 +442,15 @@ void force_close_tags(clist *list) {
 				cstring_addc(cdata, '/');
 				cstring_adds(cdata, part->data);
 				
-				node = create_part(cstring_convert(cdata), 0);
+				node = create_part(cstring_convert(cdata), false);
+				
+				// Link both
+				((message_part *)node->data)->link = part;
+				part->link = node->data;
+				
 				node->next = ptr->next;
 				node->prev = ptr;
 				ptr->next = node;
-				
-				ptr = node;
 			}
 		break;
 		default:
