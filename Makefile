@@ -7,8 +7,11 @@ COMPILER = gcc
 CCFLAGS = -Wall -Wextra -fshort-enums
 
 ifeq ($(DEBUG), 1)
-	override CCFLAGS = -fshort-enums -Wall -Wextra -Wdouble-promotion -Wformat -Winit-self -Wmissing-include-dirs -Wparentheses -Wswitch-default -Wswitch-enum -Wunused-parameter -Wuninitialized -Wundef -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wwrite-strings -Wconversion
+	#echo "*** DEBUG MODE ACTIVATED, with plenty of -W* arguments!"
+	override CCFLAGS = -O -fshort-enums -Wall -Wextra -Wformat -Winit-self -Wmissing-include-dirs -Wparentheses -Wswitch-default -Wswitch-enum -Wunused-parameter -Wuninitialized -Wundef -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wwrite-strings -Wconversion
 endif
+
+#-Wdouble-promotion
 
 .PHONY: all rebuild clean mrproper mrpropre love
 
