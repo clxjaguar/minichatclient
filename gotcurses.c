@@ -75,7 +75,7 @@ void destrow_dwin(dwin *w){
 
 // interfaces (display_)
 
-unsigned int DEBUG_HEIGHT   = 0; //12;
+unsigned int DEBUG_HEIGHT   = 12;
 unsigned int NICKLIST_WIDTH = 19;
 
 void display_statusbar(const char *text){

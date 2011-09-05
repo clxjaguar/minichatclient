@@ -145,7 +145,7 @@ void parser_parse_messages(clist *parts, parser_config *config,
 	free_clist(context_stack);
 }
 
-char *parser_parse_html(const char *message, parser_config *pconfig) {
+char *parse_html_in_a_single_message(const char *message, parser_config *pconfig) {
 	cstring *out;
 	clist *parts;
 	

@@ -47,7 +47,7 @@ clist *parser_get_parts(const char *message);
  *
  * @return the parsed string
  */
-char *parser_parse_html(const char *message, parser_config *config);
+char *parse_html_in_a_single_message(const char *message, parser_config *config);
 
 /**
  * Parse the given parser_message's in a separate, given function.
