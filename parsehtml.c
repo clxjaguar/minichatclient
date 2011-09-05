@@ -46,7 +46,7 @@ int parser_freerules(void){
 
 int parser_loadrules(void){
 	parser_freerules();
-	config = get_parser_config("parser_rules.conf");
+	config = parser_get_config("parser_rules.conf");
 	if (config != NULL) { return 0; }
 	else { return 1; }
 }
@@ -218,9 +218,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 						{
 							char *buffer2 = NULL;
 							if (config != NULL){
-								clist *parts = get_parser_parts(buffer);
-								buffer2 = parse_html_in_message(parts, config);
-								free_clist(parts);
+								buffer2 = parser_parse_html(buffer, config);
 							}
 							
 							if (buffer2 != NULL){

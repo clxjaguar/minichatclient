@@ -11,11 +11,11 @@ typedef struct {
 	void *data;
 } parser_config;
 
-typedef struct message_part_struct message_part;
-struct message_part_struct {
+typedef struct parser_message_struct parser_message;
+struct parser_message_struct {
 	int type; // (0 or 1 or 2: 0 is text, 1 is <>, 2 is </>)
 	char *data;
-	message_part *link; // (NULL for text)
+	parser_message *link; // (NULL for text)
 	clist *attributes; // (NULL for text)
 };
 
@@ -27,40 +27,40 @@ typedef struct {
 } parser_rule;
 
 /**
- * Process and return the message_parts found in this message.
+ * Process and return the parser_messages found in this message.
  * They will be fully checked against all special rules and such.
  * Don't forget to call free_clist() on it when done.
  *
  * @param message the message to work on
  *
- * @return a list of message_part's
+ * @return a list of parser_message's
  */
-clist *get_parser_parts(const char *message);
+clist *parser_get_parts(const char *message);
 
 /**
- * Parse the given message_part's and return a new, parsed string.
- * This is a helper function to parse_html() which also create
+ * Parse the given message (HTML) and return a new, parsed string.
+ * This is a helper function to parser_parse_messages() which also create
  * and return a string with the parsed message.
  *
- * @param parts the message_part's to parse
- * @param config the configuration to use to parse the message_part's
+ * @param message the message to parse
+ * @param config the configuration to use to parse the parser_message's
  *
  * @return the parsed string
  */
-char *parse_html_in_message(clist *parts, parser_config *config);
+char *parser_parse_html(const char *message, parser_config *config);
 
 /**
- * Parse the given message_part's in a separate, given function.
- * It will call (operation) on each message_part, telling you which rule apply
+ * Parse the given parser_message's in a separate, given function.
+ * It will call (operation) on each parser_message, telling you which rule apply
  * to this part, if any.
  *
- * @param parts the message_part's to parse
- * @param config the configuration to use to parse the message_part's
- * @param operation the function to use to parse each message_part
+ * @param parts the parser_message's to parse
+ * @param config the configuration to use to parse the parser_message's
+ * @param operation the function to use to parse each parser_message
  * @param argument the user argument to pass to the function
  */
-void parse_html(clist *parts, parser_config *config, 
-	void (*operation)(message_part *part, parser_rule *rul, void *argument),
+void parser_parse_messages(clist *parts, parser_config *config, 
+	void (*operation)(parser_message *part, parser_rule *rul, void *argument),
 	void *argument);
 
 /**
@@ -71,7 +71,7 @@ void parse_html(clist *parts, parser_config *config,
  *
  * @return the configuration object
  */
-parser_config *get_parser_config(const char filename[]);
+parser_config *parser_get_config(const char filename[]);
 
 /**
  * Free the parser_config.
