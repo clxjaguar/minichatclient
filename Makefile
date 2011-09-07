@@ -13,19 +13,24 @@ endif
 
 #-Wdouble-promotion
 
-.PHONY: all rebuild clean mrproper mrpropre love
+.PHONY: all rebuild clean mrproper mrpropre love mchatclient-iso mchatclient-text
 
 all: mchatclient
 
 rebuild: mrproper all
 
 mchatclient-iso: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-iso.o
-	@echo "*** Linking all main objects files (ISO only, compatibility version) ..."
+	@echo "*** Linking all main objects files (ncurses, ISO only compatibility) ..."
 	@gcc -lncurses cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-iso.o -o mchatclient
 	@strip mchatclient
 
+mchatclient-text: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o
+	@echo "*** Linking all main objects files (text backend) ..."
+		@gcc cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o -o mchatclient
+			@strip mchatclient
+
 mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o
-	@echo "*** Linking all main objects files ..."
+	@echo "*** Linking all main objects files (ncurses) ..."
 	@gcc -lncursesw cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o -o mchatclient
 	@strip mchatclient
 
@@ -62,6 +67,10 @@ gotcurses.o: gotcurses.c display_interfaces.h commons.h
 	@echo "    In case of faillure, try \"make mchatclient-iso\" or install ncursesw-dev !"
 	@${COMPILER} ${CCFLAGS} -D_X_OPEN_SOURCE_EXTENDED -c gotcurses.c -o gotcurses.o
 
+gottext.o: gottext.c display_interfaces.h commons.h
+	@echo "*** Compiling gottext.o (text mode)"
+	@${COMPILER} ${CCFLAGS} -c gottext.c -o gottext.o
+
 # PARSING HTML ENTITIES
 
 entities.o: entities.c entities.h
@@ -91,6 +100,10 @@ ini.o: ini.c ini.h
 attribute.o: attribute.c attribute.h
 	@echo "*** Compiling attribute.o"
 	@${COMPILER} ${CCFLAGS} -c attribute.c -o attribute.o
+
+iface-test.o: iface-test.c display_interfaces.h
+	@echo "*** Compiling iface-test.o"
+	@${COMPILER} ${CCFLAGS} -c iface-test.c -o iface-test.o
 
 
 #### TESTS #### 
@@ -127,6 +140,17 @@ clist-test.o: clist-test.c
 	@echo "*** Compiling clist-test.o"
 	@${COMPILER} ${CCFLAGS} -c clist-test.c -o clist-test.o
 
+curses-test: iface-test.o gotcurses.o cstring.o clist.o
+	@echo "*** Linking curses-test executable..."
+	@${COMPILER} -lncursesw iface-test.o cstring.o clist.o gotcurses.o -o curses-test
+
+curses-iso-test: iface-test.o gotcurses-iso.o cstring.o clist.o
+	@echo "*** Linking curses-iso-test executable..."
+	@${COMPILER} -lncurses iface-test.o gotcurses-iso.o clist.o cstring.o -o curses-iso-test
+
+text-test: iface-test.o gottext.o cstring.o clist.o
+	@echo "*** Linking text-test executable..."
+	@${COMPILER} iface-test.o gottext.o cstring.o clist.o -o text-test
 
 #### MISC. STUFF #### 
 
@@ -137,8 +161,8 @@ clean:
 mrpropre: mrproper
 
 mrproper: clean
-	@echo "*** Erasing main executable file..."
-	@rm -f mchatclient
+	@echo "*** Erasing main executable file and test files..."
+	@rm -f mchatclient mchatclient-iso mchatclient-text text-test curses-test parser-test clist-test cstring-test
 
 love:
 	@echo "... not war ?"
