@@ -14,6 +14,12 @@
 #include "parser_p.h"
 #include "ini.h"
 
+// Locked... Thanks...
+
+char *parse_html_in_message(const char *message, parser_config *pconfig) {
+	return parser_parse_html(message, pconfig);
+}
+
 // Those are the functions defined in the (public) .h:
 
 parser_config *parser_get_config(const char filename[]) {

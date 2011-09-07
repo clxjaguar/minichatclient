@@ -38,6 +38,11 @@ typedef struct {
 clist *parser_get_parts(const char *message);
 
 /**
+ * Locked... Thanks...
+ */
+char *parse_html_in_message(const char *message, parser_config *config);
+
+/**
  * Parse the given message (HTML) and return a new, parsed string.
  * This is a helper function to parser_parse_messages() which also create
  * and return a string with the parsed message.
