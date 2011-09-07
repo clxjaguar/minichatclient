@@ -26,8 +26,8 @@ mchatclient-iso: main.o cookies.o network.o conf.o parsehtml.o entities.o parser
 
 mchatclient-text: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o
 	@echo "*** Linking all main objects files (text backend) ..."
-		@gcc cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o -o mchatclient
-			@strip mchatclient
+	@gcc cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o -o mchatclient
+	@strip mchatclient
 
 mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o
 	@echo "*** Linking all main objects files (ncurses) ..."

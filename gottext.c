@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "cstring.h"
 #include "commons.h"
 #include "display_interfaces.h" // prototypes of theses display_* fonctions
@@ -34,16 +35,23 @@ void display_init() {
 				stop = 1;
 			}
 		}
+		
+		printf("Input is DONE!\n");
+		exit(0);
 	}
 }
 
 void display_debug(const char *text, int nonewline) {
-	if (text != NULL) nonewline = nonewline;
+	if (nonewline) {
+		printf("%s", text);
+	} else {
+		printf("%s\n", text);
+	}
 }
 
 void display_statusbar(const char* message) {
 	int needless = 1;
-	if (message != NULL) needless = 2;
+	if (message != NULL) needless = needless + 1;
 }
 
 void display_conversation(const char *text) {
@@ -57,11 +65,12 @@ void display_nicklist(char *text[], unsigned int nbrofnicks) {
 void display_end() {
 	//TODO: this is stupid with a fork...
 	stop = 1;
+	ungetc('\0', stdin);
 }
 
 char display_waitforchar(const char *msg) {
 	int a = 1;
-	if (msg != NULL) a = 2;
+	if (msg != NULL) a = a + 1;
 
 	return 'y';
 }
@@ -99,18 +108,28 @@ char* display_driver() {
 	while (size > 0) {
 		// can return -1 and error set to EAGAIN
 		size = read(pipin, buffer, 10);
-//printf("STEP READING...\n");
 		if (size > 0) {
 			buffer[size] = '\0';
-			cstring_adds(read_buffer, buffer);
+			cstring_addns(read_buffer, buffer, size);
 		}
 	}
 	//
-
+	
+	/*if(read_buffer->length > 0) {
+		size_t iii = 0;
+		printf("chars:");
+		for (iii = 0 ; iii < read_buffer->length ; iii++) {
+			printf(" %i", read_buffer->string[iii]);
+		}
+		printf("\n");
+	}*/
+	
 	enter = cstring_find_anys(read_buffer, enter_chars, 0);
 	if (enter > 0) {
-		if ((size_t)enter != read_buffer->length) {
+		if ((size_t)enter + 1 != read_buffer->length) {
 			cstring_addf(send_buffer, read_buffer, (size_t)enter + 1);
+			cstring_cut_at(read_buffer, (size_t)enter);
+		} else {
 			cstring_cut_at(read_buffer, (size_t)enter);
 		}
 		tmp = send_buffer;
@@ -123,7 +142,7 @@ char* display_driver() {
 		struct timespec req;
 		req.tv_sec = 0;
 		//TODO: cannot be more than 999999999, use sec if needed
-		req.tv_nsec = WAITING_TIME_GRANOLOSITY;// * 1000000;
+		req.tv_nsec = WAITING_TIME_GRANOLOSITY * 1000000;
 		nanosleep(&req, NULL);
 		return NULL;
 	}
