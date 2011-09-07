@@ -210,9 +210,31 @@ long long cstring_find(cstring *self, cstring *find, size_t start_index) {
 long long cstring_finds(cstring *self, const char find[], size_t start_index) {
 	size_t i;
 
+	if (start_index >= self->length || find == NULL) {
+		return -1;
+	}
+
 	for (i = start_index ; self->string[i] != '\0' ; i++) {
 		if (cstring_starts_withs(self, find, i)) {
 			return i;
+		}
+	}
+	
+	return -1;
+}
+
+long long cstring_find_anys(cstring *self, const char find[], size_t start_index) {
+	size_t i, ii;
+
+	if (start_index >= self->length || find == NULL) {
+		return -1;
+	}
+
+	for (i = start_index ; self->string[i] != '\0' ; i++) {
+		for (ii = 0 ; find[ii] != '\0' ; ii++) {
+			if (self->string[i] == find[ii]) {
+				return i;
+			}
 		}
 	}
 	

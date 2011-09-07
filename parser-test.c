@@ -92,10 +92,8 @@ int main(int argc, char *argv[]) {
 	
 	if (string != NULL) {
 		test = NULL;
-		config = get_parser_config("parser_rules.conf");
-		parts = get_parser_parts(string);
-		test = parse_html_in_message(parts, config);
-		free_clist(parts);
+		config = parser_get_config("parser_rules.conf");
+		test = parser_parse_html(string, config);
 		free_parser_config(config);
 		printf("%s\n", test);
 		
