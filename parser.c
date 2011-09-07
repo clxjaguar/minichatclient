@@ -527,6 +527,7 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 	char blast, bblast; // before last, before before last chars
 	size_t size;
 	int num_of_spans, i;
+	int delta;
 	
 	// Validity check.
 	if (list == NULL || ptr == NULL) {
@@ -545,7 +546,10 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 		num_of_spans = count_span_data_span(ptr->next);
 		if (num_of_spans > 0) {
 			// remove the @
-			if ((blast == '@' && size == 2) || (bblast == '@' && size == 3)) {
+			delta = 0;
+			if (blast  == '@') delta = 2;
+			if (bblast == '@') delta = 3;
+			if (size == (size_t)delta) {
 				// The "@xx" is on its own parser_message
 				node = ptr->next;
 				clist_remove(list, ptr);
@@ -554,7 +558,7 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 			} else {
 				// The "@xx" is at the end of a parser_message
 				cdata = new_cstring();
-				cstring_addns(cdata, part->data, size);
+				cstring_addns(cdata, part->data, size - delta);
 				free(part->data);
 				part->data = cstring_convert(cdata);
 				ptr = ptr->next;
@@ -612,7 +616,8 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 						node = ptr->next;
 						clist_remove(list, ptr);
 						free_clist_node(ptr);
-						ptr = node;
+						// we need to check the remaining of ", ..."
+						ptr = node->prev;
 					} else {
 						// The ", " is at the start of another line
 						free(part->data);
