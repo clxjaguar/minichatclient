@@ -8,195 +8,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
 #include "cstring.h"
 #include "clist.h"
 #include "parser.h"
-#include "ini.h" // because we want to use attribute's
-
-#define bool            int
-#define true              1
-#define false             0
-
-#define TYPE_MESSAGE      0
-#define TYPE_OPENING_TAG  1
-#define TYPE_CLOSING_TAG  2
-
-typedef struct parser_message_struct parser_message;
-struct parser_message_struct {
-	int type; // (0 or 1 or 2: 0 is text, 1 is <>, 2 is </>)
-	char *data;
-	parser_message *link; // (NULL for text)
-	clist *attributes; // (NULL for text)
-};
-
-typedef struct {
-	char *tag;
-	char *value;
-	char *start;
-	char *stop;
-} parser_rule;
-
-typedef struct {
-	clist *parser_config_lines;
-} parser_config_private;
-
-typedef struct {
-	char *context;
-	clist *rules;
-} parser_config_line;
-
-/**
- * Process and return the parser_messages found in this message.
- * They will be fully checked against all special rules and such.
- * Don't forget to call free_clist() on it when done.
- *
- * @param message the message to work on
- *
- * @return a list of parser_message's
- */
-
-clist *parser_get_parts(const char *message);
-
-/**
- * A filter to use with ini_get_select() that will return all the values
- * whose 'name' property if any of:
- * - context
- * - tag
- * - value
- * - start
- * - stop
- *
- * @param att the attribute to filter
- * @param argument an unused argument (e.g. NULL)
- *
- * @return true if the attribute is to be kept
- */
-bool filter_config(attribute *att, void *argument);
-
-/**
- * Process a parser_message according to the rules in parser_config, and give
- * the hand to the (operation) function on it with the correct parameters.
- *
- * @param opeartion the operation to apply on the parser_message
- * @param argument the user argument to give to the operation function
- * @param groups the list of parser_config_lines
- * @param context_stack the context stack (a list of char *)
- * @param part the message to process
- */
-void process_parser_message(void (*operation)(parser_message *part,
-	parser_rule *rul, void *argument), void *argument, clist *parser_config_lines,
-	clist *context_stack, parser_message *part);
-
-/**
- * Process the message against a signle parser_config_line. It will be called by 
- * process_message on each parser_config_line for each parser_message.
- *
- * @param out the cstring on which to work
- * @param parser_config_line the configuration line to test against
- * @param context_stack the context stack (list of char *)
- * @param part the message to process
- * 
- * @return true if the rule was used
- */
-parser_rule *process_parser_message_sub(parser_config_line *line, clist *context_stack,
-	parser_message *part);
-
-/**
- * Cut a string into parser_message's, checking if they are opening tags, closing
- * tags or text.
- *
- * @param message the message to cut
- *
- * @return a clist of parser_message 
- */
-clist *create_parts(const char *message);
-
-/**
- * Create a parser_message out of the given text.
- *
- * @param data the text
- * @param text true if the text is a text message and not a tag
- *
- * @return a clist_node with the newly allocated parser_message in it
- */
-clist_node *create_part(char *data, bool text);
-
-/**
- * Associate the links between them (the parameters in the <> tags will be 
- * tranferred into the pending </> tags, and vice-versa.
- *
- * @param list the clist of parser_message's to work with
- */
-void associate_links(clist *list);
-
-/**
- * Force-close tags which are not closed.
- *
- * @param list the clist of parser_message's to work with
- */
-void force_close_tags(clist *list);
-
-/**
- * Count the number of <span>/</span> you have that follow the pattern:
- * "<span><span>DATA</span></span>" (this one would return 2).
- *
- * @param ptr the item to start the check at
- *
- * @return the number of <span></span>'s
- */
-int count_span_data_span(clist_node *ptr);
-
-/**
- * Check the rule that marks someone as 'called' by "@ <span>Someone</span>, ".
- * If it is the case, we will remove the <span> and the </span>, the "@ ", and
- * replace it with "<nick>Someone</nick>".
- * Note that you can have <span><span>Someone</span></span>, too.
- *
- * @param list the list of parser_message from which we will process one item
- * @param ptr the item to process from the list
- *
- * @return the new current pointer (so, the next parser_message to check against
- * 	special rules)
- */
-clist_node *check_at_rule(clist *list, clist_node *ptr);
-
-/**
- * Check the rule that says that a reduced URL must be remove.
- * So, change "<a href="abcdefghi">abc ... ghi</a>" into 
- * "<a nohref="abc ... ghi">abcdefghi</a>" (note that it actually works on
- * a clist of parser_message's, not on the pure text).
- *
- * @param list the list of parser_message from which we will process one item
- * @param ptr the item to process from the list
- *
- * @return the new current pointer (so, the next parser_message to check against
- * 	special rules)
- */
-clist_node *check_reduce_link_rule(clist_node *ptr);
-
-/**
- * A simple (operation) function that will output the given parser_message
- * following the given rule into the cstring given as argument.
- *
- * @param part the message part
- * @param tul the rule to apply to it
- * @param argument a cstring to output into
- */
-void process_tag(parser_message *part, parser_rule *rul, void *argument);
-
-
-// Operations to allocate/free/clone clist_node's.
-
-clist_node *clone_parser_message_node(clist_node *node);
-void free_rule_node(clist_node *node);
-void free_group_node(clist_node *node);
-void free_parser_config(parser_config *pconfig);
-clist_node *new_rule_node(parser_rule *rrule);
-clist_node *new_string_node(char *string);
-clist_node *new_parser_config_line_node(parser_config_line *group);
-void free_parser_message(parser_message* message);
-void free_parser_message_node(clist_node* node);
+#include "parser_p.h"
+#include "ini.h"
 
 // Those are the functions defined in the (public) .h:
 
@@ -329,7 +145,7 @@ void parser_parse_messages(clist *parts, parser_config *config,
 	free_clist(context_stack);
 }
 
-char *parse_html_in_message(const char *message, parser_config *pconfig) {
+char *parser_parse_html(const char *message, parser_config *pconfig) {
 	cstring *out;
 	clist *parts;
 	
@@ -439,20 +255,20 @@ void process_parser_message(void (*operation)(parser_message *part, parser_rule 
 	applied = false;
 	
 	switch (part->type) {
-		case TYPE_CLOSING_TAG:
-		case TYPE_OPENING_TAG:
-			for (ptr = parser_config_lines->first ; !applied && ptr != NULL ; ptr = ptr->next) {
-				line = (parser_config_line *)ptr->data;
-				rul = process_parser_message_sub(line, context_stack, part);
-				if (rul != NULL) {
-					operation(part, rul, argument);
-					applied = true;
-				}
+	case TYPE_CLOSING_TAG:
+	case TYPE_OPENING_TAG:
+		for (ptr = parser_config_lines->first ; !applied && ptr != NULL ; ptr = ptr->next) {
+			line = (parser_config_line *)ptr->data;
+			rul = process_parser_message_sub(line, context_stack, part);
+			if (rul != NULL) {
+				operation(part, rul, argument);
+				applied = true;
 			}
-			break;
-		default:
-			// should not happen
+		}
 		break;
+	default:
+		// should not happen
+	break;
 	}
 	
 	if (!applied) {
