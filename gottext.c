@@ -138,7 +138,12 @@ char* display_driver() {
 
 		return send_buffer->string;
 	} else {
-		usleep(WAITING_TIME_GRANOLOSITY * 1000);
+		// wait
+		struct timespec req;
+		req.tv_sec = 0;
+		//TODO: cannot be more than 999999999, use sec if needed
+		req.tv_nsec = WAITING_TIME_GRANOLOSITY * 1000000;
+		nanosleep(&req, NULL);
 		return NULL;
 	}
 
