@@ -16,6 +16,8 @@
 // [_] gerer les erreurs genre on s'est fait "déconnecté" (sic) par le serveur (et tenter de se relogger)
 // [x] parser le HTML présant quand il y a un lien, ou un quote, ou qu'on clique sur le '@'...
 // [x] delai de polling adaptatif selon qu'il se passe des trucs ou non
+// [x] interface curses (ou pas selon ce qu'on link, c'est modulaire!)
+// [x] quand on répond, bien remplacer + par %2B
 // [?] implémenter un serveur IRC pour un maximum de compatibilité avec un client d'IM ? ...
 // [?] ... voire cette passerelle rendre multi-user pour qu'on puisse le mettre sur le serveur ? ...
 // [?] ...ou faire un add-on pour pidgin ? ...
@@ -43,6 +45,7 @@
 #include "conf.h"
 #include "commons.h"
 #include "display_interfaces.h"
+#include "strfunctions.h"
 
 #define LOGIN_PAGE "ucp.php?mode=login"
 #define MCHAT_PAGE "mchat.php"
@@ -528,15 +531,20 @@ int main(void) {
 					char *postdata   = NULL;
 					char *referer    = NULL;
 					char *cookiesstr = NULL;
+					char *tmp = NULL;
+
+					strrep(outgoingmsg, &tmp, "+", "%2B");
 					
 					req = malloc(strlen(path)+strlen(MCHAT_PAGE)+1);
+					//req = malloc(strlen(path)+strlen("404.php")+1);
 					strcpy(req, path);
 					strcat(req, MCHAT_PAGE);
+					//strcat(req, "404.php");
 
 					// mode=add&message=TESTMSG&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23
 					postdata = malloc(strlen(POSTDATALEFT) + strlen(outgoingmsg) + strlen(POSTDATARIGHT) + 1);
 					strcpy(postdata, POSTDATALEFT);
-					strcat(postdata, outgoingmsg);
+					strcat(postdata, tmp);
 					strcat(postdata, POSTDATARIGHT);
 					
 					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(MCHAT_PAGE)+1);
@@ -554,6 +562,7 @@ int main(void) {
 					free(referer);    referer=NULL;
 					free(postdata);	  postdata=NULL;
 					free(cookiesstr); cookiesstr=NULL;
+					free(tmp);        tmp=NULL;
 				}
                 k=1;
                 while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
@@ -606,9 +615,6 @@ int main(void) {
      
         // if a TCP connexion to the server is present, terminate it !
         if (s) { closesocket(s); s = 0; }
-        
-        // separate cycles in the debug console (delay countdown let a blank line)
-		//if (oldstate != WAIT) { display_debug("", 0); } //TODO: bug
     }
 	fclose(f);
 	freecookies(cookies);
