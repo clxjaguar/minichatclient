@@ -43,9 +43,9 @@ void display_init() {
 
 void display_debug(const char *text, int nonewline) {
 	if (nonewline) {
-		printf("%s", text);
+		fprintf(stderr, "%s", text);
 	} else {
-		printf("%s\n", text);
+		fprintf(stderr, "%s\n", text);
 	}
 }
 
