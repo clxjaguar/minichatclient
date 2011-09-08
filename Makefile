@@ -19,19 +19,19 @@ all: mchatclient
 
 rebuild: mrproper all
 
-mchatclient-iso: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-iso.o
-	@echo "*** Linking all main objects files (ncurses, ISO only compatibility) ..."
-	@gcc -lncurses cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-iso.o -o mchatclient
-	@strip mchatclient
-
-mchatclient-text: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o
-	@echo "*** Linking all main objects files (text backend) ..."
-	@gcc cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o -o mchatclient
-	@strip mchatclient
-
-mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o
+mchatclient: main.o strfunctions.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o
 	@echo "*** Linking all main objects files (ncurses) ..."
-	@gcc -lncursesw cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o -o mchatclient
+	@gcc -lncursesw strfunctions.o cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o -o mchatclient
+	@strip mchatclient
+
+mchatclient-iso: main.o strfunctions.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-iso.o
+	@echo "*** Linking all main objects files (ncurses, ISO only compatibility) ..."
+	@gcc -lncurses strfunctions.o cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-iso.o -o mchatclient
+	@strip mchatclient
+
+mchatclient-text: main.o strfunctions.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o
+	@echo "*** Linking all main objects files (text backend) ..."
+	@gcc strfunctions.o cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o -o mchatclient-text
 	@strip mchatclient
 
 #### USED OBJECTS ####
@@ -39,6 +39,10 @@ mchatclient: main.o cookies.o network.o conf.o parsehtml.o entities.o parser.o c
 main.o: main.c conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h
 	@echo "*** Compiling main.o"
 	@${COMPILER} ${CCFLAGS} -c main.c -o main.o
+
+strfunctions.o: strfunctions.c strfunctions.h
+	@echo "*** Compiling strfunctions.o"
+	@${COMPILER} ${CCFLAGS} -c strfunctions.c -o strfunctions.o
 
 network.o: network.c display_interfaces.h
 	@echo "*** Compiling network.o"
