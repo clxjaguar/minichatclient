@@ -45,7 +45,7 @@ void display_debug(const char *text, int nonewline) {
 	if (nonewline) {
 		fprintf(stderr, "%s", text);
 	} else {
-		fprintf(stderr, "%s\n", text);
+		fprintf(stderr, "\n%s", text);
 	}
 }
 
