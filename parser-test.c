@@ -13,7 +13,6 @@ int main(int argc, char *argv[]) {
 	cstring *cs;
 	char *test;
 	parser_config *config;
-	clist *parts;
 	FILE *file;
 	cs = NULL;
 	int car;

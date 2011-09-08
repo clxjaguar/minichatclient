@@ -50,6 +50,23 @@ void clist_add(clist *list, clist_node *node) {
 	list->size++;
 }
 
+
+void clist_insert(clist *list, clist_node *node) {
+	if (list->last == NULL) {
+		list->last = node;
+	}
+	
+	if (list->first != NULL) { 
+		list->first->prev = node;
+	}
+	
+	node->next = list->first;
+	list->first = node;
+	node->prev = NULL;
+	
+	list->size++;
+}
+
 void clist_reverse(clist *list) {
 	clist_node *ptr;
 	clist_node *next;
@@ -89,22 +106,67 @@ clist_node *clist_remove(clist *list, clist_node *node) {
 	return node;
 }
 
-int clist_insert(clist *list, unsigned int indexi, clist_node *node) {
+void clist_insert_before(clist *list, clist_node *anchor, clist_node *node) {
+	if (anchor == NULL) {
+		clist_insert(list, node);
+	} else {
+		node->prev = anchor->prev;
+		anchor->prev = node;
+		if (node->prev != NULL) {
+			node->prev->next = node;
+		}
+		node->next = anchor;
+		list->size++;
+	}
+}
+
+void clist_insert_after(clist *list, clist_node *anchor, clist_node *node) {
+	if (anchor == NULL) {
+		clist_add(list, node);
+	} else {
+		node->next = anchor->next;
+		anchor->next = node;
+		if (node->next != NULL) {
+			node->next->prev = node;
+		}
+		node->prev = anchor;
+		list->size++;
+	}
+}
+
+clist_node *clist_get(clist *list, size_t indexi) {
+	clist_node *ptr;
+	size_t i;
+	
+	i = 0;
+	for (ptr = list->first ; ptr != NULL ; ptr = ptr->next) {
+		if (indexi == i)  {
+			return ptr;
+		}
+		i++;
+	}
+	
+	return NULL;
+}
+
+int clist_insert_at(clist *list, size_t indexi, clist_node *node) {
 	clist_node *ptr;
 	int inserted;
-	unsigned int i;
+	size_t i;
+	
+	// special case
+	if (list->first == NULL && indexi == 0) {
+		clist_insert(list, node);
+		return 1;
+	}
 	
 	inserted = 0;
 	i = 0;
 	for (ptr = list->first ; !inserted && ptr != NULL ; ptr = ptr->next) {
-		if (indexi == i)  {
-			node->prev = ptr->prev;
-			ptr->prev = node;
-			if (node->prev != NULL) {
-				node->prev->next = node;
-			}
-			node->next = ptr;
+		if (indexi == i - 1)  {
+			clist_insert_after(list, ptr, node);
 			inserted = 1;
+			break;
 		}
 		i++;
 	}
