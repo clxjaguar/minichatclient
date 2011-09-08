@@ -110,7 +110,7 @@ char* display_driver() {
 		size = read(pipin, buffer, 10);
 		if (size > 0) {
 			buffer[size] = '\0';
-			cstring_addns(read_buffer, buffer, size);
+			cstring_addns(read_buffer, buffer, (size_t)size);
 		}
 	}
 	//

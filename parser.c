@@ -460,9 +460,7 @@ void force_close_tags(clist *list) {
 				((parser_message *)node->data)->link = part;
 				part->link = node->data;
 				
-				node->next = ptr->next;
-				node->prev = ptr;
-				ptr->next = node;
+				clist_insert_after(list, ptr, node);
 			}
 		break;
 		default:
@@ -525,9 +523,8 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 	clist_node *node;
 	parser_message *part;
 	char blast, bblast; // before last, before before last chars
-	size_t size;
+	size_t size, delta;
 	int num_of_spans, i;
-	int delta;
 	
 	// Validity check.
 	if (list == NULL || ptr == NULL) {
@@ -549,7 +546,7 @@ clist_node *check_at_rule(clist *list, clist_node *ptr) {
 			delta = 0;
 			if (blast  == '@') delta = 2;
 			if (bblast == '@') delta = 3;
-			if (size == (size_t)delta) {
+			if (size == delta) {
 				// The "@xx" is on its own parser_message
 				node = ptr->next;
 				clist_remove(list, ptr);
