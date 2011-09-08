@@ -31,8 +31,8 @@ printf("Did display.\n");
 		
 		str = display_driver();
 		if (str != NULL) {
-			display_debug("SEND: ", 1);
-			display_debug(str, 0);
+			display_debug("SEND: ", 0);
+			display_debug(str, 1);
 		}
 		index++;
 	}
