@@ -32,7 +32,7 @@ mchatclient-iso: main.o strfunctions.o cookies.o network.o conf.o parsehtml.o en
 mchatclient-text: main.o strfunctions.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o
 	@echo "*** Linking all main objects files (text backend) ..."
 	@gcc strfunctions.o cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o -o mchatclient-text
-	@strip mchatclient
+	@strip mchatclient-text
 
 #### USED OBJECTS ####
 
