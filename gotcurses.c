@@ -21,17 +21,17 @@
 #include "display_interfaces.h" // prototypes of theses display_* fonctions
 #include "commons.h" // for nicklist struct and timming value
 
+//TODO: translation of character set ?
+
 #define maxrows LINES
 #define maxcols COLS
 
-/*
-//TODO: translation of character set ?
 char* transliterate(const char *utf){
 	char *target;
 	unsigned int i;
 	//char utf[] = "j'ai pas le droit aux fÃ©culents pour mon rÃ©gime";
 	target = malloc(strlen(utf)+1);
-	
+
 	i=0;
 	while(utf[i]){
 		if(!(utf[i]&128)){
@@ -45,7 +45,6 @@ char* transliterate(const char *utf){
 	target[i] = '\0';
 	return target;
 }
-*/
 
 void destroy_win(WINDOW *lwin){
 	wborder(lwin, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
@@ -76,14 +75,14 @@ void destrow_dwin(dwin *w){
 
 // interfaces (display_)
 
-unsigned int DEBUG_HEIGHT   = 10;
+unsigned int DEBUG_HEIGHT   = 14;
 unsigned int NICKLIST_WIDTH = 19;
 
 void display_statusbar(const char *text){
 	if (text && text[0]) {
 		attron(A_REVERSE);
 		mvwprintw(stdscr, maxrows-1, 0, " %s ", text);
-		attroff(A_REVERSE);	
+		attroff(A_REVERSE);
 	}
 	else {
 		wmove(stdscr, maxrows-1, 0);
@@ -107,9 +106,9 @@ void display_debug(const char *text, int nonewline){
 		wrefresh(debug.content);
 	}
 	else {
-		if (!nonewline) { 
-			//display_statusbar(NULL); 
-			wmove(stdscr, maxrows-1, 0); 
+		if (!nonewline) {
+			//display_statusbar(NULL);
+			wmove(stdscr, maxrows-1, 0);
 		}
 		attron(A_REVERSE);
 		wprintw(stdscr, "%s", text);
@@ -121,7 +120,7 @@ void display_debug(const char *text, int nonewline){
 }
 
 void display_conversation(const char *text){
-	//char *p;
+	char *p;
 	//p = transliterate(text);
 	//wprintw(conversation.content, "\n%s", p);
 	wprintw(conversation.content, "\n%s", text);
@@ -184,11 +183,11 @@ void display_end(void){
 char* display_driver(void){
 	int ch;
 	unsigned int j = 0;
-	static unsigned int nbrofcars=0; //, nbrofbytes=0, currentcar = 0;
+	static unsigned int nbrofbytes=0;
 	static char *buf = NULL;
 	static int dbgchrs[4];
 
-	if (!nbrofcars && buf) { free(buf); buf=NULL; display_statusbar("Typing buffer freed after sent"); }
+	if (!nbrofbytes && buf) { free(buf); buf=NULL; display_statusbar("Typing buffer freed after sent"); }
 
 	while ((ch = wgetch(typing_area.content)) != ERR){
 		j++;
@@ -196,8 +195,8 @@ char* display_driver(void){
 			case 0x0a: // "enter" key
 			case 0x0d: // also enter, in some OSes
 				if (buf) {
-					buf[nbrofcars] = '\0';
-					nbrofcars = 0;
+					buf[nbrofbytes] = '\0';
+					nbrofbytes = 0;
 					// on n'utilise pas wclear() parce que lui en fait
 					// il fait redessiner la fenêtre entière!
 					wmove(typing_area.content, 0, 0);
@@ -211,12 +210,21 @@ char* display_driver(void){
 			case 0x08: // ascii backspace
 			case 0x7f: //  "^?" backspace
 				if (buf) {
-					if(nbrofcars){
-						if (!--nbrofcars) { free(buf); buf = NULL; display_statusbar("Typing buffer freed"); }
+					if(nbrofbytes){
+						if (!(buf[nbrofbytes-1]&128)){ // one byte char. easy.
+							nbrofbytes--;
+						}
+						else { // this byte is a part of UTF-8 char ?
+							do {
+								nbrofbytes--;
+							} while ((nbrofbytes != 0) && ((buf[nbrofbytes]&192) != 192)); // first UTF-8 byte? enough.
+						}
+
+						if (!nbrofbytes) { free(buf); buf = NULL; display_statusbar("Typing buffer freed"); }
 						wprintw(typing_area.content, "\b \b");
 					}
 				}
-				else { nbrofcars = 0; }
+				else { nbrofbytes = 0; }
 				break;
 
 			case 0x0c: // ^L. wanna some refresh?
@@ -226,7 +234,7 @@ char* display_driver(void){
 
 				wclear(typing_area.content);
 				if (buf){
-					buf[nbrofcars] = '\0';
+					buf[nbrofbytes] = '\0';
 					wprintw(typing_area.content, "%s", buf);
 				}
 
@@ -253,20 +261,20 @@ char* display_driver(void){
 						strncat(tmpchar, tmpchar2, 120);
 					}
 					display_statusbar(tmpchar);
-					break; 
+					break;
 				}}
 				if (buf == NULL){
 					buf = malloc(1002);
 					display_statusbar("Buffer allocated for typing...");
 				}
 				else {
-					if (nbrofcars>=1000){
+					if (nbrofbytes>=1000){
 						if (j==1) { fprintf(stderr, "\a"); }
 						break;
 					}
 				}
-				buf[nbrofcars] = (char)ch;
-				nbrofcars++;
+				buf[nbrofbytes] = (char)ch;
+				nbrofbytes++;
 				wprintw(typing_area.content, "%c", ch);
 				break;
 		}
