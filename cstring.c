@@ -273,6 +273,9 @@ int cstring_replace(cstring *self, cstring *from, cstring *to) {
 		}
 	}
 
+	if (occurs > 0)
+		self->length = strlen(self->string); //TODO: NOT EFFICIENT!!!
+
 	return occurs;
 }
 
