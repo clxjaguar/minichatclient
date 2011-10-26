@@ -525,28 +525,32 @@ int main(void) {
 					state = WATCHING_NEW_MESSAGES;
 					break;
 				}
-                
+
                 {
 					char *req        = NULL;
 					char *postdata   = NULL;
 					char *referer    = NULL;
 					char *cookiesstr = NULL;
-					char *tmp = NULL;
+					char *tmp = NULL; // please don't free() outgoingmsg! else it will be double freed.
 
-					strrep(outgoingmsg, &tmp, "+", "%2B");
-					
+					// replace some charactersdisturbing the POST string...
+					strrep(outgoingmsg, &tmp, "%", "%25");
+					strrep(NULL,        &tmp, "+", "%2B");
+					strrep(NULL,        &tmp, "&", "%26");
+					strrep(NULL,        &tmp, "=", "%3D");
+					strrep(NULL,        &tmp, " ", "+");
+
+
 					req = malloc(strlen(path)+strlen(MCHAT_PAGE)+1);
-					//req = malloc(strlen(path)+strlen("404.php")+1);
 					strcpy(req, path);
 					strcat(req, MCHAT_PAGE);
-					//strcat(req, "404.php");
 
 					// mode=add&message=TESTMSG&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23
-					postdata = malloc(strlen(POSTDATALEFT) + strlen(outgoingmsg) + strlen(POSTDATARIGHT) + 1);
+					postdata = malloc(strlen(POSTDATALEFT) + strlen(tmp) + strlen(POSTDATARIGHT) + 1);
 					strcpy(postdata, POSTDATALEFT);
 					strcat(postdata, tmp);
 					strcat(postdata, POSTDATARIGHT);
-					
+
 					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(MCHAT_PAGE)+1);
 					strcpy(referer, "http://");
 					strcat(referer, host);
