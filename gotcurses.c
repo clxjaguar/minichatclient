@@ -75,8 +75,8 @@ void destrow_dwin(dwin *w){
 
 // interfaces (display_)
 
-unsigned int DEBUG_HEIGHT   = 14;
-unsigned int NICKLIST_WIDTH = 19;
+unsigned int DEBUG_HEIGHT   = 8;
+unsigned int NICKLIST_WIDTH = 15;
 
 void display_statusbar(const char *text){
 	if (text && text[0]) {
@@ -116,7 +116,10 @@ void display_debug(const char *text, int nonewline){
 		attroff(A_REVERSE);
 		wrefresh(stdscr);
 	}
-	//TODO: mvcur to typing_area.content ?
+	//TODO: move physical cursor to typing_area.content more cleanly ?
+	wprintw(typing_area.content, " \b");
+	wrefresh(typing_area.content);
+	
 }
 
 void display_conversation(const char *text){
@@ -284,6 +287,7 @@ char* display_driver(void){
 		wtimeout(typing_area.content, 10);
 	}
 	wtimeout(typing_area.content, WAITING_TIME_GRANOLOSITY);
+
 	if (j) {
 		wrefresh(typing_area.content); 
 	}
