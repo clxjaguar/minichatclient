@@ -211,15 +211,15 @@ int main(void) {
     
     display_init();
 	display_conversation(
-      "*****************************************************************\n"
-      "** Welcome to minichatclient for rmcgirr83.org's phpBB's addon **\n"
-      "**          http://minichatclient.sourceforge.net/             **\n"
-      "*****************************************************************\n"
+      "********************************************\n"
+      "**     Welcome to minichatclient for      **\n"
+	  "**     rmcgirr83.org's phpBB's addon      **\n"
+      "** http://minichatclient.sourceforge.net/ **\n"
+      "********************************************\n\n"
     );
 
 	f = fopen("output.log", "a");
 	if (!f){
-		//fprintf(stderr, "Can't open output.log for writing !\n");
 		display_debug("Can't open output.log for writing !", 0);
 		display_waitforchar("Press any key to continue");
 		return -1;
@@ -235,7 +235,6 @@ int main(void) {
 	wait_time_maxi  = read_conf_int   ("wait_time_maxi",       15) * (1000/WAITING_TIME_GRANOLOSITY);
 	wait_time_mini  = read_conf_int   ("wait_time_mini",       5)  * (1000/WAITING_TIME_GRANOLOSITY);
 	wait_time_awake = read_conf_int   ("wait_time_awake",      3)  * (1000/WAITING_TIME_GRANOLOSITY);
-	
 	
 	//snprintf(stdout, "Server from the configuration file is: http://%s:%u%s", host, port, path);
 	//snprintf(stdout, "User-Agent: %s\n", useragent);
