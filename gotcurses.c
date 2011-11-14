@@ -19,32 +19,13 @@
 #include <string.h>
 
 #include "display_interfaces.h" // prototypes of theses display_* fonctions
-#include "commons.h" // for nicklist struct and timming value
+#include "commons.h"            // for nicklist struct and timming value
+#include "strfunctions.h"       // for eventuals transliterations
 
 //TODO: translation of character set ?
 
 #define maxrows LINES
 #define maxcols COLS
-
-char* transliterate(const char *utf){
-	char *target;
-	unsigned int i;
-	//char utf[] = "j'ai pas le droit aux féculents pour mon régime";
-	target = malloc(strlen(utf)+1);
-
-	i=0;
-	while(utf[i]){
-		if(!(utf[i]&128)){
-			target[i] = utf[i];
-		}
-		else {
-			target[i] = '?';
-		}
-		i++;
-	}
-	target[i] = '\0';
-	return target;
-}
 
 void destroy_win(WINDOW *lwin){
 	wborder(lwin, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
@@ -75,8 +56,8 @@ void destrow_dwin(dwin *w){
 
 // interfaces (display_)
 
-unsigned int DEBUG_HEIGHT   = 8;
-unsigned int NICKLIST_WIDTH = 15;
+unsigned int DEBUG_HEIGHT   = 7;
+unsigned int NICKLIST_WIDTH = 16;
 
 void display_statusbar(const char *text){
 	if (text && text[0]) {
@@ -122,14 +103,32 @@ void display_debug(const char *text, int nonewline){
 	
 }
 
+char* transliterate_from_utf8(const char* in){
+	static char *tmp = NULL;
+	if (tmp != NULL) { free(tmp); tmp = NULL; }
+	if (in == NULL) { return NULL; }
+
+#ifdef WIN32
+	char *p = NULL;
+	unsigned int c; // not "char" !
+	unsigned int i;
+	tmp = malloc(strlen(in)+1); // la source utf8 sera toujours plus longue!
+	p = (char*)in;
+	
+	i = 0;
+	while((c = extract_codepoints_from_utf8(&p))){
+		tmp[i++] = transliterate_ucs_to_cp850(c);
+	}
+	tmp[i] = '\0';	
+	return tmp; // do not free() the returned pointer.
+#else
+	return (char*)in;
+#endif
+}
+
 void display_conversation(const char *text){
-	char *p;
-	//p = transliterate(text);
-	//wprintw(conversation.content, "\n%s", p);
-	wprintw(conversation.content, "\n%s", text);
+	wprintw(conversation.content, "\n%s", transliterate_from_utf8(text));
 	wrefresh(conversation.content);
-	//free(p);
-	//TODO: mvcur to typing_area.content ?
 }
 
 void display_init(void){
@@ -162,8 +161,6 @@ void display_init(void){
 	//wrefresh(debug.content);
 #endif
 }
-
-
 
 void display_nicklist(char *text[], unsigned int nbrofnicks){ // ce truc va changer
 	unsigned int i;
@@ -238,7 +235,7 @@ char* display_driver(void){
 				wclear(typing_area.content);
 				if (buf){
 					buf[nbrofbytes] = '\0';
-					wprintw(typing_area.content, "%s", buf);
+					wprintw(typing_area.content, "%s", transliterate_from_utf8(buf));
 				}
 
 				touchwin(typing_area.decoration);
@@ -276,8 +273,19 @@ char* display_driver(void){
 						break;
 					}
 				}
-				buf[nbrofbytes] = (char)ch;
-				nbrofbytes++;
+#ifdef WIN32
+				// CP850 ? Need to transcode it to UTF-8
+				{
+					int i = 0;
+					char *p;
+					p = utf8_character_from_ucs_codepoint(transliterate_cp850_to_ucs((unsigned char)ch));
+					while(p[i]){ buf[nbrofbytes++] = (char)p[i++]; }
+				}
+#else
+				// already UTF-8
+				buf[nbrofbytes++] = (char)ch;
+				
+#endif
 				wprintw(typing_area.content, "%c", ch);
 				break;
 		}
