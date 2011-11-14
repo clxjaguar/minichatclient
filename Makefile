@@ -62,11 +62,11 @@ conf.o: conf.c conf.h display_interfaces.h
 
 # DISPLAY OUTPUTS
 
-gotcurses-iso.o: gotcurses.c display_interfaces.h commons.h
+gotcurses-iso.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
 	@echo "*** Compiling gotcurses-iso.o (for ISO only systems)"
 	@${COMPILER} ${CCFLAGS} -c gotcurses.c -o gotcurses-iso.o
 
-gotcurses.o: gotcurses.c display_interfaces.h commons.h
+gotcurses.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
 	@echo "*** Compiling gotcurses.o"
 	@echo "    In case of faillure, try \"make mchatclient-iso\" or install ncursesw-dev !"
 	@${COMPILER} ${CCFLAGS} -D_X_OPEN_SOURCE_EXTENDED -c gotcurses.c -o gotcurses.o
@@ -144,11 +144,11 @@ clist-test.o: clist-test.c
 	@echo "*** Compiling clist-test.o"
 	@${COMPILER} ${CCFLAGS} -c clist-test.c -o clist-test.o
 
-curses-test: iface-test.o gotcurses.o cstring.o clist.o
+curses-test: iface-test.o gotcurses.o cstring.o clist.o strfunctions.o
 	@echo "*** Linking curses-test executable..."
 	@${COMPILER} -lncursesw iface-test.o cstring.o clist.o gotcurses.o -o curses-test
 
-curses-iso-test: iface-test.o gotcurses-iso.o cstring.o clist.o
+curses-iso-test: iface-test.o gotcurses-iso.o cstring.o clist.o strfunctions.o
 	@echo "*** Linking curses-iso-test executable..."
 	@${COMPILER} -lncurses iface-test.o gotcurses-iso.o clist.o cstring.o -o curses-iso-test
 
