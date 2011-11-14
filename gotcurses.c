@@ -22,8 +22,6 @@
 #include "commons.h"            // for nicklist struct and timming value
 #include "strfunctions.h"       // for eventuals transliterations
 
-//TODO: translation of character set ?
-
 #define maxrows LINES
 #define maxcols COLS
 
@@ -39,12 +37,12 @@ typedef struct {
 } dwin;
 dwin typing_area, conversation, debug, nicklist;
 
-void create_dwin(dwin *w, int rows, int cols, int startrow, int startcol, char *title){
-	w->decoration = newwin(rows,   cols,   startrow, startcol);
+void create_dwin(dwin *w, int rows, int cols, int startrow, int startcol, const char *title){
+	w->decoration = newwin(               rows,   cols,   startrow,   startcol);
 	w->content    = subwin(w->decoration, rows-2, cols-4, startrow+1, startcol+2);
 	box(w->decoration, 0, 0); // 0, 0 gives default characters
 	if (title) {
-		mvwprintw(w->decoration, 0, cols-(unsigned int)strlen(title)-4, " %s ", title);
+		mvwprintw(w->decoration, 0, (cols-(int)strlen(title)-4), " %s ", title);
 	}
 	wrefresh(w->decoration);
 }
@@ -56,8 +54,8 @@ void destrow_dwin(dwin *w){
 
 // interfaces (display_)
 
-unsigned int DEBUG_HEIGHT   = 7;
-unsigned int NICKLIST_WIDTH = 16;
+int DEBUG_HEIGHT   = 7;
+int NICKLIST_WIDTH = 16;
 
 void display_statusbar(const char *text){
 	if (text && text[0]) {
@@ -75,7 +73,7 @@ void display_statusbar(const char *text){
 char display_waitforchar(const char *msg){
 	char rep;
 	display_statusbar(msg);
-	rep = getch();
+	rep = (char)getch();
 	display_statusbar(NULL);
 	return rep;
 }
@@ -100,30 +98,55 @@ void display_debug(const char *text, int nonewline){
 	//TODO: move physical cursor to typing_area.content more cleanly ?
 	wprintw(typing_area.content, " \b");
 	wrefresh(typing_area.content);
-	
 }
 
-char* transliterate_from_utf8(const char* in){
+typedef enum {
+	NATIVE_UTF8 = 0,
+	ISO8859_1,
+	CP850
+} ttranslit;
+ttranslit transliterating;
+	
+const char* transliterate_from_utf8(const char* in){
 	static char *tmp = NULL;
-	if (tmp != NULL) { free(tmp); tmp = NULL; }
-	if (in == NULL) { return NULL; }
-
-#ifdef WIN32
 	char *p = NULL;
 	unsigned int c; // not "char" !
 	unsigned int i;
-	tmp = malloc(strlen(in)+1); // la source utf8 sera toujours plus longue!
-	p = (char*)in;
+
+	if (tmp != NULL) { free(tmp); tmp = NULL; }
+	if (in == NULL) { return NULL; }
 	
-	i = 0;
-	while((c = extract_codepoints_from_utf8(&p))){
-		tmp[i++] = transliterate_ucs_to_cp850(c);
+	switch (transliterating) {
+		case NATIVE_UTF8:
+			return in;
+			break;
+		
+		case ISO8859_1:
+		default:
+			tmp = malloc(strlen(in)+1); // la source utf8 sera toujours plus longue!
+			p = (char*)in;
+		
+			i = 0;
+			while((c = extract_codepoints_from_utf8(&p))){
+				tmp[i++] = transliterate_ucs_to_iso88591(c);
+			}
+			tmp[i] = '\0';
+			return (const char*)tmp; // please do not try to free() the returned pointer.
+			break;
+			
+		case CP850:
+			tmp = malloc(strlen(in)+1); // la source utf8 sera toujours plus longue!
+			p = (char*)in;
+		
+			i = 0;
+			while((c = extract_codepoints_from_utf8(&p))){
+				tmp[i++] = transliterate_ucs_to_cp850(c);
+			}
+			tmp[i] = '\0';
+			return (const char*)tmp; // please do not try to free() the returned pointer.
+			break;
 	}
-	tmp[i] = '\0';	
-	return tmp; // do not free() the returned pointer.
-#else
-	return (char*)in;
-#endif
+	return in;
 }
 
 void display_conversation(const char *text){
@@ -131,43 +154,12 @@ void display_conversation(const char *text){
 	wrefresh(conversation.content);
 }
 
-void display_init(void){
-#ifdef _X_OPEN_SOURCE_EXTENDED
-	char *p = NULL;
-	p = setlocale(LC_ALL, "");
-#endif
-	initscr(); // start curses mode
-	cbreak();  // line input buffering disabled ("raw" mode)
-	//nocbreak(); // ("cooked" mode)
-	keypad(stdscr, TRUE); // I need that nifty F1 ?
-	//intrflush(stdscr, FALSE);
-	noecho();  // curses call set to no echoing
-	refresh(); // m'a pas mal fait chier quand il était pas là, celui là.
-	//getmaxyx(stdscr, maxrows, maxcols); // macro returning terminal's size
-	create_dwin(&conversation, maxrows-DEBUG_HEIGHT-4-1, maxcols-NICKLIST_WIDTH, DEBUG_HEIGHT, 0, "chat log");
-	create_dwin(&nicklist, maxrows-DEBUG_HEIGHT-4-1, NICKLIST_WIDTH, DEBUG_HEIGHT, maxcols-NICKLIST_WIDTH, "nicklist");
-	create_dwin(&typing_area, 4, maxcols, maxrows-5, 0, "typing area");
-	if (DEBUG_HEIGHT) {
-		create_dwin(&debug, DEBUG_HEIGHT, maxcols, 0, 0, "minichatclient internals");
-		scrollok(debug.content, TRUE);
-		scrollok(conversation.content, TRUE);
-	}
-	meta(typing_area.content, TRUE);
-	wtimeout(typing_area.content, WAITING_TIME_GRANOLOSITY);
-#ifdef _X_OPEN_SOURCE_EXTENDED
-	display_debug("Curses interface initialyzed with locale: ", 0);
-	display_debug(p, 1);
-	//wprintw(debug.content, "Curses interface initialyzed with locale: %s", p);
-	//wrefresh(debug.content);
-#endif
-}
-
 void display_nicklist(char *text[], unsigned int nbrofnicks){ // ce truc va changer
 	unsigned int i;
 	wclear(nicklist.content); // TODO: virer ça car ça redraw le terminal entier
 
 	for (i=0; i<nbrofnicks; i++){
-		mvwprintw(nicklist.content, i, 0, "%s", text[i]);
+		mvwprintw(nicklist.content, (int)i, 0, "%s", text[i]);
 	}
 	wrefresh(nicklist.content);
 }
@@ -273,19 +265,27 @@ char* display_driver(void){
 						break;
 					}
 				}
-#ifdef WIN32
+
 				// CP850 ? Need to transcode it to UTF-8
-				{
+					
+				if (transliterating == NATIVE_UTF8) {
+					buf[nbrofbytes++] = (char)ch;
+				}
+				else {
 					int i = 0;
-					char *p;
-					p = utf8_character_from_ucs_codepoint(transliterate_cp850_to_ucs((unsigned char)ch));
+					unsigned char *p;
+					if (transliterating == CP850) {
+						p = utf8_character_from_ucs_codepoint(transliterate_cp850_to_ucs((unsigned char)ch));
+					}
+					else if (transliterating == ISO8859_1) {
+						p = utf8_character_from_ucs_codepoint(transliterate_iso88591_to_ucs((unsigned char)ch));
+					}
+					else {
+						break; // bug ?
+					}
 					while(p[i]){ buf[nbrofbytes++] = (char)p[i++]; }
 				}
-#else
-				// already UTF-8
-				buf[nbrofbytes++] = (char)ch;
 				
-#endif
 				wprintw(typing_area.content, "%c", ch);
 				break;
 		}
@@ -300,4 +300,62 @@ char* display_driver(void){
 		wrefresh(typing_area.content); 
 	}
 	return NULL;
+}
+
+
+void display_init(void){
+	char *p = NULL;
+#ifdef _X_OPEN_SOURCE_EXTENDED
+	p = setlocale(LC_ALL, "");
+	transliterating = ISO8859_1;
+	if (p){
+		if (strstr(p, "UTF-8") || strstr(p, "UTF8") || strstr(p, "utf-8") || strstr(p, "utf8")){
+			transliterating = NATIVE_UTF8;
+		}
+	}
+#else
+	transliterating = ISO8859_1;
+#ifdef WIN32
+	transliterating = CP850;
+#endif
+#endif
+	initscr(); // start curses mode
+	cbreak();  // line input buffering disabled ("raw" mode)
+	//nocbreak(); // ("cooked" mode)
+	keypad(stdscr, TRUE); // I need that nifty F1 ?
+	//intrflush(stdscr, FALSE);
+	noecho();  // curses call set to no echoing
+	refresh(); // m'a pas mal fait chier quand il était pas là, celui là.
+	//getmaxyx(stdscr, maxrows, maxcols); // macro returning terminal's size
+	create_dwin(&conversation, maxrows-DEBUG_HEIGHT-4-1, maxcols-NICKLIST_WIDTH, DEBUG_HEIGHT, 0, "chat log");
+	create_dwin(&nicklist, maxrows-DEBUG_HEIGHT-4-1, NICKLIST_WIDTH, DEBUG_HEIGHT, maxcols-NICKLIST_WIDTH, "nicklist");
+	create_dwin(&typing_area, 4, maxcols, maxrows-5, 0, "typing area");
+	if (DEBUG_HEIGHT) {
+		create_dwin(&debug, DEBUG_HEIGHT, maxcols, 0, 0, "minichatclient internals");
+		scrollok(debug.content, TRUE);
+		scrollok(conversation.content, TRUE);
+	}
+	meta(typing_area.content, TRUE);
+	wtimeout(typing_area.content, WAITING_TIME_GRANOLOSITY);
+	if (p){
+	display_debug("Curses interface initialyzed with locale: ", 0);
+	display_debug(p, 1);
+	}
+	display_debug("Recognized mode: ", 0);
+	switch (transliterating) {
+		case NATIVE_UTF8:
+			display_debug("Native UTF-8 (best)", 1);
+			break;
+			
+		case ISO8859_1:
+			display_debug("ISO-8859-1 transliteration", 1);
+			break;
+			
+		case CP850:
+			display_debug("CP850 (Windows console)", 1);
+			break;
+			
+		default:
+			display_debug("???", 1);
+	}
 }

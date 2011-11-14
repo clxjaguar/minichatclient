@@ -259,6 +259,12 @@ int main(void) {
 		}
 	}
 	
+	{unsigned int i;
+	for (i=0; i<1500; i+=WAITING_TIME_GRANOLOSITY){
+		display_driver();
+	}}
+
+	
 	state = LOADING_LOGIN_PAGE;
     for(;;){
         if (state != WAIT) {

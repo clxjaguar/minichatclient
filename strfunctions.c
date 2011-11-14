@@ -215,17 +215,21 @@ unsigned char* utf8_character_from_ucs_codepoint(unsigned int ucs_character){
 }
 
 unsigned char transliterate_ucs_to_cp850(unsigned int ucs_codepoint){	
-	//if ((ucs_codepoint >= 0x0020) && (ucs_codepoint <= 0x007E)) { 
 	if (ucs_codepoint <= 0x007E) { 
 		return (unsigned char)ucs_codepoint;
 	}
 #ifdef WIN32
-	else if (ucs_codepoint == 0x20AC) { return 'E';  } //euro sign => 'E'
-	//else if (ucs_codepoint == 0x000A) { return 0x0A;  } //CR
-	//else if (ucs_codepoint == 0x000D) { return 0x0D;  } //LF
-	
-	// all theses codes are from the wikipedia page about cp850
-	//else if (ucs_codepoint == 0x0000) { return 0x00; }
+	else if (ucs_codepoint == 0x20AC) { return 'E'; } //euro sign => 'E'
+	else if (ucs_codepoint == 0x2018) { return '\''; }//a simple quote
+	else if (ucs_codepoint == 0x2019) { return '\''; }//another simple quote
+	else if (ucs_codepoint == 0x201A) { return ','; } //low curved quote x.x
+	else if (ucs_codepoint == 0x201C) { return '"'; } //a double quote
+	else if (ucs_codepoint == 0x201D) { return '"'; } //another double quote
+	else if (ucs_codepoint == 0x2013) { return '-'; } 
+	else if (ucs_codepoint == 0x2014) { return '-'; } 
+	else if (ucs_codepoint == 0x02DC) { return '~'; } 
+		
+	// theses codes are from the wikipedia page about cp850
 	else if (ucs_codepoint == 0x263A) { return 0x01; }
 	else if (ucs_codepoint == 0x263B) { return 0x02; }
 	else if (ucs_codepoint == 0x2665) { return 0x03; }
@@ -582,3 +586,62 @@ unsigned int transliterate_cp850_to_ucs(unsigned char cp850_codepoint){
 	return '?';
 }
 
+unsigned char transliterate_ucs_to_iso88591(unsigned int ucs_codepoint){
+	if (ucs_codepoint <= 0x007E) { 
+		return (unsigned char)ucs_codepoint;
+	}
+	else if (ucs_codepoint == 0x20AC) { return 128; } //euro sign (windows)
+	else if (ucs_codepoint == 0x2018) { return '\''; }//a simple quote
+	else if (ucs_codepoint == 0x2019) { return '\''; }//another simple quote
+	else if (ucs_codepoint == 0x201A) { return ','; } //low curved quote x.x
+	else if (ucs_codepoint == 0x201C) { return '"'; } //a double quote
+	else if (ucs_codepoint == 0x201D) { return '"'; } //another double quote
+	else if (ucs_codepoint == 0x2013) { return '-'; } 
+	else if (ucs_codepoint == 0x2014) { return '-'; } 
+	else if (ucs_codepoint == 0x02DC) { return '~'; } 
+	
+	else if (ucs_codepoint >= 0x00A0 && ucs_codepoint <= 0x00FF) { 
+		return (unsigned char)ucs_codepoint;
+	}
+	return '?';
+}
+
+unsigned int transliterate_iso88591_to_ucs(unsigned char iso_codepoint){
+	if (iso_codepoint <= 127) { // base iso8859-1 from ascii 
+		return (unsigned int)iso_codepoint;
+	}
+	else if (iso_codepoint >= 160) { // iso8859-1 from 0xA0 up to 0xFF
+		return (unsigned int)iso_codepoint;
+	}
+	
+	// and some from Windows-1252 ... 
+	else if (iso_codepoint == 128) { return 0x20AC; }
+	else if (iso_codepoint == 130) { return 0x201A; }
+	else if (iso_codepoint == 131) { return 0x0192; }
+	else if (iso_codepoint == 132) { return 0x201E; }
+	else if (iso_codepoint == 133) { return 0x2026; }
+	else if (iso_codepoint == 134) { return 0x2020; }
+	else if (iso_codepoint == 135) { return 0x2021; }
+	else if (iso_codepoint == 136) { return 0x02C6; }
+	else if (iso_codepoint == 137) { return 0x2030; }
+	else if (iso_codepoint == 138) { return 0x0160; }
+	else if (iso_codepoint == 139) { return 0x2039; }
+	else if (iso_codepoint == 140) { return 0x0152; }
+	else if (iso_codepoint == 142) { return 0x017D; }
+	else if (iso_codepoint == 145) { return 0x2018; }
+	else if (iso_codepoint == 146) { return 0x2019; }
+	else if (iso_codepoint == 147) { return 0x201C; }
+	else if (iso_codepoint == 148) { return 0x201D; }
+	else if (iso_codepoint == 149) { return 0x2022; }
+	else if (iso_codepoint == 150) { return 0x2013; }
+	else if (iso_codepoint == 151) { return 0x2014; }
+	else if (iso_codepoint == 152) { return 0x02DC; }
+	else if (iso_codepoint == 153) { return 0x2122; }
+	else if (iso_codepoint == 154) { return 0x0161; }
+	else if (iso_codepoint == 155) { return 0x203A; }
+	else if (iso_codepoint == 156) { return 0x0153; }
+	else if (iso_codepoint == 158) { return 0x017E; }
+	else if (iso_codepoint == 159) { return 0x0178; }
+
+	return '?';
+}
