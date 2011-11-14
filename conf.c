@@ -54,7 +54,7 @@ char *read_conf_string(const char *key, char *pvalue, size_t valuebufsize) {
 	
 	state = VRFY_KEY; i = 0; o = 0;
 	while(state != END) {
-		c = fgetc(fd);
+		c = (char)fgetc(fd);
 		
 		if (feof(fd)) {
 			if (!lastpass) {
@@ -74,6 +74,7 @@ char *read_conf_string(const char *key, char *pvalue, size_t valuebufsize) {
 		}
 		
 		switch(state){
+			default:
 			case VRFY_KEY:
 				if (!i && (c == '#' || c == ';')) {
 					// comment => ignore.
