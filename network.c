@@ -42,14 +42,12 @@ int maketcpconnexion(char* hostname, int port){
 	int sockfd;
 	char *p;
 
-	//fprintf(stderr, "Resolving %s ...", hostname);
 	display_debug("Resolving ", 0);
 	display_debug(hostname, 1);
 	display_debug(" ... ", 1);
 	
 	/* resolve host to an IP */
 	if ((he = (void *)gethostbyname(hostname)) == NULL) { // deprécié !
-		//fprintf(stderr, "Error resolving hostname.\n");
 		display_debug("Error resolving hostname.", 1);
 		return 0;
 	}
@@ -76,15 +74,13 @@ int maketcpconnexion(char* hostname, int port){
 
 	/* open socket */
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		//fprintf(stderr, "Error: unable to open socket\n");
 		display_debug("Error: unable to open socket.", 0);
 		return 0;
 	}
 
 	/* connect */
 	if (connect(sockfd, (struct sockaddr *)&server, sizeof(server))) {
-		//fprintf(stderr, "Error connecting to %s:%d\n", he->h_name, port);
-		p = malloc(200); // flemme.
+		p = malloc(200);
 		snprintf(p, 200, "Error connecting to %s:%d", he->h_name, port);
 		display_debug(p, 0);
 		free(p); p=NULL;
@@ -92,7 +88,6 @@ int maketcpconnexion(char* hostname, int port){
 		return 0;
 	}
 
-	//fprintf(stderr, "Connected to %s:%d\r", inet_ntoa(server.sin_addr), port);
 	p = malloc(200);
 	snprintf(p, 200, "Connected to %s:%d", inet_ntoa(server.sin_addr), port);
 	display_debug(p, 0);
@@ -121,7 +116,6 @@ int sendline(int s, char* buf){
 
 int http_get(int s, char* req, char* host, char* referer, char* cookies, char* useragent, char* mischeaders){
 	char buf[200];
-	//fprintf(stderr, "GET http://%s%s%s\n", host, req[0]=='/'?"":"/", req);
 	snprintf(buf, 200, "GET http://%s%s%s", host, req[0]=='/'?"":"/", req);
 	display_debug(buf, 0);
 	
@@ -156,8 +150,7 @@ int http_get(int s, char* req, char* host, char* referer, char* cookies, char* u
 
 int http_post(int s, char* req, char* host, char* datas, char* referer, char* cookies, char* useragent, char* mischeaders){
 	char buf[200];
-	//fprintf(stderr, "POST http://%s%s%s [%s]\n", host, req[0]=='/'?"":"/", req, datas);
-	snprintf(buf, 200, "POST http://%s%s%s [%s]", host, req[0]=='/'?"":"/", req, datas);
+	snprintf(buf, 200, "POST http://%s%s%s|%s", host, req[0]=='/'?"":"/", req, datas);
 	display_debug(buf, 0);
 
 	sendstr(s, "POST ");
