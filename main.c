@@ -110,7 +110,7 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
     free(p); p = NULL;
 
 	// and put it in the log file    
-    put_timestamp(f); fprintf(f, "<%s> %s\r\n", username, message); fflush(f);
+    //put_timestamp(f); fprintf(f, "<%s> %s\r\n", username, message); fflush(f); TODO
     
     // gere si la user icon est sur le serveur (avec une adresse relative ./)
     // (ne pas oublier d'alouer pour "http://", ":12345" et le \0 de fin de chaine)
@@ -133,12 +133,6 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
 
 void minichat_users_at_this_moment(char *string){
     printf("%s\n", string);
-    /* il faudrait décoder ça dans parcehtml.c :
-        <div class="mChatStats" id="mChatStats"><a href="#" onclick="mChat.toggle('UserList'); return false;">In total there are <strong>5</strong>
-users chatting  sur le Chien, ouch, le pauvre !</a>&nbsp;( based on users active over the past 10&nbsp;minutes )<br /><span id="mChatUserLis
-t" style="display: none; float: left;"><a href="./memberlist.php?mode=viewprofile&amp;u=1201">Fluffy</a>, <a href="./memberlist.php?mode=vie
-wprofile&amp;u=1027">Rey</a>, <a href="./memberlist.php?mode=viewprofile&amp;u=1042">Shalinka</a>, <a href="./memberlist.php?mode=viewprofil
-e&amp;u=1184">Teobryn</a>, <a href="./memberlist.php?mode=viewprofile&amp;u=5">cLx</a></span></div>"*/
 }
 
 // permet de parser un fichier contenant le code html pour tester le parsage 
@@ -196,27 +190,50 @@ int main(void) {
 	char *outgoingmsg = NULL;
 
 	int t; // timeslots remaining before next polling
-    unsigned int nberr = 0;
-    unsigned short wait_time = 40; // 10s
+	unsigned int nberr = 0;
+	unsigned short wait_time = 40; // 10s
 	unsigned short wait_time_maxi, wait_time_mini, wait_time_awake;
 	
 	tstate oldstate, futurestate;
 	char *useragent = NULL;
 
-    cookie_t cookies[MAXCOOKIES]; // se configure dans cookies.h
+	cookie_t cookies[MAXCOOKIES]; // se configure dans cookies.h
 	message_t msg;
 
-    memset(&cookies[0], 0, sizeof(cookies));
-    memset(&msg,        0, sizeof(msg));
-    
-    display_init();
+	memset(&cookies[0], 0, sizeof(cookies));
+	memset(&msg,        0, sizeof(msg));
+
+	display_init();
+/*
+	/// start debug todo remove that section
+	{
+		FILE *test;
+		state = GET_THE_BACKLOG;
+		test = fopen("mchat.txt", "r");
+		k=1;
+		while(fgets(buf, sizeof(buf), test) != NULL){
+			bytes = strlen(buf);
+			if (!bytes) { break; }
+			buf[bytes] = 0;
+			parse_minichat_mess(buf, bytes, &msg, k);
+			//printf("%s", buf);
+			k=0;
+		}
+		fclose(test);
+	}    
+//	display_waitforchar("Press any key for exit...");
+			for(;;);
+	return 0;
+	// end
+*/
+
 	display_conversation(
-      "********************************************\n"
-      "**     Welcome to minichatclient for      **\n"
+	  "********************************************\n"
+	  "**     Welcome to minichatclient for      **\n"
 	  "**     rmcgirr83.org's phpBB's addon      **\n"
-      "** http://minichatclient.sourceforge.net/ **\n"
-      "********************************************\n\n"
-    );
+	  "** http://minichatclient.sourceforge.net/ **\n"
+	  "********************************************\n\n"
+	);
 
 	f = fopen("output.log", "a");
 	if (!f){
@@ -245,7 +262,6 @@ int main(void) {
 	}	
 	
 	if (!host || !path || !useragent){
-		//fprintf(stdout, "Error: Server informations missing. Please edit your mchatclient.conf file ! Exiting now...\n");
 		display_debug("Error: Server informations missing. Please edit your mchatclient.conf file !", 0);
 		display_waitforchar("Press any key to quit");
 		return -1;
@@ -253,7 +269,6 @@ int main(void) {
 	
 	if (read_conf_int("read_parser_rules", 0)){
 		if(parser_loadrules()){
-			//fprintf(stdout, "Warning: Unable to load the parser rules. They will not be used.\n");
 			display_conversation("Warning: Unable to load the parser rules. They will not be used.");
 		}
 	}
@@ -313,7 +328,9 @@ int main(void) {
 					}
                     k=0;
         		}
-        		state = SUBMIT_AUTHENTIFICATION;
+        		state = WAIT;
+        		wait_time = 3;
+        		futurestate = SUBMIT_AUTHENTIFICATION;
     			break;
 
     		case SUBMIT_AUTHENTIFICATION:
@@ -335,7 +352,6 @@ int main(void) {
 				    if (!username || !password) { 
 						if (username) { free(username); username=NULL; }
 						if (password) { free(password); password=NULL; }
-						//fprintf(stderr, "Username/password informations missing or incomplete, skipping authentification. Tying to switch to the reading states though.");
 						display_debug("Username/password informations missing or incomplete, skipping authentification. Tying to switch to the reading states though.", 0);
 						state = GET_THE_BACKLOG; 
 						break;
@@ -374,7 +390,9 @@ int main(void) {
 					}
 					k=0;
         		}
-        		state = GET_THE_BACKLOG;
+        		state = WAIT;
+        		wait_time = 3;
+        		futurestate = GET_THE_BACKLOG;
     			break;
 
     		case GET_THE_BACKLOG:
@@ -410,7 +428,9 @@ int main(void) {
         			parse_minichat_mess(buf, bytes, &msg, k);
         			k=0;
 	            }
-        		state = RETRIEVING_THE_LIST_OF_USERS;
+        		state = WAIT;
+        		wait_time = 10;
+        		futurestate = WATCHING_NEW_MESSAGES;
     			break;
 
      	    case WATCHING_NEW_MESSAGES:
@@ -446,7 +466,6 @@ int main(void) {
 				}
 				{
 					unsigned short nbmessages = 0, old_wait_time;
-					//char buf2show[200];
 					
 	        		k=1;
 	                while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
@@ -470,15 +489,16 @@ int main(void) {
 							if (old_wait_time < wait_time) { wait_time = old_wait_time; }
 						}
 					}
-					
-						
-					//snprintf(buf2show, 200, "%u new message(s). Delay ajusted from %u to %u.", nbmessages, old_wait_time, wait_time);
-					//display_debug(buf2show, 0);
-					//snprintf(buf2show, 200, "Timmings: maxi=%0.2fs / mini=%0.2fs / awake=%0.2fs\n", (float)wait_time_maxi/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_mini/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_awake/(1000/WAITING_TIME_GRANOLOSITY));
-					//display_debug(buf2show, 0);
 				}
-                futurestate = WATCHING_NEW_MESSAGES;
+				futurestate = WATCHING_NEW_MESSAGES;
         		state = WAIT;
+				{
+					static int u = 0;
+					if (u++ > 4) {
+						u=0;
+						futurestate = RETRIEVING_THE_LIST_OF_USERS;
+					}
+				}
     			break;
 
             case RETRIEVING_THE_LIST_OF_USERS:
@@ -506,17 +526,20 @@ int main(void) {
 					free(cookiesstr); cookiesstr=NULL;
 				}
                 k=1;
+                {
+					FILE *test;
+                	test = fopen("stats.txt", "w");
+				
                 while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
                     if(k) {
 						ishttpresponseok(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
        				parse_minichat_mess(buf, bytes, &msg, k);
+       				fwrite(buf, bytes, 1, test);
        				k=0;
                 }
-                //wait_time = wait_time_mini; // TODOTODOTODO
-                //futurestate = WATCHING_NEW_MESSAGES;
-        		//state = WAIT;
+                fclose(test); }
         		state = WATCHING_NEW_MESSAGES;
                 break;
 

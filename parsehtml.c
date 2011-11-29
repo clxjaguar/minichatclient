@@ -27,7 +27,13 @@ typedef enum {
 	LOOKING_FOR_MESSAGE,
 	IN_MESSAGE,
 	LOOKING_FOR_USERNAME,
-	IN_USERNAME
+	IN_USERNAME,
+	LOOKING_FOR_STATS,
+	LOOKING_FOR_STATS_BUT_IN_TAG,
+	LOOKING_FOR_USERS,
+	LOOKING_FOR_USERS_IN_A,
+	LOOKING_FOR_USERS_IN_USERNAME
+
 } tstate;
 
 parser_config *config = NULL;
@@ -53,7 +59,7 @@ int parser_loadrules(void){
 
 unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *msg, int reset){
 	unsigned int i = 0;
-	static unsigned int j;
+	static unsigned int j, l;
 	static tstate state;
 	static int nbmessages = 0;
 	//char *ptmp = NULL;
@@ -63,6 +69,11 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 	const char str3[] = "<img src=\"";
 	const char str4[] = "<div class=\"avatarMessage mChatMessage\">";
 	const char str5[] = "</div>";
+	const char str6[] = "<div id=\"mChatStats\" class=\"mChatStats\">";
+	const char str7[] = "<div class=\"mChatStats\" id=\"mChatStats\">";
+	const char str8[] = "<br />";
+	const char str9[] = "<a ";
+
 
 	static unsigned int o = 0;
 	static char buffer[4000]; //TODO: rendre ce truc dynamique
@@ -72,7 +83,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 
 	if (reset) { 
 		state = READY;
-		j=0; 
+		j=0; l=0;
 		o=0;
 		nbmessages = 0;
 		FREE(msg->username);
@@ -102,6 +113,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 		
 		switch(state){
 			case READY:
+				// message ?
 				if (input[i] == str1[j++]) {
 					if (j >= strlen(str1)) { 
 						j=0;
@@ -110,6 +122,18 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 					}
 				}
 				else { j=0; }
+
+				// stats ?
+				if ((input[i] == str6[l])||(input[i] == str7[l])) {
+					if (++l >= strlen(str6)) { 
+						l=0;
+						o=0;
+						state = LOOKING_FOR_STATS; 
+					}
+				}
+				else { l=0; }
+				//{char c[3]; c[0]=input[i];c[1]=0; c[2]=0;if(l) { c[1] = '0'+l; } display_debug(c, i!=0);}
+
 				break;
 				 
 			case IN_MSG_ID:
@@ -234,7 +258,81 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 					}
 				}
 				else { j=0; }
-				break;			 
+				break;
+				
+			case LOOKING_FOR_STATS:
+			case LOOKING_FOR_STATS_BUT_IN_TAG:
+				//{char c[2]; c[1]=0; c[0]=input[i]; display_debug(c, 1); }
+				if (input[i] == '<') { state = LOOKING_FOR_STATS_BUT_IN_TAG; }
+				else if (input[i] == '>') { state = LOOKING_FOR_STATS; }
+				else if (state == LOOKING_FOR_STATS) { buffer[o++] = input[i]; }
+				
+				if (input[i] != str8[l++]) { l=0; }
+				else {
+					if (l >= strlen(str8)) {
+						buffer[o++] = 0;
+						{
+							char *tmp = malloc(o);
+							decode_html_entities_utf8(tmp, buffer);
+							display_statusbar(tmp);
+							free(tmp);
+						}
+						state = LOOKING_FOR_USERS; o=0; l=0;
+						display_nicklist(NULL); // clear nicklist prior to redraw (will be changed)
+					}
+				}
+				if (input[i] != str5[j++]) { j=0; }
+				else {
+					if (j >= strlen(str5)) {
+						buffer[o++] = 0;
+						{
+							char *tmp = malloc(o); o=0;
+							decode_html_entities_utf8(tmp, buffer);
+							display_statusbar(tmp);
+							free(tmp);
+						}
+						state = READY;
+					}
+				}
+				break;
+
+			case LOOKING_FOR_USERS:
+				if (input[i] != str5[j++]) { j=0; }
+				else if (j >= strlen(str5)){
+					j=0; l=0;
+					state = READY;
+				}
+
+				if (input[i] != str9[l++]) { l=0; }
+				else if (l >= strlen(str9)){
+					state = LOOKING_FOR_USERS_IN_A;
+				}
+				break;
+				
+			case LOOKING_FOR_USERS_IN_A:
+				if (input[i] == '>') { state = LOOKING_FOR_USERS_IN_USERNAME; }
+				j=0; l=0;
+				break;
+				
+			case LOOKING_FOR_USERS_IN_USERNAME:
+				if (input[i] == '<') { 
+					buffer[l] = '\0';
+					display_nicklist(buffer);
+					state = LOOKING_FOR_USERS; 
+					j=0; l=0; 
+				}
+				else {
+					buffer[l++] = input[i];
+				}
+				break;
+
+/*
+<span id="mChatUserList">
+<a href="./memberlist.php?mode=viewprofile&amp;u=1264">Mairusu Paua</a>, 
+<a href="./memberlist.php?mode=viewprofile&amp;u=1222">Snake</a>, 
+<a href="./memberlist.php?mode=viewprofile&amp;u=5">cLx</a>
+</span></div>
+ */
 		}
 	}
 	return nbmessages;

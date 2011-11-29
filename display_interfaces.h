@@ -14,6 +14,6 @@ void display_init(void);
 void display_debug(const char *text, int nonewline);
 void display_statusbar(const char*);
 void display_conversation(const char *text);
-void display_nicklist(char *text[], unsigned int nbrofnicks);
+void display_nicklist(char *text);
 void display_end(void);
 char display_waitforchar(const char *msg);
