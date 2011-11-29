@@ -21,84 +21,7 @@
 #include "display_interfaces.h" // prototypes of theses display_* fonctions
 #include "commons.h"            // for nicklist struct and timming value
 #include "strfunctions.h"       // for eventuals transliterations
-
-#define maxrows LINES
-#define maxcols COLS
-
-void destroy_win(WINDOW *lwin){
-	wborder(lwin, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
-	wrefresh(lwin);
-	delwin(lwin);
-}
-
-typedef struct {
-	WINDOW *decoration;
-	WINDOW *content;
-} dwin;
-dwin typing_area, conversation, debug, nicklist;
-
-void create_dwin(dwin *w, int rows, int cols, int startrow, int startcol, const char *title){
-	w->decoration = newwin(               rows,   cols,   startrow,   startcol);
-	w->content    = subwin(w->decoration, rows-2, cols-4, startrow+1, startcol+2);
-	box(w->decoration, 0, 0); // 0, 0 gives default characters
-	if (title) {
-		mvwprintw(w->decoration, 0, (cols-(int)strlen(title)-4), " %s ", title);
-	}
-	wrefresh(w->decoration);
-}
-
-void destrow_dwin(dwin *w){
-	if (w->content)    { destroy_win(w->content); }
-	if (w->decoration) { destroy_win(w->decoration); }
-}
-
-// interfaces (display_)
-
-int DEBUG_HEIGHT   = 7;
-int NICKLIST_WIDTH = 15;
-
-void display_statusbar(const char *text){
-	if (text && text[0]) {
-		attron(A_REVERSE);
-		mvwprintw(stdscr, maxrows-1, 0, " %s ", text);
-		attroff(A_REVERSE);
-	}
-	else {
-		wmove(stdscr, maxrows-1, 0);
-	}
-	clrtoeol();
-	wrefresh(stdscr);
-}
-
-char display_waitforchar(const char *msg){
-	char rep;
-	display_statusbar(msg);
-	rep = (char)getch();
-	display_statusbar(NULL);
-	return rep;
-}
-
-void display_debug(const char *text, int nonewline){
-	if (DEBUG_HEIGHT) {
-		if (!nonewline) { wprintw(debug.content, "\n"); }
-		wprintw(debug.content, "%s", text);
-		wrefresh(debug.content);
-	}
-	else {
-		if (!nonewline) {
-			//display_statusbar(NULL);
-			wmove(stdscr, maxrows-1, 0);
-		}
-		attron(A_REVERSE);
-		wprintw(stdscr, "%s", text);
-		clrtoeol();
-		attroff(A_REVERSE);
-		wrefresh(stdscr);
-	}
-	//TODO: move physical cursor to typing_area.content more cleanly ?
-	wprintw(typing_area.content, " \b");
-	wrefresh(typing_area.content);
-}
+#include "conf.h"               // for nicklist width and debug height
 
 typedef enum {
 	NATIVE_UTF8 = 0,
@@ -149,23 +72,120 @@ const char* transliterate_from_utf8(const char* in){
 	return in;
 }
 
+#define maxrows LINES
+#define maxcols COLS
+
+void destroy_win(WINDOW *lwin){
+	wborder(lwin, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+	wrefresh(lwin);
+	delwin(lwin);
+}
+
+typedef struct {
+	WINDOW *decoration;
+	WINDOW *content;
+} dwin;
+dwin typing_area, conversation, debug, nicklist;
+
+void create_dwin(dwin *w, int rows, int cols, int startrow, int startcol, const char *title){
+	w->decoration = newwin(               rows,   cols,   startrow,   startcol);
+	w->content    = subwin(w->decoration, rows-2, cols-4, startrow+1, startcol+2);
+	box(w->decoration, 0, 0); // 0, 0 gives default characters
+	if (title) {
+		mvwprintw(w->decoration, 0, (cols-(int)strlen(title)-4), " %s ", title);
+	}
+	wrefresh(w->decoration);
+}
+
+void destrow_dwin(dwin *w){
+	if (w->content)    { destroy_win(w->content); }
+	if (w->decoration) { destroy_win(w->decoration); }
+}
+
+// interfaces (display_)
+
+int debug_height   = 7;
+int nicklist_width = 15;
+
+void display_statusbar(const char *text){
+	if (text && text[0]) {
+		attron(A_REVERSE);
+		mvwprintw(stdscr, maxrows-1, 0, " %s ", transliterate_from_utf8(text));
+		attroff(A_REVERSE);
+	}
+	else {
+		wmove(stdscr, maxrows-1, 0);
+	}
+	clrtoeol();
+	wrefresh(stdscr);
+}
+
+char display_waitforchar(const char *msg){
+	char rep;
+	display_statusbar(transliterate_from_utf8(msg));
+	rep = (char)getch();
+	display_statusbar(NULL);
+	return rep;
+}
+
+void display_debug(const char *text, int nonewline){
+	if (!COLS) {
+		if (!nonewline) { printf("\n"); }
+		printf("%s", transliterate_from_utf8(text));
+		return;
+	}
+	
+	if (debug_height) {
+		if (!nonewline) { wprintw(debug.content, "\n"); }
+		wprintw(debug.content, "%s", transliterate_from_utf8(text));
+		wrefresh(debug.content);
+	}
+	else {
+		if (!nonewline) {
+			//display_statusbar(NULL);
+			wmove(stdscr, maxrows-1, 0);
+		}
+		attron(A_REVERSE);
+		wprintw(stdscr, "%s", transliterate_from_utf8(text));
+		clrtoeol();
+		attroff(A_REVERSE);
+		wrefresh(stdscr);
+	}
+	//TODO: move physical cursor to typing_area.content more cleanly ?
+	wprintw(typing_area.content, " \b");
+	wrefresh(typing_area.content);
+}
+
 void display_conversation(const char *text){
 	wprintw(conversation.content, "\n%s", transliterate_from_utf8(text));
 	wrefresh(conversation.content);
 }
 
-void display_nicklist(char *text[], unsigned int nbrofnicks){ // ce truc va changer
-	unsigned int i;
-	wclear(nicklist.content); // TODO: virer ça car ça redraw le terminal entier
-
-	for (i=0; i<nbrofnicks; i++){
-		mvwprintw(nicklist.content, (int)i, 0, "%s", text[i]);
+void display_nicklist(char *text){ // ce truc va changer pour quelque chose de plus évolué
+	static signed int i;
+	char *p = NULL;
+	
+	if (!text) { //reset !
+		// il ne faut pas utiliser wclear(nicklist.content) car ça redraw le terminal entier
+		p = malloc(nicklist_width-4+1);
+		memset(p, ' ', nicklist_width-4);
+		//create_dwin(&nicklist, maxrows-debug_height-4-1, nicklist_width, debug_height, maxcols-nicklist_width, "nicklist");
+		//void create_dwin(dwin *w, int rows, int cols, int startrow, int startcol, const char *title){
+		//  w->content    = subwin(w->decoration, rows-2, cols-4, startrow+1, startcol+2);
+		for(i=0; i<maxrows-debug_height-4-1-2; i++){
+			mvwprintw(nicklist.content, (int)i, 0, "%s", p);
+		}
+		free(p); p = NULL; i=0;
 	}
+	else {
+		mvwprintw(nicklist.content, (int)i++, 0, "%s", text);
+	}
+	
 	wrefresh(nicklist.content);
 }
 
 void display_end(void){
-	if (DEBUG_HEIGHT) destrow_dwin(&debug);
+	if (debug_height) destrow_dwin(&debug);
 	destrow_dwin(&typing_area);
 	destrow_dwin(&conversation);
 	destrow_dwin(&nicklist);
@@ -231,13 +251,13 @@ char* display_driver(void){
 				}
 
 				touchwin(typing_area.decoration);
-				if (DEBUG_HEIGHT) touchwin(debug.decoration);
+				if (debug_height) touchwin(debug.decoration);
 				touchwin(conversation.decoration);
 				touchwin(nicklist.decoration);
 
 				wrefresh(typing_area.decoration);
 				wrefresh(conversation.decoration);
-				if (DEBUG_HEIGHT) wrefresh(debug.decoration);
+				if (debug_height) wrefresh(debug.decoration);
 				wrefresh(nicklist.decoration);
 				break;
 
@@ -319,6 +339,10 @@ void display_init(void){
 	transliterating = CP850;
 #endif
 #endif
+
+	debug_height   = read_conf_int("debug_height",   debug_height);
+	nicklist_width = read_conf_int("nicklist_width", nicklist_width);
+
 	initscr(); // start curses mode
 	cbreak();  // line input buffering disabled ("raw" mode)
 	//nocbreak(); // ("cooked" mode)
@@ -327,11 +351,11 @@ void display_init(void){
 	noecho();  // curses call set to no echoing
 	refresh(); // m'a pas mal fait chier quand il était pas là, celui là.
 	//getmaxyx(stdscr, maxrows, maxcols); // macro returning terminal's size
-	create_dwin(&conversation, maxrows-DEBUG_HEIGHT-4-1, maxcols-NICKLIST_WIDTH, DEBUG_HEIGHT, 0, "chat log");
-	create_dwin(&nicklist, maxrows-DEBUG_HEIGHT-4-1, NICKLIST_WIDTH, DEBUG_HEIGHT, maxcols-NICKLIST_WIDTH, "nicklist");
+	create_dwin(&conversation, maxrows-debug_height-4-1, maxcols-nicklist_width, debug_height, 0, "chat log");
+	create_dwin(&nicklist, maxrows-debug_height-4-1, nicklist_width, debug_height, maxcols-nicklist_width, "nicklist");
 	create_dwin(&typing_area, 4, maxcols, maxrows-5, 0, "typing area");
-	if (DEBUG_HEIGHT) {
-		create_dwin(&debug, DEBUG_HEIGHT, maxcols, 0, 0, "minichatclient internals");
+	if (debug_height) {
+		create_dwin(&debug, debug_height, maxcols, 0, 0, "minichatclient internals");
 		scrollok(debug.content, TRUE);
 		scrollok(conversation.content, TRUE);
 	}

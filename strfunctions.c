@@ -599,6 +599,7 @@ unsigned char transliterate_ucs_to_iso88591(unsigned int ucs_codepoint){
 	else if (ucs_codepoint == 0x2013) { return '-'; } 
 	else if (ucs_codepoint == 0x2014) { return '-'; } 
 	else if (ucs_codepoint == 0x02DC) { return '~'; } 
+	else if (ucs_codepoint == 0x2502) { return '|'; }
 	
 	else if (ucs_codepoint >= 0x00A0 && ucs_codepoint <= 0x00FF) { 
 		return (unsigned char)ucs_codepoint;
