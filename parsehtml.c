@@ -291,6 +291,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 							display_statusbar(tmp);
 							free(tmp);
 						}
+						display_nicklist(NULL); // ok, if we don't do that the nicklist will never be showed empty when is no more users in the chat
 						state = READY;
 					}
 				}
