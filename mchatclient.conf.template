@@ -3,6 +3,9 @@
 ## http://minichatclient.sourceforge.net/ ##
 ############################################
 
+# caution: many of these parameters and 
+# all key names are case sensitive !
+
 # Server configuration
 host		rmcgirr83.org
 port		80
@@ -26,6 +29,6 @@ wait_time_awake	2
 # Activate the niki's html parser or not ?
 read_parser_rules	1
 
-# caution: many of these parameters and all key names are case sensitive !
-
-
+# ncurses interface options, use 0 to disable panel
+debug_height    9
+nicklist_width  20
