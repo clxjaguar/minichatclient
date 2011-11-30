@@ -164,6 +164,7 @@ void display_conversation(const char *text){
 void display_nicklist(char *text){ // ce truc va changer pour quelque chose de plus évolué
 	static signed int i;
 	char *p = NULL;
+	if (!nicklist_width) return;
 	
 	if (!text) { //reset !
 		// il ne faut pas utiliser wclear(nicklist.content) car ça redraw le terminal entier
@@ -178,7 +179,7 @@ void display_nicklist(char *text){ // ce truc va changer pour quelque chose de p
 		free(p); p = NULL; i=0;
 	}
 	else {
-		mvwprintw(nicklist.content, (int)i++, 0, "%s", text);
+		mvwprintw(nicklist.content, (int)i++, 0, "%s", transliterate_from_utf8(text));
 	}
 	
 	wrefresh(nicklist.content);
@@ -188,7 +189,7 @@ void display_end(void){
 	if (debug_height) destrow_dwin(&debug);
 	destrow_dwin(&typing_area);
 	destrow_dwin(&conversation);
-	destrow_dwin(&nicklist);
+	if (nicklist_width) destrow_dwin(&nicklist);
 	endwin(); // end curses mode
 }
 
@@ -253,12 +254,12 @@ char* display_driver(void){
 				touchwin(typing_area.decoration);
 				if (debug_height) touchwin(debug.decoration);
 				touchwin(conversation.decoration);
-				touchwin(nicklist.decoration);
+				if (nicklist_width) touchwin(nicklist.decoration);
 
 				wrefresh(typing_area.decoration);
 				wrefresh(conversation.decoration);
-				if (debug_height) wrefresh(debug.decoration);
-				wrefresh(nicklist.decoration);
+				if (debug_height)   wrefresh(debug.decoration);
+				if (nicklist_width) wrefresh(nicklist.decoration);
 				break;
 
 			default: // any other character?
@@ -342,6 +343,10 @@ void display_init(void){
 
 	debug_height   = read_conf_int("debug_height",   debug_height);
 	nicklist_width = read_conf_int("nicklist_width", nicklist_width);
+	
+	if (debug_height < 3) { debug_height = 0; } // pour niki :P
+	if (nicklist_width < 5) { nicklist_width = 0; }
+
 
 	initscr(); // start curses mode
 	cbreak();  // line input buffering disabled ("raw" mode)
@@ -352,18 +357,20 @@ void display_init(void){
 	refresh(); // m'a pas mal fait chier quand il était pas là, celui là.
 	//getmaxyx(stdscr, maxrows, maxcols); // macro returning terminal's size
 	create_dwin(&conversation, maxrows-debug_height-4-1, maxcols-nicklist_width, debug_height, 0, "chat log");
-	create_dwin(&nicklist, maxrows-debug_height-4-1, nicklist_width, debug_height, maxcols-nicklist_width, "nicklist");
+	scrollok(conversation.content, TRUE);
+	if (nicklist_width){
+		create_dwin(&nicklist, maxrows-debug_height-4-1, nicklist_width, debug_height, maxcols-nicklist_width, "nicklist");
+	}
 	create_dwin(&typing_area, 4, maxcols, maxrows-5, 0, "typing area");
 	if (debug_height) {
 		create_dwin(&debug, debug_height, maxcols, 0, 0, "minichatclient internals");
 		scrollok(debug.content, TRUE);
-		scrollok(conversation.content, TRUE);
 	}
 	meta(typing_area.content, TRUE);
 	wtimeout(typing_area.content, WAITING_TIME_GRANOLOSITY);
 	if (p){
-	display_debug("Curses interface initialyzed with locale: ", 0);
-	display_debug(p, 1);
+		display_debug("Curses interface initialyzed with locale: ", 0);
+		display_debug(p, 1);
 	}
 	display_debug("Recognized mode: ", 0);
 	switch (transliterating) {
