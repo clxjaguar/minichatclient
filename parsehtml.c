@@ -33,7 +33,6 @@ typedef enum {
 	LOOKING_FOR_USERS,
 	LOOKING_FOR_USERS_IN_A,
 	LOOKING_FOR_USERS_IN_USERNAME
-
 } tstate;
 
 parser_config *config = NULL;
@@ -62,8 +61,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 	static unsigned int j, l;
 	static tstate state;
 	static int nbmessages = 0;
-	//char *ptmp = NULL;
-		
+
 	const char str1[] = "<div id=\"mess";
 	const char str2[] = "<a href=\".";
 	const char str3[] = "<img src=\"";
@@ -101,7 +99,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 	if (o>=sizeof(buffer)) { o--; display_debug("Buffer full when parsing responses !", 0); }
 
 	for (i=0; i<bytes; i++){
-#ifdef DEBUG	  
+#ifdef DEBUG
 		if (state != oldstate) {
 			fprintf(stderr, "[S%u=>S%u]", oldstate, state); 
 			oldstate = state;
@@ -110,7 +108,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 #endif
 		if (input[i] == '\r') { continue; }
 		if (input[i] == '\n') { continue; }
-		
+
 		switch(state){
 			case READY:
 				// message ?
@@ -135,7 +133,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 				//{char c[3]; c[0]=input[i];c[1]=0; c[2]=0;if(l) { c[1] = '0'+l; } display_debug(c, i!=0);}
 
 				break;
-				 
+
 			case IN_MSG_ID:
 				if (input[i] == '\"') {
 					msg->msgid[j] = '\0'; j = 0;
@@ -146,7 +144,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 					msg->msgid[j++] = input[i];
 				}
 				break;
-				
+
 			case LOOKING_FOR_USERICON_URL:
 				if (input[i] == str3[j++]) {
 					if (j >= strlen(str3)) { 
@@ -157,7 +155,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 				}
 				else { j=0; }
 				break;
-			
+
 			case IN_USERICON_URL:
 				if (input[i] == '\"'){
 					buffer[o] = '\0';
@@ -171,18 +169,18 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 					buffer[o++] = input[i];
 				}
 				break;
-				 
+
 			case LOOKING_FOR_PROFILE_URL:
 				if (input[i] == str2[j++]) {
-					if (j >= strlen(str2)) { 
-						j=0; 
+					if (j >= strlen(str2)) {
+						j=0;
 						o=0; buffer[o++] = '.';
-						state = IN_PROFILE_URL; 
+						state = IN_PROFILE_URL;
 					}
 				}
 				else { j=0; }
 				break;
-				 
+
 			case IN_PROFILE_URL:
 				if (input[i] == '"') {
 					buffer[o] = '\0';
@@ -196,14 +194,14 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 					buffer[o++] = input[i];
 				}
 				break;
-				
+
 			case LOOKING_FOR_USERNAME:
 				if (input[i] == '>'){
 					o=0;
 					state = IN_USERNAME;
 				}
 				break;
-				 
+
 			case IN_USERNAME:
 				if (input[i] == '<'){
 					buffer[o] = '\0';
@@ -218,7 +216,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 					buffer[o++] = input[i];
 				}
 				break;
-								 
+
 			case LOOKING_FOR_MESSAGE:
 				if (input[i] == str4[j++]) { 
 					if (j >= strlen(str4)) { 
@@ -229,7 +227,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 				}
 				else { j=0; }
 				break;
-				
+
 			case IN_MESSAGE:
 				buffer[o++] = input[i];
 				if (input[i] == str5[j++]) {
@@ -244,7 +242,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 							if (config != NULL){
 								buffer2 = parse_html_in_message(buffer, config);
 							}
-							
+
 							if (buffer2 != NULL){
 								decode_html_entities_utf8(msg->message, buffer2); //strcpy(msg->message, buffer2);
 								free(buffer2);
@@ -259,14 +257,14 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 				}
 				else { j=0; }
 				break;
-				
+
 			case LOOKING_FOR_STATS:
 			case LOOKING_FOR_STATS_BUT_IN_TAG:
 				//{char c[2]; c[1]=0; c[0]=input[i]; display_debug(c, 1); }
 				if (input[i] == '<') { state = LOOKING_FOR_STATS_BUT_IN_TAG; }
 				else if (input[i] == '>') { state = LOOKING_FOR_STATS; }
 				else if (state == LOOKING_FOR_STATS) { buffer[o++] = input[i]; }
-				
+
 				if (input[i] != str8[l++]) { l=0; }
 				else {
 					if (l >= strlen(str8)) {
@@ -279,6 +277,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 						}
 						state = LOOKING_FOR_USERS; o=0; l=0;
 						display_nicklist(NULL); // clear nicklist prior to redraw (will be changed)
+
 					}
 				}
 				if (input[i] != str5[j++]) { j=0; }
@@ -309,18 +308,18 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 					state = LOOKING_FOR_USERS_IN_A;
 				}
 				break;
-				
+
 			case LOOKING_FOR_USERS_IN_A:
 				if (input[i] == '>') { state = LOOKING_FOR_USERS_IN_USERNAME; }
 				j=0; l=0;
 				break;
-				
+
 			case LOOKING_FOR_USERS_IN_USERNAME:
-				if (input[i] == '<') { 
+				if (input[i] == '<') {
 					buffer[l] = '\0';
 					display_nicklist(buffer);
-					state = LOOKING_FOR_USERS; 
-					j=0; l=0; 
+					state = LOOKING_FOR_USERS;
+					j=0; l=0;
 				}
 				else {
 					buffer[l++] = input[i];
