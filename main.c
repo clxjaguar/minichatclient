@@ -110,7 +110,7 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
     free(p); p = NULL;
 
 	// and put it in the log file    
-    //put_timestamp(f); fprintf(f, "<%s> %s\r\n", username, message); fflush(f); TODO
+    put_timestamp(f); fprintf(f, "<%s> %s\r\n", username, message); fflush(f); //TODO?
     
     // gere si la user icon est sur le serveur (avec une adresse relative ./)
     // (ne pas oublier d'alouer pour "http://", ":12345" et le \0 de fin de chaine)
