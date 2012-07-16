@@ -1,5 +1,5 @@
 sudo apt-get install subversion ncurses-dev libncursesw5-dev make
-svn co https://minichatclient.svn.sourceforge.net/svnroot/minichatclient minichatclient
+svn checkout https://minichatclient.svn.sourceforge.net/svnroot/minichatclient minichatclient
 cd minichatclient
 make
 ./mchatclient
