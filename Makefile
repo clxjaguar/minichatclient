@@ -91,13 +91,13 @@ love:
 	@echo "... not war ?"
 
 ### Dependencies
-conf.o: conf.c conf.h display_interfaces.h
-parsehtml.o: parsehtml.c parsehtml.h entities.h parser.h clist.h display_interfaces.h
-cookies.o: cookies.c cookies.h display_interfaces.h
-network.o: network.c display_interfaces.h
-main.o: main.c conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h
-gotcurses.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
-gottext.o: gottext.c display_interfaces.h commons.h
+conf.c: conf.h display_interfaces.h
+parsehtml.c: parsehtml.h entities.h parser.h clist.h display_interfaces.h
+cookies.c: cookies.h display_interfaces.h
+network.c: display_interfaces.h
+main.c: conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h
+gotcurses.c: display_interfaces.h commons.h strfunctions.h
+gottext.c: display_interfaces.h commons.h
 
 %.o: %.c
 	@echo --- Compiling $@
