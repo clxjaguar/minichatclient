@@ -30,5 +30,8 @@ wait_time_awake	2
 read_parser_rules	1
 
 # ncurses interface options, use 0 to disable panel
-debug_height    9
+debug_height    7
 nicklist_width  20
+
+# embedded mini-IRC server's port (if compiled), 0 disable it
+irc_port        6667
