@@ -46,6 +46,7 @@
 #include "commons.h"
 #include "display_interfaces.h"
 #include "strfunctions.h"
+#include "mccirc.h"
 
 #define LOGIN_PAGE "ucp.php?mode=login"
 #define MCHAT_PAGE "mchat.php"
@@ -69,6 +70,7 @@ tstate state;
 FILE *f;
 char *host = NULL; unsigned int port = 0;
 char *path = NULL;
+mccirc *irc = NULL;
 
 void put_timestamp(FILE *f){
     struct tm *ptm;	
@@ -99,9 +101,21 @@ void put_timestamp(FILE *f){
 }
 
 // ces fonctions sont appelées en retour par parsehtml.c
+void main_clear_nicks() {
+	display_nicklist(NULL);
+	mccirc_clear_nicklist(irc);
+}
+
+void main_display_nicklist(char *buffer) {
+	display_nicklist(buffer);
+	mccirc_add_nick(irc, buffer);
+}
+
 void minichat_message(char* username, char* message, char *usericonurl, char *userprofileurl){
     char *p = NULL;
-        
+    
+    mccirc_chatserver_message(irc, username, message);
+    
     // display the message
     //put_timestamp(stdout);
     p = malloc(strlen(username)+strlen(message)+4); // "<> \0"
@@ -132,7 +146,8 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
 }
 
 void minichat_users_at_this_moment(char *string){
-    printf("%s\n", string);
+    //printf("%s\n", string);
+    mccirc_topic(irc, string);
 }
 
 // permet de parser un fichier contenant le code html pour tester le parsage 
@@ -203,7 +218,7 @@ int main(void) {
 	memset(&cookies[0], 0, sizeof(cookies));
 	memset(&msg,        0, sizeof(msg));
 
-	display_init();
+	display_init();	
 /*
 	/// start debug todo remove that section
 	{
@@ -272,7 +287,22 @@ int main(void) {
 			display_conversation("Warning: Unable to load the parser rules. They will not be used.");
 		}
 	}
-	
+	              
+	char *username = NULL;
+	unsigned int irc_port = 0;
+	username = read_conf_string("username", username, 0);
+	irc_port = read_conf_int   ("irc_port", 0);
+	if (username) {
+		if (irc_port) {
+			irc = mccirc_new();
+			//TODO: francefurs name should be configurable
+			mccirc_init(irc, username, "minichatclient.fr", "#francefurs", 
+				NULL, irc_port);
+		}
+		free(username);
+	}
+                  
+
 	{unsigned int i;
 	for (i=0; i<1500; i+=WAITING_TIME_GRANOLOSITY){
 		display_driver();
@@ -290,6 +320,7 @@ int main(void) {
 					put_timestamp(f); 
 					fprintf(f, "Unable to connect to the server anymore !\r\n"); 
 					fflush(f);
+					mccirc_chatserver_error(irc);
                 }
                 wait_time = 10 * (1000/WAITING_TIME_GRANOLOSITY);
                 futurestate = state;
@@ -300,6 +331,7 @@ int main(void) {
 					put_timestamp(f);
                     fprintf(f, "The server seem to be back now !\r\n");
                     fflush(f);
+                    mccirc_chatserver_resume(irc);
                     if (nberr >= 30) { // 5' ? reconnect from beginning.
                         state = LOADING_LOGIN_PAGE;
                     }
@@ -637,7 +669,9 @@ int main(void) {
 				}
 
 				// timebase and checks for keyboard inputs. eg, like "Sleep(WAITING_TIME_GRANOLOSITY);"
-                outgoingmsg = display_driver(); // please don't free(), it will happen it the next time.
+                outgoingmsg = display_driver(); // Rule 42: rule for ougoingmsg: the driver MUST keep a copy of a buffer. that buffer is the driver's responsibility. main.c does not need the buffer when it calls the same method again next time. So the driver is then allowed to change/free/keep it.
+                if (!outgoingmsg)
+					outgoingmsg = mccirc_check_message(irc);
                 if (outgoingmsg) {
 					state = POSTING_A_MESSAGE;
 				}
@@ -653,5 +687,6 @@ int main(void) {
 	parser_freerules();
     ws_cleanup();
     display_end();
+    mccirc_free(irc);
 	return 0;
 }
