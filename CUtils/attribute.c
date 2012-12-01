@@ -1,9 +1,9 @@
-/*
+/**
   Name:        attribute.c
   Copyright:   niki (cc-by-nc) 2011
   Author:      niki
   Date:        2011-06-21
-  Description: 
+  Description:
 */
 
 #include <stdlib.h>
@@ -12,28 +12,40 @@
 #include "clist.h"
 #include "attribute.h"
 
-void free_attribute_node(clist_node *node);
+void attribute_node_free(clist_node *node);
 
+// Old
 attribute *new_attribute() {
+	return attribute_new();
+}
+clist_node *new_attribute_node() {
+	return attribute_node_new();
+}
+void free_attribute(attribute *att) {
+	attribute_free(att);
+}
+//
+
+attribute *attribute_new() {
 	attribute *att;
-	
-	att = (attribute *)malloc(sizeof(attribute));
+
+	att = malloc(sizeof(attribute));
 	att->name = NULL;
 	att->value = NULL;
-	
+
 	return att;
 }
 
-clist_node *new_attribute_node() {
+clist_node *attribute_node_new() {
 	clist_node *node;
-	
-	node = new_clist_node();
-	node->free_node = free_attribute_node;
-	
+
+	node = clist_node_new();
+	node->free_data = attribute_free;
+
 	return node;
 }
 
-void free_attribute(attribute *att) {
+void attribute_free(attribute *att) {
 	if (att->name != NULL) {
 		free (att->name);
 	}
@@ -43,25 +55,14 @@ void free_attribute(attribute *att) {
 	free(att);
 }
 
-void free_attribute_node(clist_node *node) {
-	attribute *att;
-	
-	if (node->data != NULL) {
-		att = (attribute *)node->data;
-		free_attribute(att);
-	}
-	
-	free(node);
-}
-
 clist_node *attribute_add_to_clist(clist *list, attribute *att) {
 	clist_node *node;
-	
-	node = new_attribute_node();
+
+	node = attribute_node_new();
 	node->data = att;
-	node->free_node = free_attribute_node;
+	node->free_data = attribute_free;
 	clist_add(list, node);
-	
+
 	return node;
 }
 
