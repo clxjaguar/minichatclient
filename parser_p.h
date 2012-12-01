@@ -1,7 +1,7 @@
 #ifndef PARSER_P_H
 #define PARSER_P_H
 
-#include "ini.h" // because we want to use attribute's
+#include "CUtils/ini.h" // because we want to use attribute's
 
 #define bool int
 #define true 1
@@ -156,13 +156,12 @@ void process_tag(parser_message *part, parser_rule *rul, void *argument);
 // Operations to allocate/free/clone clist_node's.
 
 clist_node *clone_parser_message_node(clist_node *node);
-void free_rule_node(clist_node *node);
-void free_group_node(clist_node *node);
+void free_rule(parser_rule *rule);
+void free_group(parser_config_line *group);
 void free_parser_config(parser_config *pconfig);
 clist_node *new_rule_node(parser_rule *rrule);
 clist_node *new_string_node(char *string);
 clist_node *new_parser_config_line_node(parser_config_line *group);
 void free_parser_message(parser_message* message);
-void free_parser_message_node(clist_node* node);
 
 #endif

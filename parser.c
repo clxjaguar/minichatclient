@@ -8,11 +8,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "cstring.h"
-#include "clist.h"
+#include "CUtils/cstring.h"
+#include "CUtils/clist.h"
 #include "parser.h"
 #include "parser_p.h"
-#include "ini.h"
+#include "CUtils/ini.h"
 
 // Locked... Thanks...
 
@@ -344,7 +344,7 @@ clist_node *create_part(char *data, bool text) {
 	}
 	
 	node = new_clist_node();
-	node->free_node = free_parser_message_node;
+	node->free_content = free_parser_message;
 	node->data = part;
 	
 	return node;
@@ -417,7 +417,7 @@ void associate_links(clist *list) {
 		switch (part->type) {
 		case TYPE_OPENING_TAG:
 			node = new_clist_node();
-			node->free_node = NULL; // we don't want to free() the data!
+			node->free_content = NULL; // we don't want to free() the data!
 			node->data = part;
 			clist_add(parts_stack, node);
 			break;
@@ -789,15 +789,12 @@ clist_node *clone_parser_message_node(clist_node *node) {
 	}
 
 	new_node->data = new_message;
-	new_node->free_node = node->free_node;
+	new_node->free_content = node->free_content;
 	return new_node;
 }
 
-void free_rule_node(clist_node *node) {
-	parser_rule *rul;
-	
-	if (node->data != NULL) {
-		rul = (parser_rule *)node->data;
+void free_rule(parser_rule *rul) {
+	if (rul != NULL) {
 		if (rul->tag != NULL) {
 			free(rul->tag);
 		}
@@ -812,15 +809,10 @@ void free_rule_node(clist_node *node) {
 		}
 		free(rul);
 	}
-	
-	free(node);
 }
 
-void free_group_node(clist_node *node) {
-	parser_config_line *group;
-	
-	if (node->data != NULL) {
-		group = (parser_config_line *)node->data;
+void free_group(parser_config_line *group) {
+	if (group != NULL) {
 		if (group->context != NULL) {
 			free(group->context);
 		}
@@ -829,7 +821,6 @@ void free_group_node(clist_node *node) {
 		}
 		free(group);
 	}
-	free(node);
 }
 
 void free_parser_config(parser_config *pconfig) {
@@ -850,7 +841,7 @@ clist_node *new_rule_node(parser_rule *rrule) {
 	
 	node = new_clist_node();
 	node->data = rrule;
-	node->free_node = free_rule_node;
+	node->free_content = free_rule;
 	
 	return node;
 }
@@ -859,7 +850,7 @@ clist_node *new_string_node(char *string) {
 	clist_node *context_node;
 	
 	context_node = new_clist_node();
-	context_node->free_node = free_clist_node_data;
+	context_node->free_content = free;
 	context_node->data = string;
 
 	return context_node;
@@ -870,7 +861,7 @@ clist_node *new_parser_config_line_node(parser_config_line *group) {
 	
 	node = new_clist_node();
 	node->data = group;
-	node->free_node = free_group_node;
+	node->free_content = free_group;
 	
 	return node;
 }
@@ -890,11 +881,3 @@ void free_parser_message(parser_message* message) {
 	
 	free(message);
 }
-
-void free_parser_message_node(clist_node* node) {
-	if(node->data != NULL) {
-		free_parser_message((parser_message *)node->data);
-	}
-	free(node);
-}
-
