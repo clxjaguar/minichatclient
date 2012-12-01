@@ -73,15 +73,15 @@ char *path = NULL;
 mccirc *irc = NULL;
 
 void put_timestamp(FILE *f){
-    struct tm *ptm;	
-    time_t lt;		
+	struct tm *ptm;
+	time_t lt;
 
-    lt = time(NULL);
-    ptm = localtime(&lt);
-    
-    if (f == NULL) { return; }
+	lt = time(NULL);
+	ptm = localtime(&lt);
 
-    if (state == GET_THE_BACKLOG){
+	if (f == NULL) { return; }
+
+	if (state == GET_THE_BACKLOG){
 		if (f != stdout) {
 			fprintf(f, "[    BACK-LOG    ] "); //4+1+2+1+2+1+2+1+2 = 16
 		}
@@ -112,37 +112,32 @@ void main_display_nicklist(char *buffer) {
 }
 
 void minichat_message(char* username, char* message, char *usericonurl, char *userprofileurl){
-    char *p = NULL;
-    
-    mccirc_chatserver_message(irc, username, message);
-    
-    // display the message
-    //put_timestamp(stdout);
-    p = malloc(strlen(username)+strlen(message)+4); // "<> \0"
-    strcpy(p, "<"); strcat(p, username); strcat(p, "> "); strcat(p, message);
-    display_conversation(p);
-    free(p); p = NULL;
+	char *p = NULL;
 
-	// and put it in the log file    
-    put_timestamp(f); fprintf(f, "<%s> %s\r\n", username, message); fflush(f); //TODO?
-    
-    // gere si la user icon est sur le serveur (avec une adresse relative ./)
-    // (ne pas oublier d'alouer pour "http://", ":12345" et le \0 de fin de chaine)
-    if (usericonurl[0] == '.' && usericonurl[1] == '/') {
-        //p = malloc(strlen(host)+strlen(path)+strlen(usericonurl)+20);
-        //sprintf(p, "http://%s:%d%s%s", host, port, path, &usericonurl[2]);
-        //usericonurl = p;
-    }
+	mccirc_chatserver_message(irc, username, message);
 
-    
-    //fprintf(stderr, "[icon url    = %s ]\n\n", usericonurl);
-    
-    //fprintf(stderr, "[profile url = http://"HOST""PATH"%s ]\n", &userprofileurl[2]);
-	userprofileurl[0] = userprofileurl[0]; // dont show a warning message for unused variable...
-    
-    if (p) { free(p); p = NULL; } 
+	// display the message
+	//put_timestamp(stdout);
+	p = malloc(strlen(username)+strlen(message)+4); // "<> \0"
+	strcpy(p, "<"); strcat(p, username); strcat(p, "> "); strcat(p, message);
+	display_conversation(p);
+	free(p); p = NULL;
 
+	// and put it in the log file
+	put_timestamp(f); fprintf(f, "<%s> %s\r\n", username, message); fflush(f); //TODO?
 
+	// gere si la user icon est sur le serveur (avec une adresse relative ./)
+	// (ne pas oublier d'alouer pour "http://", ":12345" et le \0 de fin de chaine)
+	if (usericonurl[0] == '.' && usericonurl[1] == '/') {
+		//p = malloc(strlen(host)+strlen(path)+strlen(usericonurl)+20);
+		//sprintf(p, "http://%s:%d%s%s", host, port, path, &usericonurl[2]);
+		//usericonurl = p;
+	}
+	//fprintf(stderr, "[icon url    = %s ]\n\n", usericonurl);
+	//fprintf(stderr, "[profile url = http://"HOST""PATH"%s ]\n", &userprofileurl[2]);
+	if(userprofileurl){} // dont show a warning message for unused variable...
+
+	if (p) { free(p); p = NULL; }
 }
 
 void minichat_users_at_this_moment(char *string){
