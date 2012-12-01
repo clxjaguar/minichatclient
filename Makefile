@@ -1,172 +1,112 @@
-################################
-#### MINICHATCLIENT MAKEFILE ###
-################################
+### If DEBUG is 1, we will check against all possible warnings.
+### I.E.: "make all DEBUG=1"
+###
+### If CROSS is x86, we will cross-compile to target x86 (from AMD64)
+### I.E.: "make all CROSS=x86"
+### 
+### If IRC is 1, we will allow the creation of an IRC server if defined in
+### the configuration file
+### I.E.: "make all IRC=1"
+### 
+### If OUT is curses,  we will use ISO curses
+### If OUT is cursesw, we will use UTF-8 cursesw (default)
+### If OUT is text,    we will use pure text mode -- stdin/stdout/stderr
+### If OUT is null,    we will use a dummy output (i.e., no output)
+### I.E.: "make all OUT=text"
 
-COMPILER = gcc
+### Special code for enabling/disabling IRC server builtin support
+ifeq ($(IRC), 1)
+	CIrc=mccirc.c CIrc/libcirc.c
+else
+	CIrc=mccirc_fake.c
+endif
+###
 
-CCFLAGS = -Wall -Wextra -fshort-enums
+### Special code for interface mode (ncurses(w) or pure text)
+ifeq ($(OUT), curses)
+	LDFLAGS += -lncurses
+	IFACE=gotcurses.c
+else ifeq ($(OUT), text)
+	IFACE=gottext.c
+else ifeq ($(OUT), null)
+	IFACE=gotnull.c
+else
+	LDFLAGS += -lncursesw
+	CFLAGS += -D_X_OPEN_SOURCE_EXTENDED
+	IFACE=gotcurses.c
+endif
+###
+
+# Executable name, main source file, sources files
+EXECUTABLE=mchatclient
+MSOURCES=main.c
+SOURCES=conf.c parsehtml.c cookies.c entities.c network.c parser.c strfunctions.c CUtils/libcutils.c $(IFACE) $(CIrc)
+TEST_SOURCES=cookies-test.c iface-test.c parser-test.c
+###
+
+### Special code for cross compiling x86 from AMD64
+ifeq ($(CROSS), x86)
+	EXECUTABLE:=$(EXECUTABLE).x86
+	ARCHFLAG="-m32"
+endif
+###
+
+### CFLAGS and DEBUG
+CFLAGS += -Wall -Wextra -fshort-enums
 
 ifeq ($(DEBUG), 1)
-	#echo "*** DEBUG MODE ACTIVATED, with plenty of -W* arguments!"
-	override CCFLAGS = -O -fshort-enums -Wall -Wextra -Wformat -Winit-self -Wmissing-include-dirs -Wparentheses -Wswitch-default -Wswitch-enum -Wunused-parameter -Wuninitialized -Wundef -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wwrite-strings -Wconversion
+	CFLAGS += -g -ggdb -O0 -Wformat -Winit-self -Wmissing-include-dirs -Wparentheses -Wswitch-default -Wswitch-enum -Wunused-parameter -Wuninitialized -Wundef -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wwrite-strings -Wconversion
 endif
+###
 
-#-Wdouble-promotion
+### inferred vars
+MOBJECTS=$(MSOURCES:.c=.o)
+OBJECTS=$(SOURCES:.c=.o)
+TEST_OBJECTS=$(TEST_SOURCES:.c=.o)
+TEST_EXECUTABLES=$(TEST_SOURCES:.c=)
+###
 
-.PHONY: all rebuild clean mrproper mrpropre love mchatclient-iso mchatclient-text
+### Active targets
 
-all: mchatclient
+# The active targets are not actual files
+.PHONY : all clean mrproper mrpropre rebuild test install love
 
-rebuild: mrproper all
-
-mchatclient: main.o strfunctions.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o
-	@echo "*** Linking all main objects files (ncurses) ..."
-	@gcc -lncursesw strfunctions.o cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses.o -o mchatclient
-	@strip mchatclient
-
-mchatclient-iso: main.o strfunctions.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-iso.o
-	@echo "*** Linking all main objects files (ncurses, ISO only compatibility) ..."
-	@gcc -lncurses strfunctions.o cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gotcurses-iso.o -o mchatclient
-	@strip mchatclient
-
-mchatclient-text: main.o strfunctions.o cookies.o network.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o
-	@echo "*** Linking all main objects files (text backend) ..."
-	@gcc strfunctions.o cookies.o network.o main.o conf.o parsehtml.o entities.o parser.o clist.o cstring.o ini.o attribute.o gottext.o -o mchatclient-text
-	@strip mchatclient-text
-
-#### USED OBJECTS ####
-
-main.o: main.c conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h
-	@echo "*** Compiling main.o"
-	@${COMPILER} ${CCFLAGS} -c main.c -o main.o
-
-strfunctions.o: strfunctions.c strfunctions.h
-	@echo "*** Compiling strfunctions.o"
-	@${COMPILER} ${CCFLAGS} -c strfunctions.c -o strfunctions.o
-
-network.o: network.c display_interfaces.h
-	@echo "*** Compiling network.o"
-	@${COMPILER} ${CCFLAGS} -c network.c -o network.o
-
-cookies.o: cookies.c cookies.h display_interfaces.h
-	@echo "*** Compiling cookies.o"
-	@${COMPILER} ${CCFLAGS} -c cookies.c -o cookies.o
-
-parsehtml.o: parsehtml.c parsehtml.h entities.h parser.h clist.h display_interfaces.h
-	@echo "*** Compiling parsehtml.o"
-	@${COMPILER} ${CCFLAGS} -c parsehtml.c -o parsehtml.o
-
-conf.o: conf.c conf.h display_interfaces.h
-	@echo "*** Compiling conf.o"
-	@${COMPILER} ${CCFLAGS} -c conf.c -o conf.o
-
-# DISPLAY OUTPUTS
-
-gotcurses-iso.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
-	@echo "*** Compiling gotcurses-iso.o (for ISO only systems)"
-	@${COMPILER} ${CCFLAGS} -c gotcurses.c -o gotcurses-iso.o
-
-gotcurses.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
-	@echo "*** Compiling gotcurses.o"
-	@echo "    In case of faillure, try \"make mchatclient-iso\" or install ncursesw-dev !"
-	@${COMPILER} ${CCFLAGS} -D_X_OPEN_SOURCE_EXTENDED -c gotcurses.c -o gotcurses.o
-
-gottext.o: gottext.c display_interfaces.h commons.h
-	@echo "*** Compiling gottext.o (text mode)"
-	@${COMPILER} ${CCFLAGS} -c gottext.c -o gottext.o
-
-# PARSING HTML ENTITIES
-
-entities.o: entities.c entities.h
-	@echo "*** Compiling entities.o"
-	@${COMPILER} ${CCFLAGS} -c entities.c -o entities.o
-
-# HTML PARSING IN MESSAGES
-
-parser.o: parser.c parser.h
-	@echo "*** Compiling parser.o"
-	@${COMPILER} ${CCFLAGS} -c parser.c -o parser.o
-
-# NOW OBJECTS USED FOR HTML PARSING IN MESSAGES
-
-cstring.o: cstring.c cstring.h
-	@echo "*** Compiling cstring.o"
-	@${COMPILER} ${CCFLAGS} -c cstring.c -o cstring.o
-
-clist.o: clist.c clist.h
-	@echo "*** Compiling clist.o"
-	@${COMPILER} ${CCFLAGS} -c clist.c -o clist.o
-
-ini.o: ini.c ini.h
-	@echo "*** Compiling ini.o"
-	@${COMPILER} ${CCFLAGS} -c ini.c -o ini.o
-
-attribute.o: attribute.c attribute.h
-	@echo "*** Compiling attribute.o"
-	@${COMPILER} ${CCFLAGS} -c attribute.c -o attribute.o
-
-iface-test.o: iface-test.c display_interfaces.h
-	@echo "*** Compiling iface-test.o"
-	@${COMPILER} ${CCFLAGS} -c iface-test.c -o iface-test.o
-
-
-#### TESTS #### 
-
-cookies-test: cookies.o cookies-test.o
-	@echo "*** Linking cookies-test executable..."
-	@${COMPILER} cookies.o cookies-test.o -o cookies-test
-
-cookies-test.o: cookies-test.c
-	@echo "*** Compiling cookies-test.o"
-	@${COMPILER} ${CCFLAGS} -c cookies-test.c -o cookies-test.o
-
-cstring-test: cstring.o cstring-test.o clist.o
-	@echo "*** Linking cstring-test executable..."
-	@${COMPILER} cstring.o cstring-test.o clist.o -o cstring-test
-
-cstring-test.o: cstring-test.c
-	@echo "*** Compiling cstring-test.o"
-	@${COMPILER} ${CCFLAGS} -c cstring-test.c -o cstring-test.o
-
-parser-test: parser.o parser-test.o cstring.o ini.o clist.o attribute.o
-	@echo "*** Linking parser-test executable..."
-	@${COMPILER} parser.o parser-test.o cstring.o ini.o clist.o attribute.o -o parser-test
-
-parser-test.o: parser-test.c parser.h clist.h
-	@echo "*** Compiling parser-test.o"
-	@${COMPILER} ${CCFLAGS} -c parser-test.c -o parser-test.o
-
-clist-test: clist.o clist-test.o
-	@echo "*** Linking clist-test executable..."
-	@${COMPILER} clist.o clist-test.o -o clist-test
-
-clist-test.o: clist-test.c
-	@echo "*** Compiling clist-test.o"
-	@${COMPILER} ${CCFLAGS} -c clist-test.c -o clist-test.o
-
-curses-test: iface-test.o gotcurses.o cstring.o clist.o strfunctions.o
-	@echo "*** Linking curses-test executable..."
-	@${COMPILER} -lncursesw iface-test.o cstring.o clist.o gotcurses.o -o curses-test
-
-curses-iso-test: iface-test.o gotcurses-iso.o cstring.o clist.o strfunctions.o
-	@echo "*** Linking curses-iso-test executable..."
-	@${COMPILER} -lncurses iface-test.o gotcurses-iso.o clist.o cstring.o -o curses-iso-test
-
-text-test: iface-test.o gottext.o cstring.o clist.o
-	@echo "*** Linking text-test executable..."
-	@${COMPILER} iface-test.o gottext.o cstring.o clist.o -o text-test
-
-#### MISC. STUFF #### 
+all: $(EXECUTABLE)
 
 clean:
-	@echo "*** Erasing objects files and test executables..."
-	@rm -f *.o cookies-test ini-test cstring-test parser-test
+	@echo === Cleaning the build directory...
+	@rm -f *.o */*.o */*/*.o
 
 mrpropre: mrproper
 
 mrproper: clean
-	@echo "*** Erasing main executable file and test files..."
-	@rm -f mchatclient mchatclient-iso mchatclient-text text-test curses-test parser-test clist-test cstring-test
+	@echo === *CLEANING* the build directory '(EXEs included)'...
+	@rm $(EXECUTABLE) $(TEST_EXECUTABLES) 2>/dev/null || echo >/dev/null
+
+rebuild: mrproper all
+
+test: $(TEST_EXECUTABLES)
 
 love:
 	@echo "... not war ?"
+
+### Dependencies
+conf.o: conf.c conf.h display_interfaces.h
+parsehtml.o: parsehtml.c parsehtml.h entities.h parser.h clist.h display_interfaces.h
+cookies.o: cookies.c cookies.h display_interfaces.h
+network.o: network.c display_interfaces.h
+main.o: main.c conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h
+gotcurses.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
+gottext.o: gottext.c display_interfaces.h commons.h
+
+%.o: %.c
+	@echo --- Compiling $@
+	@$(CC) $(ARCHFLAG) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) $(TARGET_ARCH) -c $^ -o $@
+
+$(EXECUTABLE): $(OBJECTS) $(MOBJECTS)
+	@echo === Linking final executable $(EXECUTABLE)...
+	@$(CC) $(ARCHFLAG) $(OBJECTS) $(MOBJECTS) -o $@ $(LDFLAGS)
+
+$(TEST_EXECUTABLES): $(TEST_SOURCES) $(TEST_OBJECTS) $(OBJECTS)
+	@echo === Linking test executable $@...
+	@$(LD) $(ARCHFLAG) $@.o $(OBJECTS) -o $@ $(LDFLAGS)
