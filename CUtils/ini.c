@@ -172,7 +172,8 @@ attribute *get_attribute(char data[]) {
 		key = cstring_trimc(key, ' ', true, true);
 		cstring_free(tmp);
 		
-		if (value != NULL) {
+		// TODO: trim or not to trim?
+		if (false && value != NULL) {
 			tmp = value;
 			value = cstring_trimc(tmp, ' ', true, true);
 			cstring_free(tmp);
