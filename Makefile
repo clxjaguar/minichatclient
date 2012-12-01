@@ -106,6 +106,10 @@ gottext.c: display_interfaces.h commons.h
 $(EXECUTABLE): $(OBJECTS) $(MOBJECTS)
 	@echo === Linking final executable $(EXECUTABLE)...
 	@$(CC) $(ARCHFLAG) $(OBJECTS) $(MOBJECTS) -o $@ $(LDFLAGS)
+ifneq ($(DEBUG), 1)
+	@echo "--- Stripping $(EXECUTABLE)"
+	@strip $(EXECUTABLE)
+endif
 
 $(TEST_EXECUTABLES): $(TEST_SOURCES) $(TEST_OBJECTS) $(OBJECTS)
 	@echo === Linking test executable $@...
