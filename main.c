@@ -488,8 +488,8 @@ int main(void) {
 				}
 				k=1;
 				{
-					FILE *test;
-					test = fopen("stats.txt", "w");
+					//FILE *test;
+					//test = fopen("stats.txt", "w");
 				
 					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 						if(k) {
@@ -497,10 +497,10 @@ int main(void) {
 							parsehttpheadersforgettingcookies(cookies, buf, bytes);
 						}
 						parse_minichat_mess(buf, bytes, &msg, k);
-						fwrite(buf, bytes, 1, test);
+						//fwrite(buf, bytes, 1, test);
 						k=0;
 					}
-					fclose(test); 
+					//fclose(test); 
 				}
 				state = WATCHING_NEW_MESSAGES;
 				break;
