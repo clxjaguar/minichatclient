@@ -35,3 +35,4 @@ nicklist_width  20
 
 # embedded mini-IRC server's port (if compiled), 0 disable it
 irc_port        6667
+channel_name	#minichatdefaultname
