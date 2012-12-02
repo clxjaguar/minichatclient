@@ -74,13 +74,13 @@ TEST_EXECUTABLES=$(TEST_SOURCES:.c=)
 all: $(EXECUTABLE)
 
 clean:
-	@echo === Cleaning the build directory...
+	@echo --- Cleaning all objects files...
 	@rm -f *.o */*.o */*/*.o
 
 mrpropre: mrproper
 
 mrproper: clean
-	@echo === *CLEANING* the build directory '(EXEs included)'...
+	@echo --- Cleaning all binary executables files...
 	@rm $(EXECUTABLE) $(TEST_EXECUTABLES) 2>/dev/null || echo >/dev/null
 
 rebuild: mrproper all
@@ -92,19 +92,20 @@ love:
 
 ### Dependencies
 conf.c: conf.h display_interfaces.h
-parsehtml.c: parsehtml.h entities.h parser.h display_interfaces.h
+parsehtml.c: parsehtml.h main.h entities.h parser.h display_interfaces.h
 cookies.c: cookies.h display_interfaces.h
 network.c: display_interfaces.h
-main.c: conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h
+main.c: main.h conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h
 gotcurses.c: display_interfaces.h commons.h strfunctions.h
 gottext.c: display_interfaces.h commons.h
+gotnull.c: commons.h
 
 %.o: %.c
 	@echo --- Compiling $@
 	@$(CC) $(ARCHFLAG) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) $(TARGET_ARCH) -c $^ -o $@
 
 $(EXECUTABLE): $(OBJECTS) $(MOBJECTS)
-	@echo === Linking final executable $(EXECUTABLE)...
+	@echo --- Linking final executable $(EXECUTABLE)...
 	@$(CC) $(ARCHFLAG) $(OBJECTS) $(MOBJECTS) -o $@ $(LDFLAGS)
 ifneq ($(DEBUG), 1)
 	@echo "--- Stripping $(EXECUTABLE)"
@@ -112,5 +113,5 @@ ifneq ($(DEBUG), 1)
 endif
 
 $(TEST_EXECUTABLES): $(TEST_SOURCES) $(TEST_OBJECTS) $(OBJECTS)
-	@echo === Linking test executable $@...
+	@echo --- Linking test executable $@...
 	@$(LD) $(ARCHFLAG) $@.o $(OBJECTS) -o $@ $(LDFLAGS)
