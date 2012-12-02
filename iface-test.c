@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "display_interfaces.h"
-#include "cstring.h"
+#include "CUtils/cstring.h"
 
 #define true 1
 #define false 0

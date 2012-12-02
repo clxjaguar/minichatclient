@@ -9,5 +9,3 @@ typedef struct {
 int parser_freerules(void);
 int parser_loadrules(void);
 unsigned int parse_minichat_mess(char *input, unsigned int bytes, message_t *msg, int reset);
-void minichat_message(char* username, char* message, char *usericonurl, char *userprofileurl);
-void minichat_users_at_this_moment(char *string);

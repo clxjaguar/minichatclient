@@ -16,6 +16,7 @@
 #include "parsehtml.h"
 #include "parser.h"
 #include "display_interfaces.h"
+#include "main.h"
 
 typedef enum {
 	READY=0,

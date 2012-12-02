@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "parser.h"
-#include "cstring.h"
+#include "CUtils/cstring.h"
 
 #define bool int
 #define true 1

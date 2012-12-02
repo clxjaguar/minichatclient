@@ -1,3 +1,6 @@
+#ifndef DISPLAY_INTERFACES_H
+#define DISPLAY_INTERFACES_H
+
 /* include file for gotcurses.c and possibles others display interfaces
    for the minichatclient project.
 
@@ -17,3 +20,4 @@ void display_conversation(const char *text);
 void display_nicklist(char *text);
 void display_end(void);
 char display_waitforchar(const char *msg);
+#endif /* DISPLAY_INTERFACES_H */
