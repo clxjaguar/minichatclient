@@ -265,24 +265,42 @@ void irc_server_join(irc_server *self, const char channame[], irc_user *user) {
 	// If the user is NULL, just create the chan
 	if (!user)
 		return;
-		
+	
+	// Prepare JOIN message
+	string = cstring_new();
+	cstring_addc(string, ':');
+	cstring_adds(string, user->hostmask);
+	cstring_addc(string, ' ');
+	cstring_adds(string, "JOIN :");
+	cstring_adds(string, chan->name);
+	
+	// Don't answer if already joined (TODO: report error to client?)
+	for (node = chan->users->first ; node != NULL ; node = node->next) {
+		if (!strcmp(((irc_user *)node->data)->nick, user->nick)) {
+			con = irc_server_get_connection(self, ((irc_user *)node->data)->nick);
+			if (con != NULL) {
+				irc_client_raw(con->client, string->string);
+				irc_server_rpl_names(con, chan);
+				irc_server_rpl_topic(con, chan);
+			}
+			
+			// Free JOIN message
+			cstring_free(string);
+			
+			return;
+		}
+	}
+	
 	irc_chan_add_user(chan, user);
 
 	for (node = chan->users->first ; node != NULL ; node = node->next) {
 		con = irc_server_get_connection(self, ((irc_user *)node->data)->nick);
-		
-		if (con != NULL) {
-			string = cstring_new();
-			cstring_addc(string, ':');
-			cstring_adds(string, user->hostmask);
-			cstring_addc(string, ' ');
-			cstring_adds(string, "JOIN :");
-			cstring_adds(string, chan->name);
-
+		if (con != NULL)
 			irc_client_raw(con->client, string->string);
-			cstring_free(string);
-		}
 	}
+	
+	// Free JOIN message
+	cstring_free(string);
 	
 	con = irc_server_get_connection(self, user->nick);
 	if (con != NULL) {		
