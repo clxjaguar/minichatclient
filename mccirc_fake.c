@@ -15,8 +15,7 @@ mccirc *mccirc_new() {
 }
 
 void mccirc_free(mccirc *self) {
-	if (self)
-		self = NULL;
+	if (self) {}
 }
 
 ////////////////////////////
@@ -26,11 +25,11 @@ void mccirc_free(mccirc *self) {
 void mccirc_init(mccirc *self, const char ffname[], const char server_name[], 
 		const char channel_name[], const char channel_topic[], int port) {
 	if (self) {}
-	if(ffname) {}
-	if(server_name) {}
-	if(channel_name) {}
-	if(channel_topic) {}
-	if(port) {}
+	if (ffname) {}
+	if (server_name) {}
+	if (channel_name) {}
+	if (channel_topic) {}
+	if (port) {}
 }
 
 //note: sender is NOT responsible for the memory,
