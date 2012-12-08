@@ -129,7 +129,6 @@ void mccirc_init(mccirc *self, const char ffname[], const char server_name[],
 // and the memory MUST be useable UNTIL the next call
 // (hard to understand, in short: always free mem from last call or use bufer)
 char *mccirc_check_message(mccirc *self) {
-	
 	// should not happen, but just in case:
 	if (!self)
 		return NULL;
@@ -137,7 +136,7 @@ char *mccirc_check_message(mccirc *self) {
 	if (self->buffer->length > 0)
 		cstring_clear(self->buffer);
 
-	//must set buffer if needed:
+	// must set buffer if needed:
 	irc_server_do_work(self->server);
 	
 	if (self->buffer->length > 0)
@@ -147,13 +146,11 @@ char *mccirc_check_message(mccirc *self) {
 }
 
 void mccirc_chatserver_error(mccirc *self) {
-	if (self)
-		self = NULL;
+	if (self) {}
 }
 
 void mccirc_chatserver_resume(mccirc *self) {
-	if (self)
-		self = NULL;
+	if (self) {}
 }
 
 void mccirc_clear_nicklist(mccirc *self) {
@@ -275,15 +272,8 @@ void on_server_message(irc_server *serv,
 		irc_user *user, const char target[], const char message[], void *data) {
 	mccirc *self = (mccirc *)data;
 	
-	char waste;
-	
-	// We do not use serv (since we already have it in self)
-	if (serv)
-		serv = NULL;
-	
-	// Do not output warning: we KNOW we don't use it, it's OK
-	if (target)
-		waste = target[0];
+	if (serv) {}
+	if (target) {}
 	
 	if (self->username && !strcmp(user->nick, self->username)) {
 		cstring_clear(self->buffer);
@@ -297,9 +287,7 @@ void on_server_register(irc_server *serv, irc_user *user, void *data) {
 	mccirc *self = (mccirc *)data;
 	char *tmp;
 	
-	// We do not use serv (since we already have it in self)
-	if (serv)
-		serv = NULL;
+	if (serv) {}
 	
 	// Clear and change the username for mccirc
 	tmp = self->username;
