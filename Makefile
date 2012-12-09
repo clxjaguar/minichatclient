@@ -100,7 +100,7 @@ gotcurses.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
 gottext.o: gottext.c display_interfaces.h commons.h
 gotnull.o: gotnull.c commons.h
 mccirc.o: mccirc.c mccirc.h CUtils/libcutils.o CIrc/libcirc.o
-parser.o: parser.c parser.h parser_p.h CUtils/libcutils.o CIrc/libcirc.o
+parser.o: parser.c parser.h parser_p.h CUtils/libcutils.o
 CUtils/libcutils.o: CUtils/libcutils.c CUtils/attribute.h CUtils/clist.h CUtils/cstring.h CUtils/ini.h CUtils/net.h CUtils/attribute.c CUtils/clist.c CUtils/cstring.c CUtils/ini.c CUtils/net.c
 CIrc/libcirc.o: CUtils/libcutils.o CIrc/libcirc.c CIrc/irc_chan.h CIrc/irc_client.h CIrc/irc_server.h CIrc/irc_user.h CIrc/irc_chan.c CIrc/irc_client.c CIrc/irc_server.c CIrc/irc_user.c
 
