@@ -91,18 +91,24 @@ love:
 	@echo "... not war ?"
 
 ### Dependencies
-conf.c: conf.h display_interfaces.h
-parsehtml.c: parsehtml.h main.h entities.h parser.h display_interfaces.h
-cookies.c: cookies.h display_interfaces.h
-network.c: display_interfaces.h
-main.c: main.h conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h
-gotcurses.c: display_interfaces.h commons.h strfunctions.h
-gottext.c: display_interfaces.h commons.h
-gotnull.c: commons.h
+conf.o: conf.c conf.h display_interfaces.h
+parsehtml.o: parsehtml.c parsehtml.h main.h entities.h parser.h display_interfaces.h
+cookies.o: cookies.c cookies.h display_interfaces.h
+network.o: network.c display_interfaces.h
+main.o: main.c main.h conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h
+gotcurses.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
+gottext.o: gottext.c display_interfaces.h commons.h
+gotnull.o: gotnull.c commons.h
+mccirc.o: mccirc.c mccirc.h CUtils/libcutils.o CIrc/libcirc.o
+parser.o: parser.c parser.h parser_p.h CUtils/libcutils.o CIrc/libcirc.o
+CUtils/libcutils.o: CUtils/libcutils.c CUtils/attribute.h CUtils/clist.h CUtils/cstring.h CUtils/ini.h CUtils/net.h CUtils/attribute.c CUtils/clist.c CUtils/cstring.c CUtils/ini.c CUtils/net.c
+CIrc/libcirc.o: CUtils/libcutils.o CIrc/libcirc.c CIrc/irc_chan.h CIrc/irc_client.h CIrc/irc_server.h CIrc/irc_user.h CIrc/irc_chan.c CIrc/irc_client.c CIrc/irc_server.c CIrc/irc_user.c
+
 
 %.o: %.c
 	@echo --- Compiling $@
-	@$(CC) $(ARCHFLAG) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) $(TARGET_ARCH) -c $^ -o $@
+	@#$(CC) $(ARCHFLAG) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) $(TARGET_ARCH) -c $^ -o $@
+	@$(CC) $(ARCHFLAG) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) $(TARGET_ARCH) -c $(@:.o=.c) -o $@
 
 $(EXECUTABLE): $(OBJECTS) $(MOBJECTS)
 	@echo --- Linking final executable $(EXECUTABLE)...
