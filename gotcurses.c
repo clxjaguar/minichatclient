@@ -29,7 +29,7 @@ typedef enum {
 	CP850
 } ttranslit;
 ttranslit transliterating;
-	
+
 const char* transliterate_from_utf8(const char* in){
 	static char *tmp = NULL;
 	char *p = NULL;
@@ -38,17 +38,17 @@ const char* transliterate_from_utf8(const char* in){
 
 	if (tmp != NULL) { free(tmp); tmp = NULL; }
 	if (in == NULL) { return NULL; }
-	
+
 	switch (transliterating) {
 		case NATIVE_UTF8:
 			return in;
 			break;
-		
+
 		case ISO8859_1:
 		default:
 			tmp = malloc(strlen(in)+1); // la source utf8 sera toujours plus longue!
 			p = (char*)in;
-		
+
 			i = 0;
 			while((c = extract_codepoints_from_utf8(&p))){
 				tmp[i++] = transliterate_ucs_to_iso88591(c);
@@ -56,11 +56,11 @@ const char* transliterate_from_utf8(const char* in){
 			tmp[i] = '\0';
 			return (const char*)tmp; // please do not try to free() the returned pointer.
 			break;
-			
+
 		case CP850:
 			tmp = malloc(strlen(in)+1); // la source utf8 sera toujours plus longue!
 			p = (char*)in;
-		
+
 			i = 0;
 			while((c = extract_codepoints_from_utf8(&p))){
 				tmp[i++] = transliterate_ucs_to_cp850(c);
@@ -134,7 +134,7 @@ void display_debug(const char *text, int nonewline){
 		printf("%s", transliterate_from_utf8(text));
 		return;
 	}
-	
+
 	if (debug_height) {
 		if (!nonewline) { wprintw(debug.content, "\n"); }
 		wprintw(debug.content, "%s", transliterate_from_utf8(text));
@@ -165,7 +165,7 @@ void display_nicklist(char *text){ // ce truc va changer pour quelque chose de p
 	static signed int i;
 	char *p = NULL;
 	if (!nicklist_width) return;
-	
+
 	if (!text) { //reset !
 		// il ne faut pas utiliser wclear(nicklist.content) car ça redraw le terminal entier
 		p = malloc(nicklist_width-4+1);
@@ -181,7 +181,7 @@ void display_nicklist(char *text){ // ce truc va changer pour quelque chose de p
 	else {
 		mvwprintw(nicklist.content, (int)i++, 0, "%s", transliterate_from_utf8(text));
 	}
-	
+
 	wrefresh(nicklist.content);
 }
 
@@ -233,7 +233,10 @@ char* display_driver(void){
 							} while ((nbrofbytes != 0) && ((buf[nbrofbytes]&192) != 192)); // first UTF-8 byte? enough.
 						}
 
-						if (!nbrofbytes) { free(buf); buf = NULL; display_statusbar("Typing buffer freed"); }
+						if (!nbrofbytes) {
+							free(buf); buf = NULL;
+							//display_statusbar("Typing buffer freed");
+						}
 						wprintw(typing_area.content, "\b \b");
 					}
 				}
@@ -276,19 +279,17 @@ char* display_driver(void){
 					display_statusbar(tmpchar);
 					break;
 				}}
-				if (buf == NULL){
+				if (buf == NULL){ // allocating typing buffer
+					//display_statusbar("You're typing...");
 					buf = malloc(1002);
-					display_statusbar("Buffer allocated for typing...");
 				}
 				else {
-					if (nbrofbytes>=1000){
-						if (j==1) { fprintf(stderr, "\a"); }
+					if (nbrofbytes>=1000){ // typing buffer full ! too long.
+						if (j==1) { display_statusbar("\aYour message line can't be longer !"); }
 						break;
 					}
 				}
 
-				// CP850 ? Need to transcode it to UTF-8
-					
 				if (transliterating == NATIVE_UTF8) {
 					buf[nbrofbytes++] = (char)ch;
 				}
@@ -306,7 +307,7 @@ char* display_driver(void){
 					}
 					while(p[i]){ buf[nbrofbytes++] = (char)p[i++]; }
 				}
-				
+
 				wprintw(typing_area.content, "%c", ch);
 				break;
 		}
@@ -343,7 +344,7 @@ void display_init(void){
 
 	debug_height   = read_conf_int("debug_height",   debug_height);
 	nicklist_width = read_conf_int("nicklist_width", nicklist_width);
-	
+
 	if (debug_height < 3) { debug_height = 0; } // pour niki :P
 	if (nicklist_width < 5) { nicklist_width = 0; }
 
@@ -377,15 +378,15 @@ void display_init(void){
 		case NATIVE_UTF8:
 			display_debug("Native UTF-8 (best)", 1);
 			break;
-			
+
 		case ISO8859_1:
 			display_debug("ISO-8859-1 transliteration", 1);
 			break;
-			
+
 		case CP850:
 			display_debug("CP850 (Windows console)", 1);
 			break;
-			
+
 		default:
 			display_debug("???", 1);
 	}
