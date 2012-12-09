@@ -83,6 +83,8 @@ char *irc_server_extract_ac(const char input[]);
 int irc_server_on_all_do(irc_client *client, const char from[],
 		const char action[], const char args[], void *data);
 
+void irc_server_client_died(irc_server *self, irc_server_connection *con);
+
 //////////////////////////////////
 // constructors and destructors //
 //////////////////////////////////
@@ -138,7 +140,7 @@ void irc_server_callbacks_free(irc_server_callbacks *self) {
 
 void irc_server_connection_free(irc_server_connection *self) {
 	// Socket should already be closed.
-	
+
 	if (self->client != NULL)
 		irc_client_free(self->client);
 	if (self->user != NULL)
@@ -151,7 +153,7 @@ irc_server *irc_server_new() {
 	irc_server *self;
 
 	self = malloc(sizeof(irc_server));
-	
+
 	self->server = NULL;
 	self->port = -1;
 	self->socket = -1;
@@ -159,7 +161,7 @@ irc_server *irc_server_new() {
 	self->clients = clist_new();
 	self->callbacks = irc_server_callbacks_new();
 	self->cont = 1;
-	
+
 	return self;
 }
 
@@ -172,7 +174,7 @@ void irc_server_free(irc_server *self) {
 		clist_free(self->clients);
 	if (self->callbacks != NULL)
 		irc_server_callbacks_free(self->callbacks);
-		
+
 	free(self);
 }
 
@@ -209,16 +211,21 @@ int irc_server_do_work(irc_server *self) {
 	for (work = 1 ; work ; ) {
 		work = irc_server_accept_connection(self);
 		for (node = self->clients->first ; node != NULL ; ) {
+			to_del = NULL;
 			con = (irc_server_connection *)node->data;
 			if (con->client && !irc_client_is_alive(con->client)) {
+				irc_server_client_died(self, con);
 				to_del = node;
-				node = node->next;
-				clist_remove(self->clients, to_del);
-				clist_node_free(to_del);
 			} else {
 				if (irc_server_handle_line(con))
 					did_work = work = 1;
-				node = node->next;
+			}
+			
+			node = node->next;
+			
+			if (to_del) {
+				clist_remove(self->clients, to_del);
+				clist_node_free(to_del);
 			}
 		}
 	}
@@ -867,3 +874,14 @@ int irc_server_on_all_do(irc_client *client, const char from[],
 
 	return 1;
 }
+
+void irc_server_client_died(irc_server *self, irc_server_connection *con) {
+	clist_node *node;
+	irc_chan *chan;
+
+	for (node = self->chans->first ; node != NULL ; node = node->next) {
+		chan = (irc_chan *)node->data;
+		irc_chan_remove_user(chan, con->user);
+	}
+}
+

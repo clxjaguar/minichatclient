@@ -232,7 +232,9 @@ void mccirc_chatserver_message(mccirc *self, const char name[], const char messa
 		user = mccirc_get_user(self, name);
 	}
 	
-	irc_server_privmsg(self->server, self->channel, user, message);
+	// only send message if user is still in channel
+	if (mccirc_get_user(self, self->username))
+		irc_server_privmsg(self->server, self->channel, user, message);
 }
 
 void mccirc_topic(mccirc *self, const char topic[]) {
