@@ -132,6 +132,13 @@ void irc_server_privmsg(irc_server *self, const char target[], irc_user *user,
  */
 int irc_server_privmsg_s(irc_server *self, const char target[], 
 		const char username[], const char message[]);
+
+/** 
+ * Ping all connected clients and call do_work once.
+ *
+ * @param self the server to act on
+ */
+void irc_server_ping_all(irc_server *self);
 /*\@}*/
 
 /** Callbacks */

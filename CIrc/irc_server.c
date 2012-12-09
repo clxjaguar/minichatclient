@@ -355,6 +355,18 @@ void irc_server_privmsg(irc_server *self, const char target[], irc_user *user,
 	irc_server_privmsg_int(self, target, user, message, 1);
 }
 
+void irc_server_ping_all(irc_server *self) {
+	clist_node *node;
+	irc_server_connection *con;
+
+	for (node = self->clients->first ; node != NULL ; node = node->next) {
+		con = (irc_server_connection *)node->data;
+		irc_client_raw(con->client, "PING ping_all");
+	}
+
+	irc_server_do_work(self);
+}
+
 ///////////////
 // callbacks //
 ///////////////

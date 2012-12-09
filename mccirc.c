@@ -288,8 +288,9 @@ void on_server_register(irc_server *serv, irc_user *user, void *data) {
 	irc_user *u;
 	mccirc *self = (mccirc *)data;
 	char *tmp;
-	
-	if (serv) {}
+
+	// Check for dead clients, and remove them
+	irc_server_ping_all(serv);
 	
 	// Clear and change the username for mccirc
 	tmp = self->username;
