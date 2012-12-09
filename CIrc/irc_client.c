@@ -305,7 +305,7 @@ int irc_client_raw(irc_client *self, const char message[]) {
 
 	cstring_free(mess);
 	
-	if (!ok && errno == SIGPIPE)
+	if (!ok) // && errno == SIGPIPE)
 		irc_client_stop(self);
 	
 	return ok;
