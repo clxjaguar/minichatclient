@@ -23,6 +23,8 @@ typedef struct {
 	int port;
 	char *username;
 	char *ffname;
+	int jpending; /*<< force join pending delay (starts at 0) */
+	irc_user *juser;
 } mccirc;
 
 /** Constructors and destructors */

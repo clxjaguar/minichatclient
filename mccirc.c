@@ -20,6 +20,8 @@ void on_server_message(irc_server *serv,
 
 void on_server_register(irc_server *serv, irc_user *user, void *data);
 
+void mccirc_force_join(mccirc *self, irc_user *user);
+
 /**
  * Check if the username is from the user who started the mccirc.
  * Note: it also answers TRUE if the user is not set (because if it
@@ -74,6 +76,8 @@ mccirc *mccirc_new() {
 	self->port = -1;
 	self->username = NULL;
 	self->ffname = NULL;
+	self->jpending = 0;
+	self->juser = NULL;
 	
 	return self;
 }
@@ -93,6 +97,8 @@ void mccirc_free(mccirc *self) {
 		free(self->username);
 	if (self->ffname != NULL)
 		free(self->ffname);
+	if (self->juser != NULL)
+		irc_user_free(self->juser);
 	free(self);
 }
 
@@ -132,7 +138,17 @@ char *mccirc_check_message(mccirc *self) {
 	// should not happen, but just in case:
 	if (!self)
 		return NULL;
-	
+
+	// take care of the optional pending force join
+	if (self->juser) {
+		self->jpending++;
+		if (self->jpending > 10) {
+			mccirc_force_join(self, self->juser);
+			irc_user_free(self->juser);
+			self->juser = NULL;
+		}
+	}
+
 	if (self->buffer->length > 0)
 		cstring_clear(self->buffer);
 
@@ -284,11 +300,11 @@ void on_server_message(irc_server *serv,
 }
 
 void on_server_register(irc_server *serv, irc_user *user, void *data) {	
+	mccirc *self = (mccirc *)data;
 	clist_node *node;
 	irc_user *u;
-	mccirc *self = (mccirc *)data;
 	char *tmp;
-
+	
 	// Check for dead clients, and remove them
 	irc_server_ping_all(serv);
 	
@@ -312,9 +328,17 @@ void on_server_register(irc_server *serv, irc_user *user, void *data) {
 		irc_server_join(self->server, self->channel, NULL);
 	}
 	
+	// Force join later on if the client did not already do it
+	self->jpending = 0;
+	self->juser = irc_user_new();
+	irc_user_set_hostmask(self->juser, user->hostmask);
+	irc_user_set_real_name(self->juser, user->real_name);
+	//
+}
+
+void mccirc_force_join(mccirc *self, irc_user *user) {	
 	irc_server_topic(self->server, self->channel, self->topic);
 	irc_server_join(self->server, self->channel, user);
-	//
 }
 
 int mccirc_is_me(mccirc *self, const char username[]) {
