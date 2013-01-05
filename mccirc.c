@@ -336,9 +336,12 @@ void on_server_register(irc_server *serv, irc_user *user, void *data) {
 	//
 }
 
-void mccirc_force_join(mccirc *self, irc_user *user) {	
-	irc_server_topic(self->server, self->channel, self->topic);
-	irc_server_join(self->server, self->channel, user);
+void mccirc_force_join(mccirc *self, irc_user *user) {
+	// only force if not already present
+	if (!mccirc_get_user(self, user->nick)) {
+		irc_server_topic(self->server, self->channel, self->topic);
+		irc_server_join(self->server, self->channel, user);
+	}
 }
 
 int mccirc_is_me(mccirc *self, const char username[]) {
