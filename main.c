@@ -83,14 +83,21 @@ void put_timestamp(FILE *f){
 }
 
 // ces fonctions sont appelées en retour par parsehtml.c
-void main_clear_nicks() {
-	display_nicklist(NULL);
-	mccirc_clear_nicklist(irc);
+// gestion des nicks:
+void main_add_nick(const char buffer[]) {
+	mccirc_nicks_add(irc, buffer);
+}
+
+void main_start_nicks_update() {
+	mccirc_nicks_start(irc);
+}
+
+void main_end_nicks_update() {
+	mccirc_nicks_stop(irc);
 }
 
 void main_display_nicklist(char *buffer) {
 	display_nicklist(buffer);
-	mccirc_add_nick(irc, buffer);
 }
 
 void minichat_message(char* username, char* message, char *usericonurl, char *userprofileurl){

@@ -276,6 +276,8 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 							display_statusbar(tmp);
 							free(tmp);
 						}
+
+						main_start_nicks_update();
 						state = LOOKING_FOR_USERS; o=0; l=0;
 						display_nicklist(NULL); // clear nicklist prior to redraw (will be changed)
 
@@ -291,6 +293,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 							display_statusbar(tmp);
 							free(tmp);
 						}
+						main_end_nicks_update();
 						display_nicklist(NULL); // ok, if we don't do that the nicklist will never be showed empty when is no more users in the chat
 						state = READY;
 					}
@@ -318,6 +321,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 			case LOOKING_FOR_USERS_IN_USERNAME:
 				if (input[i] == '<') {
 					buffer[l] = '\0';
+					main_add_nick(buffer);
 					display_nicklist(buffer);
 					state = LOOKING_FOR_USERS;
 					j=0; l=0;
