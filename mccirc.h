@@ -25,6 +25,7 @@ typedef struct {
 	char *ffname;
 	int jpending; /*<< force join pending delay (starts at 0) */
 	irc_user *juser;
+	clist *nicklist;
 } mccirc;
 
 /** Constructors and destructors */
@@ -53,10 +54,14 @@ void mccirc_chatserver_error(mccirc *self);
 void mccirc_chatserver_resume(mccirc *self);
 void mccirc_chatserver_message(mccirc *self, const char username[], 
 		const char message[]);
-void mccirc_clear_nicklist(mccirc *self);
-void mccirc_add_nick(mccirc *self, const char user[]);
-void mccirc_remove_nick(mccirc *self, const char user[]);
 void mccirc_topic(mccirc *self, const char topic[]);
+/*\@}*/
+
+/** Nicklist actions */
+/*\@{*/
+void mccirc_nicks_start(mccirc *self);
+void mccirc_nicks_stop(mccirc *self);
+void mccirc_nicks_add(mccirc *self, const char username[]);
 /*\@}*/
 
 #endif /* MCCIRC_H_ */

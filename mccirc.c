@@ -61,6 +61,10 @@ char *mccirc_sanitize_username(const char name[]);
  */
 irc_chan *mccirc_get_chan(mccirc *self);
 
+void mccirc_add_nick(mccirc *self, const char user[]);
+
+void mccirc_remove_nick(mccirc *self, const char user[]);
+
 //////////////////////////////////
 // constructors and destructors //
 //////////////////////////////////
@@ -78,6 +82,7 @@ mccirc *mccirc_new() {
 	self->ffname = NULL;
 	self->jpending = 0;
 	self->juser = NULL;
+	self->nicklist = NULL;
 	
 	return self;
 }
@@ -99,6 +104,8 @@ void mccirc_free(mccirc *self) {
 		free(self->ffname);
 	if (self->juser != NULL)
 		irc_user_free(self->juser);
+	if (self->nicklist != NULL)
+		free(self->nicklist);
 	free(self);
 }
 
@@ -167,43 +174,6 @@ void mccirc_chatserver_error(mccirc *self) {
 
 void mccirc_chatserver_resume(mccirc *self) {
 	if (self) {}
-}
-
-void mccirc_clear_nicklist(mccirc *self) {
-	// TODO: find a way not to clear the nicklist...
-	// maybe a call like "start relisting" then
-	// "stop relisting", so we don't always have
-	// "X joined the room"
-	// "Y joined the room"
-	// ...
-	// every now and then.
-	
-	return;
-
-	irc_chan *chan;
-	clist_node *node;
-	irc_user *user;
-	
-	// should not happen, but just in case:
-	if (!self || !self->username)
-		return;
-	
-	chan = mccirc_get_chan(self);
-	for (node = chan->users->first ; node != NULL ; ) {
-		user = ((irc_user *)node->data);
-		
-		// do not remove myself!
-		if (mccirc_is_me(self, user->nick)) {
-			// Do not forget !
-			node = node->next;
-			continue;
-		}
-		
-		// Done BEFORE removing it
-		node = node->next;
-		
-		irc_chan_remove_user(chan, user);
-	}
 }
 
 void mccirc_add_nick(mccirc *self, const char name[]) {
@@ -282,6 +252,79 @@ void mccirc_topic(mccirc *self, const char topic[]) {
 	irc_server_topic(self->server, self->channel, self->topic);
 }
 
+void mccirc_nicks_start(mccirc *self) {
+	// should not happen, but just in case:
+	if (!self || !self->username)
+		return;
+	
+	if (self->nicklist)
+		clist_free(self->nicklist);
+	
+	self->nicklist = clist_new();
+}
+
+void mccirc_nicks_add(mccirc *self, const char username[]) {
+	clist_node *node;
+
+	// should not happen, but just in case:
+	if (!self || !self->username)
+		return;
+	if (!self->nicklist)
+		return;
+
+	// grr!
+	if (!username)
+		return;
+	
+	node = clist_node_new();
+	node->data = cstring_sclones(username);
+	node->free_content = free;
+
+	clist_add(self->nicklist, node);
+}
+
+void mccirc_nicks_stop(mccirc *self) {
+	clist_node *node, *unode;
+	char *username;
+	irc_user *user;
+	int isin;
+
+	// should not happen, but just in case:
+	if (!self || !self->username)
+		return;
+	if (!self->nicklist)
+		return;
+	
+	for (node = self->nicklist->first ; node ; node = node->next) {
+		username = (char *)node->data;
+
+		if (mccirc_is_me(self, username))
+			continue;
+		if (mccirc_get_user(self, username))
+			continue;
+
+		mccirc_add_nick(self, username);
+	}
+
+	for (unode = mccirc_get_chan(self)->users->first ; unode ; ) {
+		user = (irc_user *)unode->data;
+		unode = unode->next;
+
+		if (!mccirc_is_me(self, user->nick)) {
+			isin = 0;
+			for (node = self->nicklist->first ; !isin && node ; node = node->next) {
+				username = (char *)node->data;
+				if (!strcmp(username, user->nick))
+					isin = 1;
+			}
+
+			if (!isin)
+				mccirc_remove_nick(self, user->nick);
+		}
+	}
+}
+
+
 ///////////////////////
 // private functions //
 ///////////////////////
@@ -337,6 +380,9 @@ void on_server_register(irc_server *serv, irc_user *user, void *data) {
 }
 
 void mccirc_force_join(mccirc *self, irc_user *user) {
+	// Check for dead clients, and remove them
+	irc_server_ping_all(self->server);
+	
 	// only force if not already present
 	if (!mccirc_get_user(self, user->nick)) {
 		irc_server_topic(self->server, self->channel, self->topic);
