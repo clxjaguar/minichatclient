@@ -232,6 +232,9 @@ void net_close_socketd(int socketd) {
 	close(socketd);
 }
 
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0
+#endif
 ssize_t net_write(int fd, const void *buf, size_t n) {
 	// In UNIX: send() with flag set to '0' == write()
 	// In WIN32: cannot write() to a socket

@@ -5,8 +5,8 @@ CPP  = g++.exe
 CC   = gcc.exe
 WINDRES = windres.exe
 RES  = project_private.res
-OBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o gotcurses.o main.o mccirc.o strfunctions.o ../minichatclient-niki/utils/CIrc/irc_user.o ../minichatclient-niki/utils/CIrc/irc_chan.o ../minichatclient-niki/utils/CIrc/irc_client.o ../minichatclient-niki/utils/CIrc/irc_server.o ../minichatclient-niki/utils/CUtils/net.o ../minichatclient-niki/utils/CUtils/attribute.o ../minichatclient-niki/utils/CUtils/clist.o ../minichatclient-niki/utils/CUtils/cstring.o ../minichatclient-niki/utils/CUtils/ini.o $(RES)
-LINKOBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o gotcurses.o main.o mccirc.o strfunctions.o ../minichatclient-niki/utils/CIrc/irc_user.o ../minichatclient-niki/utils/CIrc/irc_chan.o ../minichatclient-niki/utils/CIrc/irc_client.o ../minichatclient-niki/utils/CIrc/irc_server.o ../minichatclient-niki/utils/CUtils/net.o ../minichatclient-niki/utils/CUtils/attribute.o ../minichatclient-niki/utils/CUtils/clist.o ../minichatclient-niki/utils/CUtils/cstring.o ../minichatclient-niki/utils/CUtils/ini.o $(RES)
+OBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o main.o mccirc.o strfunctions.o CIrc/irc_user.o CIrc/irc_chan.o CIrc/irc_client.o CIrc/irc_server.o CUtils/net.o CUtils/attribute.o CUtils/clist.o CUtils/cstring.o CUtils/ini.o ../minichatclient-niki/gotcurses.o $(RES)
+LINKOBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o main.o mccirc.o strfunctions.o CIrc/irc_user.o CIrc/irc_chan.o CIrc/irc_client.o CIrc/irc_server.o CUtils/net.o CUtils/attribute.o CUtils/clist.o CUtils/cstring.o CUtils/ini.o ../minichatclient-niki/gotcurses.o $(RES)
 LIBS =  -L"C:/Dev-Cpp/lib" -lws2_32 "c:/Dev-Cpp/lib/libcurses.a  
 INCS =  -I"C:/Dev-Cpp/include" 
 CXXINCS =  -I"C:/Dev-Cpp/lib/gcc/mingw32/3.4.2/include"  -I"C:/Dev-Cpp/include/c++/3.4.2/backward"  -I"C:/Dev-Cpp/include/c++/3.4.2/mingw32"  -I"C:/Dev-Cpp/include/c++/3.4.2"  -I"C:/Dev-Cpp/include" 
@@ -44,9 +44,6 @@ conf.o: conf.c
 parser.o: parser.c
 	$(CC) -c parser.c -o parser.o $(CFLAGS)
 
-gotcurses.o: gotcurses.c
-	$(CC) -c gotcurses.c -o gotcurses.o $(CFLAGS)
-
 main.o: main.c
 	$(CC) -c main.c -o main.o $(CFLAGS)
 
@@ -56,32 +53,35 @@ mccirc.o: mccirc.c
 strfunctions.o: strfunctions.c
 	$(CC) -c strfunctions.c -o strfunctions.o $(CFLAGS)
 
-../minichatclient-niki/utils/CIrc/irc_user.o: ../minichatclient-niki/utils/CIrc/irc_user.c
-	$(CC) -c ../minichatclient-niki/utils/CIrc/irc_user.c -o ../minichatclient-niki/utils/CIrc/irc_user.o $(CFLAGS)
+CIrc/irc_user.o: CIrc/irc_user.c
+	$(CC) -c CIrc/irc_user.c -o CIrc/irc_user.o $(CFLAGS)
 
-../minichatclient-niki/utils/CIrc/irc_chan.o: ../minichatclient-niki/utils/CIrc/irc_chan.c
-	$(CC) -c ../minichatclient-niki/utils/CIrc/irc_chan.c -o ../minichatclient-niki/utils/CIrc/irc_chan.o $(CFLAGS)
+CIrc/irc_chan.o: CIrc/irc_chan.c
+	$(CC) -c CIrc/irc_chan.c -o CIrc/irc_chan.o $(CFLAGS)
 
-../minichatclient-niki/utils/CIrc/irc_client.o: ../minichatclient-niki/utils/CIrc/irc_client.c
-	$(CC) -c ../minichatclient-niki/utils/CIrc/irc_client.c -o ../minichatclient-niki/utils/CIrc/irc_client.o $(CFLAGS)
+CIrc/irc_client.o: CIrc/irc_client.c
+	$(CC) -c CIrc/irc_client.c -o CIrc/irc_client.o $(CFLAGS)
 
-../minichatclient-niki/utils/CIrc/irc_server.o: ../minichatclient-niki/utils/CIrc/irc_server.c
-	$(CC) -c ../minichatclient-niki/utils/CIrc/irc_server.c -o ../minichatclient-niki/utils/CIrc/irc_server.o $(CFLAGS)
+CIrc/irc_server.o: CIrc/irc_server.c
+	$(CC) -c CIrc/irc_server.c -o CIrc/irc_server.o $(CFLAGS)
 
-../minichatclient-niki/utils/CUtils/net.o: ../minichatclient-niki/utils/CUtils/net.c
-	$(CC) -c ../minichatclient-niki/utils/CUtils/net.c -o ../minichatclient-niki/utils/CUtils/net.o $(CFLAGS)
+CUtils/net.o: CUtils/net.c
+	$(CC) -c CUtils/net.c -o CUtils/net.o $(CFLAGS)
 
-../minichatclient-niki/utils/CUtils/attribute.o: ../minichatclient-niki/utils/CUtils/attribute.c
-	$(CC) -c ../minichatclient-niki/utils/CUtils/attribute.c -o ../minichatclient-niki/utils/CUtils/attribute.o $(CFLAGS)
+CUtils/attribute.o: CUtils/attribute.c
+	$(CC) -c CUtils/attribute.c -o CUtils/attribute.o $(CFLAGS)
 
-../minichatclient-niki/utils/CUtils/clist.o: ../minichatclient-niki/utils/CUtils/clist.c
-	$(CC) -c ../minichatclient-niki/utils/CUtils/clist.c -o ../minichatclient-niki/utils/CUtils/clist.o $(CFLAGS)
+CUtils/clist.o: CUtils/clist.c
+	$(CC) -c CUtils/clist.c -o CUtils/clist.o $(CFLAGS)
 
-../minichatclient-niki/utils/CUtils/cstring.o: ../minichatclient-niki/utils/CUtils/cstring.c
-	$(CC) -c ../minichatclient-niki/utils/CUtils/cstring.c -o ../minichatclient-niki/utils/CUtils/cstring.o $(CFLAGS)
+CUtils/cstring.o: CUtils/cstring.c
+	$(CC) -c CUtils/cstring.c -o CUtils/cstring.o $(CFLAGS)
 
-../minichatclient-niki/utils/CUtils/ini.o: ../minichatclient-niki/utils/CUtils/ini.c
-	$(CC) -c ../minichatclient-niki/utils/CUtils/ini.c -o ../minichatclient-niki/utils/CUtils/ini.o $(CFLAGS)
+CUtils/ini.o: CUtils/ini.c
+	$(CC) -c CUtils/ini.c -o CUtils/ini.o $(CFLAGS)
+
+../minichatclient-niki/gotcurses.o: ../minichatclient-niki/gotcurses.c
+	$(CC) -c ../minichatclient-niki/gotcurses.c -o ../minichatclient-niki/gotcurses.o $(CFLAGS)
 
 project_private.res: project_private.rc 
 	$(WINDRES) -i project_private.rc --input-format=rc -o project_private.res -O coff 

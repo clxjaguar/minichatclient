@@ -46,25 +46,14 @@ irc_server_connection *irc_server_connection_new();
 void irc_server_callback_free(irc_server_callback *self);
 void irc_server_callbacks_free(irc_server_callbacks *self);
 void irc_server_connection_free(irc_server_connection *self);
-
 int irc_server_handle_line(irc_server_connection *con);
 int irc_server_accept_connection(irc_server *server);
-
-irc_server_connection *irc_server_get_connection(irc_server *self,
-		const char username[]);
+irc_server_connection *irc_server_get_connection(irc_server *self, const char username[]);
 irc_chan *irc_server_get_chan(irc_server *self, const char channame[]);
-
-void irc_server_privmsg_int(irc_server *self, const char target[], irc_user *user,
-		const char message[], int notify_sender);
-
-void irc_server_privmsg_u(irc_server_connection *con, const char target[],
-		irc_user *user, const char message[]);
-
+void irc_server_privmsg_int(irc_server *self, const char target[], irc_user *user, const char message[], int notify_sender);
+void irc_server_privmsg_u(irc_server_connection *con, const char target[], irc_user *user, const char message[]);
 void irc_server_add_callback(clist *callbacks, void *function, void *data);
-
-void irc_server_cstring_add_action(irc_server_connection *con, cstring *string,
-		char action[]);
-
+void irc_server_cstring_add_action(irc_server_connection *con, cstring *string, char action[]);
 void irc_server_rpl_register(irc_server_connection *con);
 void irc_server_rpl_topic(irc_server_connection *con, irc_chan *chan);
 void irc_server_rpl_names(irc_server_connection *con, irc_chan *chan);
@@ -80,8 +69,7 @@ char *irc_server_extract_bc(const char input[]);
  */
 char *irc_server_extract_ac(const char input[]);
 
-int irc_server_on_all_do(irc_client *client, const char from[],
-		const char action[], const char args[], void *data);
+int irc_server_on_all_do(irc_client *client, const char from[], const char action[], const char args[], void *data);
 
 void irc_server_client_died(irc_server *self, irc_server_connection *con);
 
@@ -118,7 +106,6 @@ irc_server_connection *irc_server_connection_new() {
 	self->socket = -1;
 	self->user = irc_user_new();
 	self->client = NULL;
-
 	return self;
 }
 
@@ -127,25 +114,17 @@ void irc_server_callback_free(irc_server_callback *self) {
 }
 
 void irc_server_callbacks_free(irc_server_callbacks *self) {
-	if (self->join != NULL)
-		clist_free(self->join);
-	if (self->regist != NULL)
-		clist_free(self->regist);
-	if (self->idle != NULL)
-		clist_free(self->idle);
-	if (self->mess != NULL)
-		clist_free(self->mess);
+	if (self->join   != NULL){ clist_free(self->join); }
+	if (self->regist != NULL){ clist_free(self->regist); }
+	if (self->idle   != NULL){ clist_free(self->idle); }
+	if (self->mess   != NULL){ clist_free(self->mess); }
 	free(self);
 }
 
 void irc_server_connection_free(irc_server_connection *self) {
 	// Socket should already be closed.
-
-	if (self->client != NULL)
-		irc_client_free(self->client);
-	if (self->user != NULL)
-		irc_user_free(self->user);
-
+	if (self->client != NULL){ irc_client_free(self->client); }
+	if (self->user   != NULL){ irc_user_free(self->user); }
 	free(self);
 }
 
@@ -216,9 +195,11 @@ int irc_server_do_work(irc_server *self) {
 			if (con->client && !irc_client_is_alive(con->client)) {
 				irc_server_client_died(self, con);
 				to_del = node;
-			} else {
-				if (irc_server_handle_line(con))
+			}
+			else {
+				if (irc_server_handle_line(con)) {
 					did_work = work = 1;
+				}
 			}
 			
 			node = node->next;
@@ -417,8 +398,7 @@ int irc_server_accept_connection(irc_server *self) {
 	clist_node *node;
 	
 	work = 0;
-	for (socket = net_accept(self->socket) ; socket >= 0 ; 
-			socket = net_accept(self->socket)) {
+	for (socket = net_accept(self->socket); socket >= 0; socket = net_accept(self->socket)) {
 		work = 1;
 		net_set_non_blocking(socket);
 		
@@ -436,18 +416,15 @@ int irc_server_accept_connection(irc_server *self) {
 	return work;
 }
 
-irc_server_connection *irc_server_get_connection(irc_server *self,
-		const char username[]) {
+irc_server_connection *irc_server_get_connection(irc_server *self, const char username[]) {
 	clist_node *node;
 	irc_server_connection *con;
 
-	for (node = self->clients->first ; node != NULL ; 
-			node = node->next) {
+	for (node = self->clients->first; node != NULL; node = node->next) {
 		con = (irc_server_connection *)node->data;
 		if (con->user != NULL && !strcmp(con->user->nick, username))
 			return con;
 	}
-	
 	return NULL;
 }
 
@@ -475,14 +452,12 @@ irc_chan *irc_server_get_chan(irc_server *self, const char channame[]) {
 	return chan;
 }
 
-void irc_server_privmsg_int(irc_server *self, const char target[], irc_user *user,
-		const char message[], int notify_sender) {
+void irc_server_privmsg_int(irc_server *self, const char target[], irc_user *user, const char message[], int notify_sender) {
 	irc_server_connection *con;
 	irc_chan *chan;
 	clist_node *node;
 	irc_server_callback *callback;
-	void (*function)(irc_server *self, irc_user *user, 
-		const char target[], const char message[], void *data);
+	void (*function)(irc_server *self, irc_user *user, const char target[], const char message[], void *data);
 	
 	con = irc_server_get_connection(self, target);
 	// Target is a USER
@@ -497,11 +472,10 @@ void irc_server_privmsg_int(irc_server *self, const char target[], irc_user *use
 		if (chan != NULL) {
 			// Tell all users from CHAN, caller excluded
 			for (node = chan->users->first; node != NULL; node = node->next) {
-				con = irc_server_get_connection(self,
-						((irc_user *) (node->data))->nick);
-				if ((con != NULL) && 
-						(notify_sender || strcmp(con->user->nick, user->nick)))
+				con = irc_server_get_connection(self, ((irc_user *) (node->data))->nick);
+				if ((con != NULL) && (notify_sender || strcmp(con->user->nick, user->nick))) {
 					irc_server_privmsg_u(con, target, user, message);
+				}
 			}
 		}
 	}
@@ -513,8 +487,7 @@ void irc_server_privmsg_int(irc_server *self, const char target[], irc_user *use
 	}
 }
 
-void irc_server_privmsg_u(irc_server_connection *con, const char target[],
-		irc_user *user, const char message[]) {
+void irc_server_privmsg_u(irc_server_connection *con, const char target[], irc_user *user, const char message[]) {
 	cstring *string;
 	
 	string = cstring_new();
@@ -545,8 +518,7 @@ void irc_server_add_callback(clist *callback_list, void *function, void *data) {
 	clist_add(callback_list, node);
 }
 
-void irc_server_cstring_add_action(irc_server_connection *con, cstring *string,
-		char action[]) {
+void irc_server_cstring_add_action(irc_server_connection *con, cstring *string, char action[]) {
 	cstring_addc(string, ':');
 	cstring_adds(string, con->server->server);
 	cstring_addc(string, ' ');
@@ -659,8 +631,7 @@ void irc_server_rpl_register(irc_server_connection *con) {
 
 	cstring_free(string);
 
-	for (node = con->server->callbacks->regist->first; node != NULL;
-			node = node->next) {
+	for (node = con->server->callbacks->regist->first; node != NULL; node = node->next) {
 		callback = node->data;
 		function = callback->callback;
 		function(con->server, con->user, callback->data);
@@ -677,7 +648,8 @@ void irc_server_rpl_topic(irc_server_connection *con, irc_chan *chan) {
 		cstring_adds(string, chan->name);
 		cstring_adds(string, " :");
 		cstring_adds(string, chan->topic);
-	} else {
+	}
+	else {
 		irc_server_cstring_add_action(con, string, "331"); //RPL_NOTOPIC
 		cstring_addc(string, ' ');
 		cstring_adds(string, chan->name);
@@ -764,12 +736,13 @@ char *irc_server_extract_bc(const char input[]) {
 	
 	if (i >= 0) {
 		// Remove the trailing space if any
-		if (i > 0 && string->string[i - 1] == ' ')
+		if (i > 0 && string->string[i - 1] == ' ') {
 			i--;
-		
+		}
 		cstring_cut_at(string, i);
 		return cstring_convert(string);
-	} else {
+	} 
+	else {
 		return cstring_convert(string);
 	}
 }
@@ -785,21 +758,22 @@ char *irc_server_extract_ac(const char input[]) {
 		tmp = cstring_substring(string, i + 1, 0);
 		cstring_free(string);
 		return cstring_convert(tmp);
-	} else if (i == 0) {
+	}
+	else if (i == 0) {
 		cstring_free(string);
 		return cstring_sclones("");
-	} else {
+	}
+	else {
 		cstring_free(string);
 		return NULL;
 	}
 }
 
-int irc_server_on_all_do(irc_client *client, const char from[],
-		const char action[], const char args[], void *data) {
-	
+int irc_server_on_all_do(irc_client *client, const char from[], const char action[], const char args[], void *data) {
 	char *ff = NULL;
-	if (ff == from)
+	if (ff == from){
 		ff = NULL;
+	}
 	client = NULL;
 
 	irc_server_connection *con;
@@ -815,15 +789,17 @@ int irc_server_on_all_do(irc_client *client, const char from[],
 		cstring_adds(string, con->server->server);
 		irc_client_raw(con->client, string->string);
 		cstring_free(string);
-	} else if (!strcmp(action, "NICK")) {
+	} 
+	else if (!strcmp(action, "NICK")) {
 		if (con->user->hostname != NULL && con->user->server != NULL) {
-			irc_user_set_user(con->user, args, con->user->hostname,
-					con->user->server);
+			irc_user_set_user(con->user, args, con->user->hostname, con->user->server);
 			irc_server_rpl_register(con);
-		} else {
+		}
+		else {
 			irc_user_set_user(con->user, args, "", "");
 		}
-	} else if (!strcmp(action, "USER")) {
+	}
+	else if (!strcmp(action, "USER")) {
 		cstring *uargs = cstring_new();
 		cstring *uhost = cstring_new();
 		cstring *userver = cstring_new();

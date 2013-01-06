@@ -69,17 +69,12 @@ void irc_client_add_callback(clist *callbacks, void *callback, void *data);
 // The following functions simply forward the call the the list of
 // callbacks ("all" is special, it returns true as soon as a callback
 // returns true, without checking the next ones).
-int irc_client_on_all_do(irc_client *self, const char from[],
-		const char action[], const char args[]);
+int irc_client_on_all_do(irc_client *self, const char from[], const char action[], const char args[]);
 void irc_client_on_ping_do(irc_client *self, const char ping[]);
-void irc_client_on_privmsg_do(irc_client *self, const char from[],
-		const char to[], const char message[]);
-void irc_client_on_notice_do(irc_client *self, const char from[],
-		const char message[]);
-void irc_client_on_num_do(irc_client *self, const char from[], int action,
-		const char args[]);
-void irc_client_on_other_do(irc_client *self, const char from[],
-		const char action[], const char args[]);
+void irc_client_on_privmsg_do(irc_client *self, const char from[], const char to[], const char message[]);
+void irc_client_on_notice_do(irc_client *self, const char from[], const char message[]);
+void irc_client_on_num_do(irc_client *self, const char from[], int action, const char args[]);
+void irc_client_on_other_do(irc_client *self, const char from[], const char action[], const char args[]);
 //
 
 /**
@@ -133,7 +128,6 @@ void irc_client_free_callbacks(irc_client_callbacks *self) {
 	clist_free(self->num);
 	clist_free(self->other);
 	clist_free(self->regist);
-
 	free(self);
 }
 
@@ -149,24 +143,18 @@ irc_client *irc_client_new() {
 	self->socket = -1;
 	self->file = NULL;
 	self->buffer = cstring_new();
-	self->debug = 0;
+	self->debug = 1; //FIXME : place it to 0
 	self->cont = 1;
 
 	return self;
 }
 
 void irc_client_free(irc_client *self) {
-	if (self->file != NULL)
-		fclose(self->file);
-	if (self->user != NULL)
-		irc_user_free(self->user);
-	if (self->server != NULL)
-		free(self->server);
-	if (self->buffer != NULL)
-		cstring_free(self->buffer);
-	if (self->callbacks != NULL)
-		irc_client_free_callbacks(self->callbacks);
-
+	if (self->file      != NULL) { fclose(self->file); }
+	if (self->user      != NULL) { irc_user_free(self->user); }
+	if (self->server    != NULL) { free(self->server); }
+	if (self->buffer    != NULL) { cstring_free(self->buffer); }
+	if (self->callbacks != NULL) { irc_client_free_callbacks(self->callbacks); }
 	free(self);
 }
 
@@ -185,8 +173,9 @@ void irc_client_set_auto_pong(irc_client *self, int auto_pong) {
 		node = clist_get(self->callbacks->ping, self->auto_pong);
 		node = clist_remove(self->callbacks->ping, node);
 		self->auto_pong = -1;
-		if (node != NULL)
+		if (node != NULL) {
 			clist_node_free(node);
+		}
 	}
 	else if (!irc_client_is_auto_pong(self) && auto_pong) {
 		self->auto_pong = self->callbacks->ping->size;
@@ -210,27 +199,22 @@ int irc_client_is_alive(irc_client *self) {
 	return self->cont;
 }
 
-int irc_client_connect(irc_client *self, const char server[], int port,
-		int blocking) {
+int irc_client_connect(irc_client *self, const char server[], int port, int blocking) {
 	int socket;
 	
 	socket = net_connect(server, port);
-	if (!blocking)
+	if (!blocking) {
 		net_set_non_blocking(socket);
+	}
 	
 	return irc_client_connect_to(self, server, port, socket);
 }
 
-int irc_client_connect_to(irc_client *self, const char server[], int port,
-		int socket) {
-
-	if (self->server != NULL)
-		free(self->server);
-		
+int irc_client_connect_to(irc_client *self, const char server[], int port, int socket) {
+	if (self->server != NULL) { free(self->server); }
 	self->server = cstring_sclones(server);
 	self->port = port;
 	self->socket = socket;
-
 	return self->socket;
 }
 
@@ -314,13 +298,24 @@ int irc_client_raw(irc_client *self, const char message[]) {
 int irc_client_do_work(irc_client *self) {
 	int work;
 	
-	if (!self->cont)
+	if (!self->cont){
 		return 0;
-	
-	if (self->file == NULL)
+	}
+	if (self->file == NULL) {
+#ifdef WIN32
+		//FIXME: on ne peut pas faire de _fdopen sur un socket.
+		// il faudrait s'en passer et juste utiliser recv et send, non ?
+		self->file = _fdopen(self->socket, "r");
+#else
 		self->file = fdopen(self->socket, "r");
-	if (self->file == NULL)
+#endif
+	}
+	if (self->file == NULL) {
+		if (self->debug){
+			fprintf(stderr, "%s:%d : Woops! self->file == NULL\n", __FILE__, __LINE__);	
+		}
 		return 0;
+	}
 	
 	//TODO: support partial lines in buffer
 	cstring_readline(self->buffer, self->file);
@@ -334,42 +329,31 @@ int irc_client_do_work(irc_client *self) {
 	return work;
 }
 
-void irc_client_on_all(irc_client *self, int( callback)(irc_client *self,
-		const char from[], const char action[], const char args[], void *data),
-		void *data) {
+void irc_client_on_all(irc_client *self, int( callback)(irc_client *self, const char from[], const char action[], const char args[], void *data), void *data) {
 	irc_client_add_callback(self->callbacks->all, callback, data);
 }
 
-void irc_client_on_ping(irc_client *self, void(*callback)(irc_client *self,
-		const char ping[], void *data), void *data) {
+void irc_client_on_ping(irc_client *self, void(*callback)(irc_client *self, const char ping[], void *data), void *data) {
 	irc_client_add_callback(self->callbacks->ping, callback, data);
 }
 
-void irc_client_on_privmsg(irc_client *self, void(*callback)(irc_client *self,
-		irc_user *from, const char to[], const char message[], void *data),
-		void *data) {
+void irc_client_on_privmsg(irc_client *self, void(*callback)(irc_client *self, irc_user *from, const char to[], const char message[], void *data), void *data) {
 	irc_client_add_callback(self->callbacks->privmsg, callback, data);
 }
 
-void irc_client_on_notice(irc_client *self, void(*callback)(irc_client *self,
-		const char from[], const char message[], void *data), void *data) {
+void irc_client_on_notice(irc_client *self, void(*callback)(irc_client *self, const char from[], const char message[], void *data), void *data) {
 	irc_client_add_callback(self->callbacks->notice, callback, data);
 }
 
-void irc_client_on_num(irc_client *self, void(*callback)(irc_client *self,
-		const char from[], int action, const char args[], void *data),
-		void *data) {
+void irc_client_on_num(irc_client *self, void(*callback)(irc_client *self, const char from[], int action, const char args[], void *data), void *data) {
 	irc_client_add_callback(self->callbacks->num, callback, data);
 }
 
-void irc_client_on_register(irc_client *self, void(*callback)(irc_client *self,
-		const char from[], const char args[], void *data), void *data) {
+void irc_client_on_register(irc_client *self, void(*callback)(irc_client *self, const char from[], const char args[], void *data), void *data) {
 	irc_client_add_callback(self->callbacks->regist, callback, data);
 }
 
-void irc_client_on_other(irc_client *self, void(*callback)(irc_client *self,
-		const char from[], const char action[], const char args[], void *data),
-		void *data) {
+void irc_client_on_other(irc_client *self, void(*callback)(irc_client *self, const char from[], const char action[], const char args[], void *data), void *data) {
 	irc_client_add_callback(self->callbacks->other, callback, data);
 }
 
@@ -395,8 +379,9 @@ void irc_client_add_callback(clist *callbacks, void *function, void *data) {
 void irc_client_on_ping_pong(irc_client *self, const char ping[], void *data) {
 	cstring *pong;
 
-	if (data != NULL)
+	if (data != NULL){
 		data = NULL;
+	}
 
 	pong = cstring_new();
 	cstring_adds(pong, "PONG ");
@@ -407,17 +392,14 @@ void irc_client_on_ping_pong(irc_client *self, const char ping[], void *data) {
 	cstring_free(pong);
 }
 
-int irc_client_on_all_do(irc_client *self, const char from[],
-		const char action[], const char args[]) {
+int irc_client_on_all_do(irc_client *self, const char from[], const char action[], const char args[]) {
 	clist_node *node;
 	int handled;
 	irc_client_callback *callback;
-	int (*function)(irc_client *self, const char from[], const char action[],
-			const char args[], void *data);
+	int (*function)(irc_client *self, const char from[], const char action[], const char args[], void *data);
 
 	handled = 0;
-	for (node = self->callbacks->all->first; !handled && node != NULL; node
-			= node->next) {
+	for (node = self->callbacks->all->first; !handled && node != NULL; node = node->next) {
 		callback = node->data;
 		function = callback->callback;
 		handled = function(self, from, action, args, callback->data);
@@ -438,19 +420,16 @@ void irc_client_on_ping_do(irc_client *self, const char ping[]) {
 	}
 }
 
-void irc_client_on_privmsg_do(irc_client *self, const char from[],
-		const char to[], const char message[]) {
+void irc_client_on_privmsg_do(irc_client *self, const char from[], const char to[], const char message[]) {
 	clist_node *node;
 	irc_user *ufrom;
 	irc_client_callback *callback;
-	void (*function)(irc_client *self, irc_user *from, const char to[],
-			const char message[], void *data);
+	void (*function)(irc_client *self, irc_user *from, const char to[], const char message[], void *data);
 
 	if (self->callbacks->privmsg->first != NULL) {
 		ufrom = irc_user_new();
 		irc_user_set_hostmask(ufrom, from);
-		for (node = self->callbacks->privmsg->first; node != NULL; node
-				= node->next) {
+		for (node = self->callbacks->privmsg->first; node != NULL; node = node->next) {
 			callback = node->data;
 			function = callback->callback;
 			function(self, ufrom, to, message, callback->data);
@@ -458,12 +437,10 @@ void irc_client_on_privmsg_do(irc_client *self, const char from[],
 	}
 }
 
-void irc_client_on_notice_do(irc_client *self, const char from[],
-		const char message[]) {
+void irc_client_on_notice_do(irc_client *self, const char from[], const char message[]) {
 	clist_node *node;
 	irc_client_callback *callback;
-	void (*function)(irc_client *self, const char from[], const char message[],
-			void *data);
+	void (*function)(irc_client *self, const char from[], const char message[], void *data);
 
 	for (node = self->callbacks->notice->first; node != NULL; node = node->next) {
 		callback = node->data;
@@ -472,20 +449,16 @@ void irc_client_on_notice_do(irc_client *self, const char from[],
 	}
 }
 
-void irc_client_on_num_do(irc_client *self, const char from[], int action,
-		const char args[]) {
+void irc_client_on_num_do(irc_client *self, const char from[], int action, const char args[]) {
 	clist_node *node;
 	irc_client_callback *callback;
-	int (*function)(irc_client *self, const char from[], int action,
-			const char args[], void *data);
-	int (*function_r)(irc_client *self, const char from[], const char args[],
-			void *data);
+	int (*function)(irc_client *self, const char from[], int action, const char args[], void *data);
+	int (*function_r)(irc_client *self, const char from[], const char args[], void *data);
 
 	if (action > 5) {
 		if (!self->registered) {
 			self->registered = 1;
-			for (node = self->callbacks->regist->first; node != NULL; node
-					= node->next) {
+			for (node = self->callbacks->regist->first; node != NULL; node = node->next) {
 				callback = node->data;
 				function_r = callback->callback;
 				function_r(self, from, args, callback->data);
@@ -500,12 +473,10 @@ void irc_client_on_num_do(irc_client *self, const char from[], int action,
 	}
 }
 
-void irc_client_on_other_do(irc_client *self, const char from[],
-		const char action[], const char args[]) {
+void irc_client_on_other_do(irc_client *self, const char from[], const char action[], const char args[]) {
 	clist_node *node;
 	irc_client_callback *callback;
-	int (*function)(irc_client *self, const char from[], const char action[],
-			const char args[], void *data);
+	int (*function)(irc_client *self, const char from[], const char action[], const char args[], void *data);
 
 	for (node = self->callbacks->other->first; node != NULL; node = node->next) {
 		callback = node->data;
@@ -524,8 +495,9 @@ int irc_client_handle_line(irc_client *self, const char line[]) {
 	char *sargs;
 	int ok;
 
-	if (self->debug)
+	if (self->debug){
 		fprintf(stderr, " IN: %s\n", line);
+	}
 
 	string = cstring_new();
 	cstring_adds(string, line);
@@ -533,8 +505,7 @@ int irc_client_handle_line(irc_client *self, const char line[]) {
 	action = NULL;
 	from = NULL;
 
-	for (i = 0; i < string->length && string->string[i] == ' '; i++)
-		;
+	for (i = 0; i < string->length && string->string[i] == ' '; i++);
 	first_space = cstring_finds(string, " ", i);
 
 	if (string->length > i && first_space > 0) {
@@ -547,9 +518,7 @@ int irc_client_handle_line(irc_client *self, const char line[]) {
 				cstring_free(action);
 				action = NULL;
 
-				for (i = first_space; i < string->length && string->string[i]
-						== ' '; i++)
-					;
+				for (i = first_space; i < string->length && string->string[i] == ' '; i++);
 				first_space = cstring_finds(string, " ", i);
 
 				if (string->length > i && first_space > 0) {
@@ -571,35 +540,35 @@ int irc_client_handle_line(irc_client *self, const char line[]) {
 							irc_client_on_ping_do(self, ping->string);
 							cstring_free(ping);
 						}
-					} else if (!strcmp(action->string, "NOTICE")) {
+					} 
+					else if (!strcmp(action->string, "NOTICE")) {
 						irc_client_on_notice_do(self, sfrom, sargs);
-					} else if (!strcmp(action->string, "PRIVMSG")) {
-						for (i = 0; i < args->length && args->string[i] == ' '; i++)
-							;
+					} 
+					else if (!strcmp(action->string, "PRIVMSG")) {
+						for (i = 0; i < args->length && args->string[i] == ' '; i++);
 						first_space = cstring_finds(args, " ", i);
-						if (((size_t) first_space + 1 < args->length)
-								&& args->string[first_space + 1] == ':')
+						if (((size_t) first_space + 1 < args->length) && args->string[first_space + 1] == ':') {
 							first_space++;
+						}
 						message = cstring_substring(args, first_space + 1, 0);
 						cstring_cut_at(args, first_space);
 						irc_client_on_privmsg_do(self, sfrom, sargs,
 								message->string);
-					} else {
-						// check if we have a numerical action (always 3 numbers)
+					}
+					else {
+						// check if we have a numerical action (always 3 digits)
 						num = atoi(action->string);
 						tmp = cstring_new();
-						if (num < 100)
-							cstring_adds(tmp, "0");
-						if (num < 10)
-							cstring_adds(tmp, "0");
+						if (num < 100) { cstring_adds(tmp, "0"); }
+						if (num < 10)  { cstring_adds(tmp, "0"); }
 						cstring_addi(tmp, num);
 						if (!strcmp(tmp->string, action->string)) {
 							// numerical action
 							irc_client_on_num_do(self, sfrom, num, sargs);
-						} else {
+						} 
+						else {
 							// other action
-							irc_client_on_other_do(self, sfrom, action->string,
-									sargs);
+							irc_client_on_other_do(self, sfrom, action->string, sargs);
 						}
 						cstring_free(tmp);
 					}
@@ -609,10 +578,8 @@ int irc_client_handle_line(irc_client *self, const char line[]) {
 			}
 		}
 
-		if (action != NULL)
-			cstring_free(action);
-		if (from != NULL)
-			cstring_free(from);
+		if (action != NULL) { cstring_free(action); }
+		if (from   != NULL) { cstring_free(from); }
 	}
 
 	cstring_free(string);
