@@ -33,7 +33,7 @@ CompilerSettings=0000000000000000000000
 Major=0
 Minor=1
 Release=1
-Build=811
+Build=837
 LanguageID=1033
 CharsetID=1252
 CompanyName=cLx
@@ -138,16 +138,6 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit18]
-FileName=mccirc.c
-CompileCpp=0
-Folder=rmcgirr83.org minichat client
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit19]
 FileName=strfunctions.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
@@ -157,8 +147,18 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
 
+[Unit19]
+FileName=CIrc\irc_user.c
+CompileCpp=0
+Folder=rmcgirr83.org minichat client
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
 [Unit20]
-FileName=..\minichatclient-niki\utils\CIrc\irc_user.c
+FileName=CIrc\irc_chan.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -168,7 +168,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit21]
-FileName=..\minichatclient-niki\utils\CIrc\irc_chan.c
+FileName=CIrc\irc_client.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -178,7 +178,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit22]
-FileName=..\minichatclient-niki\utils\CIrc\irc_client.c
+FileName=CIrc\irc_server.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -188,7 +188,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit23]
-FileName=..\minichatclient-niki\utils\CIrc\irc_server.c
+FileName=CUtils\net.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -197,18 +197,8 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
 
-[Unit14]
-FileName=gotcurses.c
-CompileCpp=0
-Folder=rmcgirr83.org minichat client
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=$(CC) -c gotcurses.c -o gotcurses.o $(CFLAGS)
-
 [Unit17]
-FileName=main.c
+FileName=mccirc.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -228,7 +218,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit15]
-FileName=display_interfaces.h
+FileName=commons.h
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -238,7 +228,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit16]
-FileName=commons.h
+FileName=main.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -277,18 +267,8 @@ Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
 
-[Unit28]
-FileName=..\minichatclient-niki\utils\CUtils\ini.c
-CompileCpp=0
-Folder=rmcgirr83.org minichat client
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
 [Unit29]
-FileName=..\minichatclient-niki\utils\CUtils\ini.c
+FileName=CUtils\ini.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -298,7 +278,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit25]
-FileName=..\minichatclient-niki\utils\CUtils\attribute.c
+FileName=CUtils\clist.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -308,7 +288,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit30]
-FileName=..\minichatclient-niki\utils\CUtils\ini.c
+FileName=CUtils\ini.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -318,7 +298,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit31]
-FileName=..\minichatclient-niki\utils\CUtils\ini.c
+FileName=CUtils\ini.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -328,7 +308,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit32]
-FileName=..\minichatclient-niki\utils\CUtils\ini.c
+FileName=CUtils\ini.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -338,7 +318,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit27]
-FileName=..\minichatclient-niki\utils\CUtils\cstring.c
+FileName=CUtils\ini.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -348,7 +328,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit26]
-FileName=..\minichatclient-niki\utils\CUtils\clist.c
+FileName=CUtils\cstring.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
@@ -358,7 +338,27 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit24]
-FileName=..\minichatclient-niki\utils\CUtils\net.c
+FileName=CUtils\attribute.c
+CompileCpp=0
+Folder=rmcgirr83.org minichat client
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit14]
+FileName=display_interfaces.h
+CompileCpp=0
+Folder=rmcgirr83.org minichat client
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit28]
+FileName=..\minichatclient-niki\gotcurses.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
