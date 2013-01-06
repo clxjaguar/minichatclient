@@ -143,7 +143,7 @@ irc_client *irc_client_new() {
 	self->socket = -1;
 	self->file = NULL;
 	self->buffer = cstring_new();
-	self->debug = 1; //FIXME : place it to 0
+	self->debug = 0;
 	self->cont = 1;
 
 	return self;
