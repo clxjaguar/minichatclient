@@ -114,17 +114,25 @@ void irc_server_callback_free(irc_server_callback *self) {
 }
 
 void irc_server_callbacks_free(irc_server_callbacks *self) {
-	if (self->join   != NULL){ clist_free(self->join); }
-	if (self->regist != NULL){ clist_free(self->regist); }
-	if (self->idle   != NULL){ clist_free(self->idle); }
-	if (self->mess   != NULL){ clist_free(self->mess); }
+	if (self->join != NULL)
+		clist_free(self->join);
+	if (self->regist != NULL)
+		clist_free(self->regist);
+	if (self->idle != NULL)
+		clist_free(self->idle);
+	if (self->mess != NULL)
+		clist_free(self->mess);
+
 	free(self);
 }
 
 void irc_server_connection_free(irc_server_connection *self) {
 	// Socket should already be closed.
-	if (self->client != NULL){ irc_client_free(self->client); }
-	if (self->user   != NULL){ irc_user_free(self->user); }
+	if (self->client != NULL)
+		irc_client_free(self->client);
+	if (self->user != NULL)
+		irc_user_free(self->user);
+
 	free(self);
 }
 
@@ -379,7 +387,7 @@ void irc_server_on_message(irc_server *self, void( callback)(irc_server *self,
 
 int irc_server_handle_line(irc_server_connection *con) {
 	if (con->socket < 0)
-		return 0;	
+		return 0;
 
 	if (con->client == NULL) {
 		con->client = irc_client_new();

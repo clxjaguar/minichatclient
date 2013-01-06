@@ -43,7 +43,6 @@ struct struct_irc_client {
 	int auto_pong; /**< the index of the auto_pong callback, or -1 if none */
 	int port;
 	int socket;
-	FILE *file;
 	cstring *buffer;
 	int registered;
 	int debug;
@@ -141,7 +140,6 @@ irc_client *irc_client_new() {
 	self->auto_pong = -1;
 	self->port = 0;
 	self->socket = -1;
-	self->file = NULL;
 	self->buffer = cstring_new();
 	self->debug = 0;
 	self->cont = 1;
@@ -150,11 +148,15 @@ irc_client *irc_client_new() {
 }
 
 void irc_client_free(irc_client *self) {
-	if (self->file      != NULL) { fclose(self->file); }
-	if (self->user      != NULL) { irc_user_free(self->user); }
-	if (self->server    != NULL) { free(self->server); }
-	if (self->buffer    != NULL) { cstring_free(self->buffer); }
-	if (self->callbacks != NULL) { irc_client_free_callbacks(self->callbacks); }
+	if (self->user != NULL)
+		irc_user_free(self->user);
+	if (self->server != NULL)
+		free(self->server);
+	if (self->buffer != NULL)
+		cstring_free(self->buffer);
+	if (self->callbacks != NULL)
+		irc_client_free_callbacks(self->callbacks);
+	
 	free(self);
 }
 
@@ -297,31 +299,27 @@ int irc_client_raw(irc_client *self, const char message[]) {
 
 int irc_client_do_work(irc_client *self) {
 	int work;
+	clist *lines;
+	clist_node *node;
+	cstring *line;
 	
-	if (!self->cont){
+	if (!self->cont)
 		return 0;
-	}
-	if (self->file == NULL) {
-#ifdef WIN32
-		//FIXME: on ne peut pas faire de _fdopen sur un socket.
-		// il faudrait s'en passer et juste utiliser recv et send, non ?
-		self->file = _fdopen(self->socket, "r");
-#else
-		self->file = fdopen(self->socket, "r");
-#endif
-	}
-	if (self->file == NULL) {
-		if (self->debug){
-			fprintf(stderr, "%s:%d : Woops! self->file == NULL\n", __FILE__, __LINE__);	
-		}
+	
+	if (self->socket < 0)
 		return 0;
-	}
 	
 	//TODO: support partial lines in buffer
-	cstring_readline(self->buffer, self->file);
+	cstring_readnet(self->buffer, self->socket);
 	work = 0;
 	if (self->buffer->length > 0) {
-		irc_client_handle_line(self, self->buffer->string);
+		lines = cstring_splitc(self->buffer, '\n', '\0');
+		for (node = lines->first ; node ; node = node->next) {
+			line = (cstring *)node->data;
+			irc_client_handle_line(self, line->string);
+		}
+		clist_free(lines);
+		
 		work = 1;
 		cstring_clear(self->buffer);
 	}
@@ -495,9 +493,8 @@ int irc_client_handle_line(irc_client *self, const char line[]) {
 	char *sargs;
 	int ok;
 
-	if (self->debug){
+	if (self->debug)
 		fprintf(stderr, " IN: %s\n", line);
-	}
 
 	string = cstring_new();
 	cstring_adds(string, line);

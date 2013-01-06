@@ -36,6 +36,11 @@ struct cstring_private_struct {
  */
 void cstring_remove_crlf(char data[], size_t size);
 
+/**
+ * implement cstring_readline and cstring_readnet.
+ */
+int cstring_readlinenet(cstring *self, FILE *file, int fd);
+
 //end of private prototypes
 
 
@@ -125,8 +130,10 @@ clist *cstring_splitc(cstring *self, char delim, char quote) {
 	d = cstring_new();
 	q = cstring_new();
 
-	cstring_addc(d, delim);
-	cstring_addc(q, quote);
+	if (delim)
+		cstring_addc(d, delim);
+	if (quote)
+		cstring_addc(q, quote);
 
 	list = cstring_split(self, d, q);
 
@@ -143,8 +150,10 @@ clist *cstring_splits(cstring *self, const char delim[], const char quote[]) {
 	d = cstring_new();
 	q = cstring_new();
 
-	cstring_adds(d, delim);
-	cstring_adds(q, quote);
+	if (delim)
+		cstring_adds(d, delim);
+	if (quote)
+		cstring_adds(q, quote);
 
 	list = cstring_split(self, d, q);
 
@@ -160,6 +169,9 @@ clist *cstring_split(cstring *self, cstring *delim, cstring *quote) {
 	clist_node *node;
 	size_t i;
 	int in_quote;
+	int hasdelim;
+
+	hasdelim = delim && delim->length > 0;
 
 	list = clist_new();
 	in_quote = 0;
@@ -176,7 +188,7 @@ clist *cstring_split(cstring *self, cstring *delim, cstring *quote) {
 				node->free_data = cstring_free;
 				clist_add(list, node);
 			}
-			if (!in_quote && cstring_starts_with(self, delim, i)) {
+			if (!in_quote && hasdelim && cstring_starts_with(self, delim, i)) {
 				elem = cstring_new();
 				node = clist_node_new();
 				node->data = elem;
@@ -505,37 +517,68 @@ void cstring_remove_crlf(char data[], size_t size) {
 }
 
 int cstring_readline(cstring *self, FILE *file) {
+	return cstring_readlinenet(self, file, -1);
+}
+
+int cstring_readnet(cstring *self, int fd) {
+	return cstring_readlinenet(self, NULL, fd);
+}
+
+int cstring_readit(char *buffer, FILE *file, int fd, int max, size_t *size) {
+	int net_ok;
+
+	if (file) {
+		fgets(buffer, max, file);
+		*size = strlen(buffer);
+	}
+	else {
+		net_ok = net_read(fd, buffer, max) >= 0;
+		if (!net_ok) {
+			buffer[0] = '\0';
+			*size = 0;
+			return 0;
+		} else {
+			*size = strnlen(buffer, max);
+		}
+	}
+
+	return 1;
+}
+
+int cstring_readlinenet(cstring *self, FILE *file, int fd) {
 	char buffer[BUFFER_SIZE];
 	size_t size;
 	int full_line;
 
+	// sanity check:
+	if (!file && fd < 0)
+		return 0;
+
 	buffer[BUFFER_SIZE - 1] = '\0'; // just in case
 
-	if (file != NULL) {
-		if (!feof(file)) {
-			cstring_clear(self);
-			buffer[0] = '\0';
-			
-			fgets(buffer, 80, file);
-			// Note: strlen() could return 0 if the file contains \0
-			// at the start of a line
-			size = strlen(buffer);
-			full_line = (feof(file) || size == 0 || buffer[size - 1] == '\n');
+	if (fd >= 0 || !feof(file)) {
+		cstring_clear(self);
+		buffer[0] = '\0';
+		
+		// Note: strlen() could return 0 if the file contains \0
+		// at the start of a line
+		if (!cstring_readit(buffer, file, fd, 80, &size))
+			return 0;
+		
+		full_line = ((file && feof(file)) || size == 0 || buffer[size - 1] == '\n');
+		cstring_remove_crlf(buffer, size);
+		cstring_adds(self, buffer);
+		
+		// No luck, we need to continue getting data
+		while (!full_line) {
+			if (!cstring_readit(buffer, file, fd, 80, &size))
+				break;
+
+			full_line = ((file && feof(file)) || size == 0 || buffer[size - 1] == '\n');
 			cstring_remove_crlf(buffer, size);
 			cstring_adds(self, buffer);
-			
-			// No luck, we need to continue getting data
-			while (!full_line) {
-				fgets(buffer, 80, file);
-				size = strlen(buffer);
-				full_line = (feof(file) || size == 0 || buffer[size - 1] == '\n');
-				cstring_remove_crlf(buffer, size);
-				cstring_adds(self, buffer);
-			}
-
-			return 1;
 		}
+		return 1;
 	}
-
 	return 0;
 }

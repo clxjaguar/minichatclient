@@ -402,10 +402,20 @@ void cstring_compact(cstring *self);
  * Read a whole line (CR, LN or CR+LN terminated) from the given file stream.
  *
  * @param self the cstring to read into
- * @param fd the file to read
+ * @param file the file to read
  *
  * @return true if a line was read, false if not
  */
 int cstring_readline(cstring *self, FILE *file);
+
+/**
+ * Read a whole line (CR, LN or CR+LN terminated) from the given socket.
+ *
+ * @param self the cstring to read into
+ * @param fd the socket to read from
+ *
+ * @return true if a line was read, false if not
+ */
+int cstring_readnet(cstring *self, int fd);
 
 #endif
