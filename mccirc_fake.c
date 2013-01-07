@@ -74,3 +74,16 @@ void mccirc_topic(mccirc *self, const char topic[]) {
 	if (topic) {}
 }
 
+void mccirc_nicks_start(mccirc *self) {
+	if (self) {}
+}
+
+void mccirc_nicks_stop(mccirc *self) {
+	if (self) {}
+}
+
+void mccirc_nicks_add(mccirc *self, const char username[]) {
+	if (self) {}
+	if (username) {}
+}
+
