@@ -148,15 +148,10 @@ irc_client *irc_client_new() {
 }
 
 void irc_client_free(irc_client *self) {
-	if (self->user != NULL)
-		irc_user_free(self->user);
-	if (self->server != NULL)
-		free(self->server);
-	if (self->buffer != NULL)
-		cstring_free(self->buffer);
-	if (self->callbacks != NULL)
-		irc_client_free_callbacks(self->callbacks);
-	
+	if (self->user      != NULL) { irc_user_free(self->user); }
+	if (self->server    != NULL) { free(self->server); }
+	if (self->buffer    != NULL) { cstring_free(self->buffer); }
+	if (self->callbacks != NULL) { irc_client_free_callbacks(self->callbacks); }
 	free(self);
 }
 
@@ -170,7 +165,7 @@ int irc_client_is_auto_pong(irc_client *self) {
 
 void irc_client_set_auto_pong(irc_client *self, int auto_pong) {
 	clist_node *node;
-	
+
 	if (irc_client_is_auto_pong(self) && !auto_pong) {
 		node = clist_get(self->callbacks->ping, self->auto_pong);
 		node = clist_remove(self->callbacks->ping, node);
@@ -203,12 +198,11 @@ int irc_client_is_alive(irc_client *self) {
 
 int irc_client_connect(irc_client *self, const char server[], int port, int blocking) {
 	int socket;
-	
+
 	socket = net_connect(server, port);
 	if (!blocking) {
 		net_set_non_blocking(socket);
 	}
-	
 	return irc_client_connect_to(self, server, port, socket);
 }
 
@@ -233,7 +227,7 @@ int irc_client_nick(irc_client *self, const char nick[]) {
 	mess = cstring_new();
 	cstring_adds(mess, "NICK ");
 	cstring_adds(mess, nick);
-	cstring_adds(mess, "\r\n");
+	cstring_adds(mess, "\n");
 	bytes = (size_t) net_write(self->socket, mess->string, mess->length);
 	ok = bytes == mess->length;
 
@@ -241,12 +235,10 @@ int irc_client_nick(irc_client *self, const char nick[]) {
 		fprintf(stderr, "OUT: %s\n", mess->string);
 
 	cstring_free(mess);
-
 	return ok;
 }
 
-int irc_client_user(irc_client *self, const char user[], const char hostname[],
-		const char server[], const char real_name[]) {
+int irc_client_user(irc_client *self, const char user[], const char hostname[], const char server[], const char real_name[]) {
 	cstring *mess;
 	size_t bytes;
 	int ok;
@@ -263,7 +255,7 @@ int irc_client_user(irc_client *self, const char user[], const char hostname[],
 	cstring_adds(mess, server);
 	cstring_adds(mess, " :");
 	cstring_adds(mess, real_name);
-	cstring_adds(mess, "\r\n");
+	cstring_adds(mess, "\n");
 	bytes = (size_t) net_write(self->socket, mess->string, mess->length);
 	ok = bytes == mess->length;
 
@@ -282,18 +274,18 @@ int irc_client_raw(irc_client *self, const char message[]) {
 
 	mess = cstring_new();
 	cstring_adds(mess, message);
-	cstring_adds(mess, "\r\n");
+	cstring_adds(mess, "\n");
 	sbytes = net_write(self->socket, mess->string, mess->length);
 	ok = (sbytes >= 0 && ((size_t) sbytes) == mess->length);
 
-	if (self->debug)
+	if (self->debug) {
 		fprintf(stderr, ok ? "OUT: %s" : "O!!: %s", mess->string);
-
+	}
 	cstring_free(mess);
-	
-	if (!ok) // && errno == SIGPIPE)
+
+	if ((!ok) /* && errno == SIGPIPE)*/) {
 		irc_client_stop(self);
-	
+	}
 	return ok;
 }
 
@@ -302,13 +294,10 @@ int irc_client_do_work(irc_client *self) {
 	clist *lines;
 	clist_node *node;
 	cstring *line;
-	
-	if (!self->cont)
-		return 0;
-	
-	if (self->socket < 0)
-		return 0;
-	
+
+	if (!self->cont)      { return 0; }
+	if (self->socket < 0) { return 0; }
+
 	//TODO: support partial lines in buffer
 	cstring_readnet(self->buffer, self->socket);
 	work = 0;
@@ -319,11 +308,10 @@ int irc_client_do_work(irc_client *self) {
 			irc_client_handle_line(self, line->string);
 		}
 		clist_free(lines);
-		
+
 		work = 1;
 		cstring_clear(self->buffer);
 	}
-	
 	return work;
 }
 
