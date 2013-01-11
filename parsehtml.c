@@ -80,7 +80,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 	static tstate oldstate = READY;
 #endif
 
-	if (reset) { 
+	if (reset) {
 		state = READY;
 		j=0; l=0;
 		o=0;
@@ -93,7 +93,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 
 #ifdef DEBUG
 	else {
-		fprintf(stderr, "[CONT]"); 
+		fprintf(stderr, "[CONT]");
 	}
 #endif
 
@@ -102,10 +102,10 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 	for (i=0; i<bytes; i++){
 #ifdef DEBUG
 		if (state != oldstate) {
-			fprintf(stderr, "[S%u=>S%u]", oldstate, state); 
+			fprintf(stderr, "[S%u=>S%u]", oldstate, state);
 			oldstate = state;
 		}
-		fprintf(stderr, "%c", input[i]); 
+		fprintf(stderr, "%c", input[i]);
 #endif
 		if (input[i] == '\r') { continue; }
 		if (input[i] == '\n') { continue; }
@@ -114,20 +114,20 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 			case READY:
 				// message ?
 				if (input[i] == str1[j++]) {
-					if (j >= strlen(str1)) { 
+					if (j >= strlen(str1)) {
 						j=0;
 						o=0;
-						state = IN_MSG_ID; 
+						state = IN_MSG_ID;
 					}
 				}
 				else { j=0; }
 
 				// stats ?
 				if ((input[i] == str6[l])||(input[i] == str7[l])) {
-					if (++l >= strlen(str6)) { 
+					if (++l >= strlen(str6)) {
 						l=0;
 						o=0;
-						state = LOOKING_FOR_STATS; 
+						state = LOOKING_FOR_STATS;
 					}
 				}
 				else { l=0; }
@@ -140,7 +140,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 					msg->msgid[j] = '\0'; j = 0;
 					state = LOOKING_FOR_USERICON_URL;
 				}
-				else { 
+				else {
 					if (j>=20){ j-=5; } // very ugly but can save the day !
 					msg->msgid[j++] = input[i];
 				}
@@ -148,10 +148,10 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 
 			case LOOKING_FOR_USERICON_URL:
 				if (input[i] == str3[j++]) {
-					if (j >= strlen(str3)) { 
-						j=0; 
+					if (j >= strlen(str3)) {
+						j=0;
 						o=0;
-						state = IN_USERICON_URL; 
+						state = IN_USERICON_URL;
 					}
 				}
 				else { j=0; }
@@ -219,11 +219,11 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 				break;
 
 			case LOOKING_FOR_MESSAGE:
-				if (input[i] == str4[j++]) { 
-					if (j >= strlen(str4)) { 
-						j=0; 
+				if (input[i] == str4[j++]) {
+					if (j >= strlen(str4)) {
+						j=0;
 						o=0;
-						state = IN_MESSAGE; 
+						state = IN_MESSAGE;
 					}
 				}
 				else { j=0; }
@@ -330,14 +330,6 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 					buffer[l++] = input[i];
 				}
 				break;
-
-/*
-<span id="mChatUserList">
-<a href="./memberlist.php?mode=viewprofile&amp;u=1264">Mairusu Paua</a>, 
-<a href="./memberlist.php?mode=viewprofile&amp;u=1222">Snake</a>, 
-<a href="./memberlist.php?mode=viewprofile&amp;u=5">cLx</a>
-</span></div>
- */
 		}
 	}
 	return nbmessages;
