@@ -2,13 +2,15 @@
 #include <unistd.h>
 #endif
 
+#include "commons.h"
+
 char* display_driver(void) {
-	#ifdef WIN32
-	Sleep(250);
-	#else
-	usleep(250 * 1000);
-	#endif
-	
+#ifdef WIN32
+	Sleep(WAITING_TIME_GRANOLOSITY);
+#else
+	usleep(WAITING_TIME_GRANOLOSITY * 1000);
+#endif
+
 	return NULL;
 }
 
@@ -26,7 +28,7 @@ void display_statusbar(const char *text) {
 void display_conversation(const char *text) {
 }
 
-void display_nicklist(char *text) {
+void display_nicklist(const char *text) {
 }
 
 void display_end(void) {

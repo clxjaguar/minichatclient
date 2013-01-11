@@ -14,7 +14,24 @@
 		- un timestamp qui indique la date et l'heure d'ajout à la nicklist
 		- un timestamp qui indique la date et l'heure du dernier message de la personne
 		- un timestamp qui indique la date et l'heure de la dernière fois qu'on a vu la personne dans la liste de gens sur le minichat
-		- un tag qui indique si la personne à été rajoutée à la nicklist sans qu'elle apparaisse dans la liste (ie: elle est invisible) ? En option, puisqu'il suffit de vérifier si le timestamp précédent est à 0 ou pas en fait...
+		- un tag qui indique si la personne a été rajoutée à la nicklist sans qu'elle apparaisse dans la liste (ie: elle est invisible) ? En option, puisqu'il suffit de vérifier si le timestamp précédent est à 0 ou pas en fait...
 */
 
+#include "display_interfaces.h"
+#include "mccirc.h"
+#include "main.h" //get_mccirc()
 
+void nicklist_recup_start(void) {
+	display_nicklist(NULL);
+	mccirc_nicks_start(get_mccirc());
+}
+
+void nicklist_recup_end(void) {
+	//display_nicklist("--"); // to test if the fonction is properly called !
+	mccirc_nicks_stop(get_mccirc());
+}
+
+void nicklist_recup_name(const char* nickname) {
+	display_nicklist(nickname);
+	mccirc_nicks_add(get_mccirc(), nickname);
+}

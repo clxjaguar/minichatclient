@@ -16,12 +16,12 @@ char* display_driver(void) {
 #else
 	usleep(WAITING_TIME_GRANOLOSITY * 1000);
 #endif
-	
+
 	if (!gottext_buffer){
 		gottext_buffer = cstring_new();
 	}
 	cstring_readline(gottext_buffer, stdin);
-	
+
 	if (gottext_buffer->length > 0){
 		return gottext_buffer->string;
 	}
@@ -49,7 +49,7 @@ void display_conversation(const char *text) {
 	printf("%s\n", text);
 }
 
-void display_nicklist(char *text) {
+void display_nicklist(const char *text) {
 	if (text){}
 }
 
@@ -58,7 +58,7 @@ void display_end(void) {
 		cstring_free(gottext_buffer);
 	}
 	gottext_buffer = NULL;
-	
+
 	net_set_blocking(fileno(stdin), 1);
 }
 

@@ -13,7 +13,7 @@
 #include <string.h>
 #include <time.h>
 
-#if defined (WIN32)
+#ifdef WIN32
 	#include <winsock2.h>
 #else
 	#include <sys/socket.h>
@@ -54,6 +54,10 @@ char *host = NULL; unsigned int port = 0;
 char *path = NULL;
 mccirc *irc = NULL;
 
+mccirc *get_mccirc(void){
+	return irc;
+}
+
 void put_timestamp(FILE *f){
 	struct tm *ptm;
 	time_t lt;
@@ -82,28 +86,8 @@ void put_timestamp(FILE *f){
 	}
 }
 
-// ces fonctions sont appelées en retour par parsehtml.c
-// gestion des nicks:
-void main_add_nick(const char buffer[]) {
-	mccirc_nicks_add(irc, buffer);
-}
-
-void main_start_nicks_update() {
-	mccirc_nicks_start(irc);
-}
-
-void main_end_nicks_update() {
-	mccirc_nicks_stop(irc);
-}
-
-void main_display_nicklist(char *buffer) {
-	display_nicklist(buffer);
-}
-
 void minichat_message(char* username, char* message, char *usericonurl, char *userprofileurl){
 	char *p = NULL;
-
-	mccirc_chatserver_message(irc, username, message);
 
 	// display the message
 	//put_timestamp(stdout);
@@ -127,22 +111,43 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
 	if(userprofileurl){} // dont show a warning message for unused variable...
 
 	if (p) { free(p); p = NULL; }
+
+	mccirc_chatserver_message(irc, username, message);
+}
+
+// ces fonctions sont appelées en retour par parsehtml.c
+// gestion des nicks:
+/*
+void main_add_nick(const char buffer[]) {
+    mccirc_nicks_add(irc, buffer);
+}
+
+void main_start_nicks_update() {
+    mccirc_nicks_start(irc);
+}
+
+void main_end_nicks_update() {
+    mccirc_nicks_stop(irc);
+}
+
+void main_display_nicklist(char *buffer) {
+    display_nicklist(buffer);
 }
 
 void minichat_users_at_this_moment(char *string){
 	//printf("%s\n", string);
 	mccirc_topic(irc, string);
 }
-
+*/
 int ishttpresponseok(char *buf, unsigned int bytes){
 	unsigned int i; char tmp;
-	for(i=0; i<bytes; i++){ 
-		if (buf[i] == '\r' || buf[i] == '\n'){ 
+	for(i=0; i<bytes; i++){
+		if (buf[i] == '\r' || buf[i] == '\n'){
 			tmp = buf[i];
-			buf[i] = '\0'; 
-			display_debug(buf, 0); 
+			buf[i] = '\0';
+			display_debug(buf, 0);
 			buf[i] = tmp;
-			break; 
+			break;
 		}
 	}
 	return 1; // TODO: analyze the response to know if it is ok !
