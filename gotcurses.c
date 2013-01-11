@@ -161,7 +161,7 @@ void display_conversation(const char *text){
 	wrefresh(conversation.content);
 }
 
-void display_nicklist(char *text){ // ce truc va changer pour quelque chose de plus évolué
+void display_nicklist(const char *text){
 	static signed int i;
 	char *p = NULL;
 	if (!nicklist_width) return;

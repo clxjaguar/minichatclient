@@ -40,7 +40,7 @@ endif
 # Executable name, main source file, sources files
 EXECUTABLE=mchatclient
 MSOURCES=main.c
-SOURCES=conf.c parsehtml.c cookies.c entities.c network.c parser.c strfunctions.c CUtils/libcutils.c $(IFACE) $(CIrc)
+SOURCES=conf.c parsehtml.c nicklist.c cookies.c entities.c network.c parser.c strfunctions.c CUtils/libcutils.c $(IFACE) $(CIrc)
 TEST_SOURCES=cookies-test.c iface-test.c parser-test.c
 ###
 
@@ -92,13 +92,14 @@ love:
 
 ### Dependencies
 conf.o: conf.c conf.h display_interfaces.h
-parsehtml.o: parsehtml.c parsehtml.h main.h entities.h parser.h display_interfaces.h
+parsehtml.o: parsehtml.c parsehtml.h main.h entities.h parser.h display_interfaces.h nicklist.h
+nicklist.o: nicklist.c nicklist.h main.h 
 cookies.o: cookies.c cookies.h display_interfaces.h
 network.o: network.c display_interfaces.h
-main.o: main.c main.h conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h
+main.o: main.c main.h conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h mccirc.h
 gotcurses.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
 gottext.o: gottext.c display_interfaces.h commons.h
-gotnull.o: gotnull.c commons.h
+gotnull.o: gotnull.c display_interfaces.h commons.h
 mccirc.o: mccirc.c mccirc.h CUtils/libcutils.o CIrc/libcirc.o
 parser.o: parser.c parser.h parser_p.h CUtils/libcutils.o
 CUtils/libcutils.o: CUtils/libcutils.c CUtils/attribute.h CUtils/clist.h CUtils/cstring.h CUtils/ini.h CUtils/net.h CUtils/attribute.c CUtils/clist.c CUtils/cstring.c CUtils/ini.c CUtils/net.c

@@ -14,6 +14,7 @@
 
 #include "entities.h"
 #include "parsehtml.h"
+#include "nicklist.h"
 #include "parser.h"
 #include "display_interfaces.h"
 #include "main.h"
@@ -75,7 +76,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 
 
 	static unsigned int o = 0;
-	static char buffer[4000]; //TODO: rendre ce truc dynamique
+	static char buffer[4000];
 #ifdef DEBUG
 	static tstate oldstate = READY;
 #endif
@@ -277,10 +278,10 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 							free(tmp);
 						}
 
-						main_start_nicks_update();
-						state = LOOKING_FOR_USERS; o=0; l=0;
-						display_nicklist(NULL); // clear nicklist prior to redraw (will be changed)
+						// clear nicklist list prior to relist
+						nicklist_recup_start();
 
+						state = LOOKING_FOR_USERS; o=0; l=0;
 					}
 				}
 				if (input[i] != str5[j++]) { j=0; }
@@ -293,9 +294,13 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 							display_statusbar(tmp);
 							free(tmp);
 						}
-						main_end_nicks_update();
-						display_nicklist(NULL); // ok, if we don't do that the nicklist will never be showed empty when is no more users in the chat
+
+						// ok, if we don't do that the nicklist will never be showed empty when is no more users in the chat
+						nicklist_recup_start();
+						nicklist_recup_end();
+
 						state = READY;
+
 					}
 				}
 				break;
@@ -304,6 +309,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 				if (input[i] != str5[j++]) { j=0; }
 				else if (j >= strlen(str5)){
 					j=0; l=0;
+					nicklist_recup_end();
 					state = READY;
 				}
 
@@ -321,10 +327,9 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 			case LOOKING_FOR_USERS_IN_USERNAME:
 				if (input[i] == '<') {
 					buffer[l] = '\0';
-					main_add_nick(buffer);
-					display_nicklist(buffer);
-					state = LOOKING_FOR_USERS;
-					j=0; l=0;
+
+					nicklist_recup_name(buffer);
+					state = LOOKING_FOR_USERS; j=0; l=0;
 				}
 				else {
 					buffer[l++] = input[i];
