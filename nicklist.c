@@ -35,3 +35,8 @@ void nicklist_recup_name(const char* nickname) {
 	display_nicklist(nickname);
 	mccirc_nicks_add(get_mccirc(), nickname);
 }
+
+void nicklist_topic(const char *string){
+	display_statusbar(string);
+	mccirc_topic(get_mccirc(), string);
+}
