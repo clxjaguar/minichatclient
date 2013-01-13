@@ -98,6 +98,16 @@ void irc_server_idle(irc_server *self);
 void irc_server_join(irc_server *self, const char channame[], irc_user *user);
 
 /**
+ * Force a user to part the given channel.
+ *
+ * @param self the server to act on
+ * @param channame the channel name, which will be created if needed
+ * @param user the user to force-part
+ * @param reason the reason the user left or NULL
+ */
+void irc_server_part(irc_server *self, const char channame[], irc_user *user, char *reason);
+
+/**
  * Change the topic of the given channel.
  *
  * @param self the server to act on

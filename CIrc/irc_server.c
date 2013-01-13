@@ -312,6 +312,38 @@ void irc_server_join(irc_server *self, const char channame[], irc_user *user) {
 	}
 }
 
+void irc_server_part(irc_server *self, const char channame[], irc_user *user, char *reason){
+	irc_chan *chan;
+	cstring *string;
+	clist_node *node;
+	irc_server_connection *con;
+
+	chan = irc_server_get_chan(self, channame);
+	if (!user || !chan)
+		return;
+	
+	// Prepare PART message
+	string = cstring_new();
+	cstring_addc(string, ':');
+	cstring_adds(string, user->hostmask);
+	cstring_addc(string, ' ');
+	cstring_adds(string, "PART :");
+	cstring_adds(string, chan->name);
+	if (reason) {
+		cstring_adds(string, " :");
+		cstring_adds(string, reason);
+	}
+	
+	// Add user to chan (so the sender also recieve the PART message)
+	irc_chan_add_user(chan, user);
+	
+	for (node = chan->users->first ; node != NULL ; node = node->next) {
+		con = irc_server_get_connection(self, ((irc_user *)node->data)->nick);
+		if (con != NULL)
+			irc_client_raw(con->client, string->string);
+	}
+}
+
 void irc_server_topic(irc_server *self, const char channame[],
 		const char topic[]) {
 	irc_chan *chan;
@@ -778,11 +810,8 @@ char *irc_server_extract_ac(const char input[]) {
 }
 
 int irc_server_on_all_do(irc_client *client, const char from[], const char action[], const char args[], void *data) {
-	char *ff = NULL;
-	if (ff == from){
-		ff = NULL;
-	}
-	client = NULL;
+	if (client) {}
+	if (from) {}
 
 	irc_server_connection *con;
 	cstring *string;
@@ -864,6 +893,14 @@ int irc_server_on_all_do(irc_client *client, const char from[], const char actio
 		else
 			irc_server_rpl_topic(con, irc_server_get_chan(con->server, s1));
 		
+		free(s1);
+		free(s2);
+	}  else if (!strcmp(action, "PART")) {
+		s1 = irc_server_extract_bc(args);
+		s2 = irc_server_extract_ac(args);
+
+		irc_server_part(con->server, s1, con->user, s2);
+
 		free(s1);
 		free(s2);
 	}

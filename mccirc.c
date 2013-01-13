@@ -191,14 +191,17 @@ void mccirc_add_nick(mccirc *self, const char name[]) {
 
 void mccirc_remove_nick(mccirc *self, const char name[]) {
 	irc_user *user;
+	cstring *mess;
 	
 	// should not happen, but just in case:
 	if (!self || !self->username)
 		return;
 	
 	user = mccirc_get_user(self, name);
-	if (user)
+	if (user) {
+		irc_server_part(self->server, self->channel, user, NULL);
 		irc_chan_remove_user(mccirc_get_chan(self), user);
+	}
 }
 
 void mccirc_chatserver_message(mccirc *self, const char name[], const char message[]) {
@@ -277,7 +280,7 @@ void mccirc_nicks_add(mccirc *self, const char username[]) {
 		return;
 	
 	node = clist_node_new();
-	node->data = cstring_sclones(username);
+	node->data = mccirc_sanitize_username(username);
 	node->free_content = free;
 
 	clist_add(self->nicklist, node);
