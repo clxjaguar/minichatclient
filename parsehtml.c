@@ -274,7 +274,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 						{
 							char *tmp = malloc(o);
 							decode_html_entities_utf8(tmp, buffer);
-							display_statusbar(tmp);
+							nicklist_topic(tmp);
 							free(tmp);
 						}
 
