@@ -191,7 +191,6 @@ void mccirc_add_nick(mccirc *self, const char name[]) {
 
 void mccirc_remove_nick(mccirc *self, const char name[]) {
 	irc_user *user;
-	cstring *mess;
 	
 	// should not happen, but just in case:
 	if (!self || !self->username)
