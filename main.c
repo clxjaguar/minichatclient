@@ -298,11 +298,11 @@ int main(void) {
 					password = read_conf_string("password", password, 0);
 					close_conf_file();
 
-					if (!username || !password) { 
+					if (!username || !password) {
 						if (username) { free(username); username=NULL; }
 						if (password) { free(password); password=NULL; }
 						display_debug("Username/password informations missing or incomplete, skipping authentification. Tying to switch to the reading states though.", 0);
-						state = GET_THE_BACKLOG; 
+						state = GET_THE_BACKLOG;
 						break;
 					}
 
@@ -317,7 +317,7 @@ int main(void) {
 					strcat(postdata, "&redirect=index.php&login=Connexion");
 					free(username); username=NULL;
 					free(password); password=NULL;
-  
+
 					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(LOGIN_PAGE)+1);
 					strcpy(referer, "http://");
 					strcat(referer, host);
@@ -415,17 +415,17 @@ int main(void) {
 				}
 				{
 					unsigned short nbmessages = 0, old_wait_time;
-					
+
 					k=1;
 					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-						if(k) { 
+						if(k) {
 							ishttpresponseok(buf, bytes);
-							parsehttpheadersforgettingcookies(cookies, buf, bytes); 
+							parsehttpheadersforgettingcookies(cookies, buf, bytes);
 						}
 						nbmessages = parse_minichat_mess(buf, bytes, &msg, k);
 						k=0;
-					}   
-					
+					}
+
 					old_wait_time = wait_time;
 					if (nbmessages == 0) {
 						wait_time*=1.5;
@@ -433,8 +433,8 @@ int main(void) {
 					}
 					else {
 						wait_time/=(nbmessages+1);
-						if (wait_time<wait_time_mini) { 
-							wait_time = wait_time_mini; 
+						if (wait_time<wait_time_mini) {
+							wait_time = wait_time_mini;
 							if (old_wait_time < wait_time) { wait_time = old_wait_time; }
 						}
 					}
