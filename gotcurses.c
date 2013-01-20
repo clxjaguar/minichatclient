@@ -345,11 +345,14 @@ void display_init(void){
 	debug_height   = read_conf_int("debug_height",   debug_height);
 	nicklist_width = read_conf_int("nicklist_width", nicklist_width);
 
+	initscr(); // start curses mode, LINES and ROWS not valids before
+
 	if (debug_height < 3) { debug_height = 0; } // pour niki :P
+	if (debug_height > maxrows-8) { debug_height = maxrows-8; }
+
 	if (nicklist_width < 5) { nicklist_width = 0; }
+	if (nicklist_width > maxcols-5) { nicklist_width = maxcols-5; }
 
-
-	initscr(); // start curses mode
 	cbreak();  // line input buffering disabled ("raw" mode)
 	//nocbreak(); // ("cooked" mode)
 	keypad(stdscr, TRUE); // I need that nifty F1 ?
