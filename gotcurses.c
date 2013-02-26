@@ -328,6 +328,7 @@ char* display_driver(void){
 void display_init(void){
 	char *p = NULL;
 #ifdef _X_OPEN_SOURCE_EXTENDED
+	display_debug("Initialyzing curses (widechar support)...", 0);
 	p = setlocale(LC_ALL, "");
 	transliterating = ISO8859_1;
 	if (p){
@@ -336,8 +337,10 @@ void display_init(void){
 		}
 	}
 #else
+	display_debug("Initialyzing curses (legacy)...", 0);
 	transliterating = ISO8859_1;
 #ifdef WIN32
+	display_debug("Initialyzing curses (windows mode)...", 0);
 	transliterating = CP850;
 #endif
 #endif
