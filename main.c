@@ -144,7 +144,7 @@ int main(void) {
 	unsigned int nberr = 0;
 	unsigned short wait_time = 40; // 10s
 	unsigned short wait_time_maxi, wait_time_mini, wait_time_awake;
-	
+
 	tstate oldstate, futurestate;
 	char *useragent = NULL;
 
@@ -186,14 +186,14 @@ int main(void) {
 		char buf2show[200];
 		snprintf(buf2show, 200, "Timmings: maxi=%0.2fs / mini=%0.2fs / awake=%0.2fs\n", (float)wait_time_maxi/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_mini/(1000/WAITING_TIME_GRANOLOSITY), (float)wait_time_awake/(1000/WAITING_TIME_GRANOLOSITY));
 		display_debug(buf2show, 0);
-	}	
-	
+	}
+
 	if (!host || !path || !useragent){
 		display_debug("Error: Server informations missing. Please edit your mchatclient.conf file !", 0);
 		display_waitforchar("Press any key to quit");
 		return -1;
 	}
-	
+
 	if (read_conf_int("read_parser_rules", 0)){
 		if(parser_loadrules()){
 			display_conversation("Warning: Unable to load the parser rules. They will not be used.");
@@ -225,7 +225,7 @@ int main(void) {
 		for (i=0; i<1200; i+=WAITING_TIME_GRANOLOSITY){ display_driver(); }
 	}
 
-	
+
 	state = LOADING_LOGIN_PAGE;
 	for(;;){
 		if (state != WAIT) {
@@ -234,8 +234,8 @@ int main(void) {
 			if (!s) { //
 				nberr++;
 				if (nberr == 5) {
-					put_timestamp(f); 
-					fprintf(f, "Unable to connect to the server anymore !\r\n"); 
+					put_timestamp(f);
+					fprintf(f, "Unable to connect to the server anymore !\r\n");
 					fflush(f);
 					mccirc_chatserver_error(irc);
 				}
@@ -243,7 +243,7 @@ int main(void) {
 				futurestate = state;
 				state = WAIT;
 			}
-			else { 
+			else {
 				if (nberr >= 5) {
 					put_timestamp(f);
 					fprintf(f, "The server seem to be back now !\r\n");
@@ -253,7 +253,7 @@ int main(void) {
 						state = LOADING_LOGIN_PAGE;
 					}
 				}
-				nberr = 0; 
+				nberr = 0;
 			}
 		}
 
@@ -271,14 +271,14 @@ int main(void) {
 				}
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-					if(k) { 
+					if(k) {
 						ishttpresponseok(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					k=0;
 				}
 				state = WAIT;
-				wait_time = 3;
+				wait_time = 1;
 				futurestate = SUBMIT_AUTHENTIFICATION;
 				break;
 
@@ -340,7 +340,7 @@ int main(void) {
 					k=0;
 				}
 				state = WAIT;
-				wait_time = 3;
+				wait_time = 1;
 				futurestate = GET_THE_BACKLOG;
 				break;
 
@@ -370,7 +370,7 @@ int main(void) {
 				}
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
-					if(k) { 
+					if(k) {
 						ishttpresponseok(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
