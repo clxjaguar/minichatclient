@@ -337,17 +337,18 @@ void display_init(void){
 		}
 	}
 #else
-	display_debug("Initialyzing curses (legacy)...", 0);
 	transliterating = ISO8859_1;
 #ifdef WIN32
 	display_debug("Initialyzing curses (windows mode)...", 0);
 	transliterating = CP850;
+#else
+	display_debug("Initialyzing curses (legacy)...", 0);
 #endif
 #endif
-
 	debug_height   = read_conf_int("debug_height",   debug_height);
 	nicklist_width = read_conf_int("nicklist_width", nicklist_width);
 
+	display_debug("", 0);
 	initscr(); // start curses mode, LINES and ROWS not valids before
 
 	if (debug_height < 3) { debug_height = 0; } // pour niki :P
