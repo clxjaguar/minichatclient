@@ -390,9 +390,7 @@ void irc_client_add_callback(clist *callbacks, void *function, void *data) {
 void irc_client_on_ping_pong(irc_client *self, const char ping[], void *data) {
 	cstring *pong;
 
-	if (data != NULL){
-		data = NULL;
-	}
+	if (data) {}
 
 	pong = cstring_new();
 	cstring_adds(pong, "PONG ");
