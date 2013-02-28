@@ -18,14 +18,10 @@ void on_client_register(irc_client *self, const char from[], const char args[],
 		void *data) {
 	clist_node *node;
 	clist *list;
-
-	char *a;
-	if (from == NULL)
-		a = NULL;
-	if (args == NULL)
-		a = NULL;
-	if (data == NULL)
-		a = NULL;
+	
+	if (from) {}
+	if (args) {}
+	if (data) {}
 
 	//DEBUG:
 	list = cstring_splitc((cstring*) data, '\n', '\0');
@@ -63,14 +59,17 @@ int irc_send(char *from, char*to, char *server, int port, cstring*mess) {
 	client = irc_client_new();
 	irc_client_set_auto_pong(client, 1);
 	
-	irc_client_connect(client, server, port, 1);
+	irc_client_on_register(client, on_client_register, full_mess);
+	
+	irc_client_connect(client, server, port, 0);
 	irc_client_nick(client, from);
 	irc_client_user(client, from, from, from, from);
 
-	irc_client_on_register(client, on_client_register, full_mess);
-
 	// loop:
-	while(irc_client_do_work(client));
+	while (irc_client_is_alive(client)) {
+		while (irc_client_do_work(client));
+		usleep(10);
+	}
 	
 	irc_client_free(client);
 	cstring_free(full_mess);
