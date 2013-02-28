@@ -30,16 +30,14 @@ irc_user *irc_user_new() {
 }
 
 void irc_user_free(irc_user *self) {
-	if (self->nick != NULL)
-		free(self->nick);
-	if (self->hostname != NULL)
-		free(self->hostname);
-	if (self->server != NULL)
-		free(self->server);
-	if (self->hostmask != NULL)
-		free(self->hostmask);
-	if (self->real_name != NULL)
-		free(self->real_name);
+	if (!self)
+		return;
+	
+	free(self->nick);
+	free(self->hostname);
+	free(self->server);
+	free(self->hostmask);
+	free(self->real_name);
 
 	free(self);
 }
@@ -56,14 +54,10 @@ void irc_user_set_hostmask(irc_user *self, const char hostmask[]) {
 	// hostmask -> string
 	string = hostmask ? cstring_sclones(hostmask) : NULL;
 	
-	if (self->nick != NULL)
-		free(self->nick);
-	if (self->hostname != NULL)
-		free(self->hostname);
-	if (self->server != NULL)
-		free(self->server);
-	if (self->hostmask != NULL)
-		free(self->hostmask);
+	free(self->nick);
+	free(self->hostname);
+	free(self->server);
+	free(self->hostmask);
 			
 	if (string) {
 		// hostmask
@@ -114,8 +108,7 @@ void irc_user_set_user(irc_user *self, const char nick[], const char hostname[],
 	
 	irc_user_set_hostmask(self, string ? string->string : NULL);
 	
-	if (string)
-		cstring_free(string);
+	cstring_free(string);
 }
 
 void irc_user_set_real_name(irc_user *self, const char real_name[]) {
@@ -124,8 +117,7 @@ void irc_user_set_real_name(irc_user *self, const char real_name[]) {
 	// real_name -> string
 	string = (real_name ? cstring_sclones(real_name) : NULL);
 	
-	if (self->real_name != NULL)
-		free(self->real_name);
+	free(self->real_name);
 	
 	self->real_name = string;
 }

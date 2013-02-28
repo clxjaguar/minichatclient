@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "cstring.h"
+#include "net.h"
 
 #define BUFFER_SIZE 81
 
@@ -58,15 +59,19 @@ cstring *cstring_new() {
 }
 
 void cstring_free(cstring *string) {
+	if (!string)
+		return;
+	
 	free(string->private);
 	free(string->string);
+	
 	free(string);
 }
 
 char *cstring_convert(cstring *self) {
 	char *string;
 
-	if (self == NULL)
+	if (!self)
 		return NULL;
 	
 	// Note: this could be skipped.

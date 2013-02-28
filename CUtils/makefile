@@ -116,7 +116,7 @@ all: $(NAME).a $(NAME).so.$(VERSION)
 
 clean:
 	@echo --- Cleaning the build directory...
-	@rm -f *.o */*.o */*/*.o
+	@rm -f *.o */*.o */*/*.o $(NAME).a $(NAME).so.$(VERSION)
 
 mrpropre: mrproper
 

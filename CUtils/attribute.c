@@ -46,12 +46,12 @@ clist_node *attribute_node_new() {
 }
 
 void attribute_free(attribute *att) {
-	if (att->name != NULL) {
-		free (att->name);
-	}
-	if (att->value != NULL) {
-		free (att->value);
-	}
+	if (!att)
+		return;
+
+	free(att->name);
+	free(att->value);
+
 	free(att);
 }
 

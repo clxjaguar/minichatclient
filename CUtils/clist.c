@@ -19,9 +19,10 @@ clist_node *new_clist_node() {
 	return clist_node_new();
 }
 void free_clist_node_data(clist_node *node) {
-	if (node->data != NULL) {
-		free(node->data);
-	}
+	if (!node)
+		return;
+	
+	free(node->data);
 }
 void free_clist(clist *list) {
 	clist_free(list);
@@ -56,11 +57,11 @@ clist_node *clist_node_new() {
 }
 
 void clist_add(clist *list, clist_node *node) {
-	if (list->first == NULL) {
+	if (!list->first) {
 		list->first = node;
 	}
 
-	if (list->last != NULL) {
+	if (list->last) {
 		list->last->next = node;
 	}
 
@@ -72,11 +73,11 @@ void clist_add(clist *list, clist_node *node) {
 }
 
 void clist_insert(clist *list, clist_node *node) {
-	if (list->last == NULL) {
+	if (!list->last) {
 		list->last = node;
 	}
 
-	if (list->first != NULL) {
+	if (list->first) {
 		list->first->prev = node;
 	}
 
@@ -91,7 +92,7 @@ void clist_reverse(clist *list) {
 	clist_node *ptr;
 	clist_node *next;
 
-	for (ptr = list->first; ptr != NULL;) {
+	for (ptr = list->first ; ptr ; ) {
 		next = ptr->next;
 
 		ptr->next = ptr->prev;
@@ -106,13 +107,13 @@ void clist_reverse(clist *list) {
 }
 
 clist_node *clist_remove(clist *list, clist_node *node) {
-	if (node->prev == NULL) {
+	if (!node->prev) {
 		list->first = node->next;
 	} else {
 		node->prev->next = node->next;
 	}
 
-	if (node->next == NULL) {
+	if (!node->next) {
 		list->last = node->prev;
 	} else {
 		node->next->prev = node->prev;
@@ -127,12 +128,12 @@ clist_node *clist_remove(clist *list, clist_node *node) {
 }
 
 void clist_insert_before(clist *list, clist_node *anchor, clist_node *node) {
-	if (anchor == NULL) {
+	if (!anchor) {
 		clist_insert(list, node);
 	} else {
 		node->prev = anchor->prev;
 		anchor->prev = node;
-		if (node->prev != NULL) {
+		if (node->prev) {
 			node->prev->next = node;
 		}
 		node->next = anchor;
@@ -141,12 +142,12 @@ void clist_insert_before(clist *list, clist_node *anchor, clist_node *node) {
 }
 
 void clist_insert_after(clist *list, clist_node *anchor, clist_node *node) {
-	if (anchor == NULL) {
+	if (!anchor) {
 		clist_add(list, node);
 	} else {
 		node->next = anchor->next;
 		anchor->next = node;
-		if (node->next != NULL) {
+		if (node->next) {
 			node->next->prev = node;
 		}
 		node->prev = anchor;
@@ -159,7 +160,7 @@ clist_node *clist_get(clist *list, size_t indexi) {
 	size_t i;
 
 	i = 0;
-	for (ptr = list->first; ptr != NULL; ptr = ptr->next) {
+	for (ptr = list->first ; ptr ; ptr = ptr->next) {
 		if (indexi == i) {
 			return ptr;
 		}
@@ -182,7 +183,7 @@ int clist_insert_at(clist *list, size_t indexi, clist_node *node) {
 
 	inserted = 0;
 	i = 0;
-	for (ptr = list->first; !inserted && ptr != NULL; ptr = ptr->next) {
+	for (ptr = list->first; !inserted && ptr ; ptr = ptr->next) {
 		if (indexi == i - 1) {
 			clist_insert_after(list, ptr, node);
 			inserted = 1;
@@ -196,21 +197,29 @@ int clist_insert_at(clist *list, size_t indexi, clist_node *node) {
 
 void clist_node_free(clist_node *node) {
 	void (*free_data_function)(void*);
-	if (node->data != NULL) {
-		if (node->free_content != NULL) {
+
+	if (!node)
+		return;
+
+	if (node->data) {
+		if (node->free_content) {
 			free_data_function = node->free_content;
 			free_data_function(node->data);
-		} else if (node->free_data != NULL) {
+		} else if (node->free_data) {
 			free_data_function = node->free_data;
 			free_data_function(node->data);
 		}
 	}
+
 	free(node);
 }
 
 void clist_free(clist *list) {
 	clist_node *ptr;
 	clist_node *next;
+
+	if (!list)
+		return;
 
 	ptr = list->first;
 	while (ptr != NULL) {
