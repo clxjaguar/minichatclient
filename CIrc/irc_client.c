@@ -120,6 +120,9 @@ irc_client_callbacks *irc_client_new_callbacks() {
 }
 
 void irc_client_free_callbacks(irc_client_callbacks *self) {
+	if (!self)
+		return;
+	
 	clist_free(self->all);
 	clist_free(self->ping);
 	clist_free(self->privmsg);
@@ -127,6 +130,7 @@ void irc_client_free_callbacks(irc_client_callbacks *self) {
 	clist_free(self->num);
 	clist_free(self->other);
 	clist_free(self->regist);
+	
 	free(self);
 }
 
@@ -148,10 +152,14 @@ irc_client *irc_client_new() {
 }
 
 void irc_client_free(irc_client *self) {
-	if (self->user      != NULL) { irc_user_free(self->user); }
-	if (self->server    != NULL) { free(self->server); }
-	if (self->buffer    != NULL) { cstring_free(self->buffer); }
-	if (self->callbacks != NULL) { irc_client_free_callbacks(self->callbacks); }
+	if (!self)
+		return;
+	
+	irc_user_free(self->user);
+	free(self->server);
+	cstring_free(self->buffer);
+	irc_client_free_callbacks(self->callbacks);
+
 	free(self);
 }
 
@@ -170,9 +178,7 @@ void irc_client_set_auto_pong(irc_client *self, int auto_pong) {
 		node = clist_get(self->callbacks->ping, self->auto_pong);
 		node = clist_remove(self->callbacks->ping, node);
 		self->auto_pong = -1;
-		if (node != NULL) {
-			clist_node_free(node);
-		}
+		clist_node_free(node);
 	}
 	else if (!irc_client_is_auto_pong(self) && auto_pong) {
 		self->auto_pong = self->callbacks->ping->size;
@@ -196,7 +202,8 @@ int irc_client_is_alive(irc_client *self) {
 	return self->cont;
 }
 
-int irc_client_connect(irc_client *self, const char server[], int port, int blocking) {
+int irc_client_connect(irc_client *self, const char server[], int port, 
+		int blocking) {
 	int socket;
 
 	socket = net_connect(server, port);
@@ -206,8 +213,9 @@ int irc_client_connect(irc_client *self, const char server[], int port, int bloc
 	return irc_client_connect_to(self, server, port, socket);
 }
 
-int irc_client_connect_to(irc_client *self, const char server[], int port, int socket) {
-	if (self->server != NULL) { free(self->server); }
+int irc_client_connect_to(irc_client *self, const char server[], int port,
+		int socket) {
+	free(self->server);
 	self->server = cstring_sclones(server);
 	self->port = port;
 	self->socket = socket;
@@ -238,7 +246,8 @@ int irc_client_nick(irc_client *self, const char nick[]) {
 	return ok;
 }
 
-int irc_client_user(irc_client *self, const char user[], const char hostname[], const char server[], const char real_name[]) {
+int irc_client_user(irc_client *self, const char user[], const char hostname[],
+		const char server[], const char real_name[]) {
 	cstring *mess;
 	size_t bytes;
 	int ok;
@@ -295,8 +304,10 @@ int irc_client_do_work(irc_client *self) {
 	clist_node *node;
 	cstring *line;
 
-	if (!self->cont)      { return 0; }
-	if (self->socket < 0) { return 0; }
+	if (!self->cont)
+		return 0;
+	if (self->socket < 0)
+		return 0;
 
 	//TODO: support partial lines in buffer
 	cstring_readnet(self->buffer, self->socket);
@@ -315,31 +326,45 @@ int irc_client_do_work(irc_client *self) {
 	return work;
 }
 
-void irc_client_on_all(irc_client *self, int( callback)(irc_client *self, const char from[], const char action[], const char args[], void *data), void *data) {
+void irc_client_on_all(irc_client *self, int( callback)(irc_client *self, 
+		const char from[], const char action[], const char args[], 
+		void *data), void *data) {
 	irc_client_add_callback(self->callbacks->all, callback, data);
 }
 
-void irc_client_on_ping(irc_client *self, void(*callback)(irc_client *self, const char ping[], void *data), void *data) {
+void irc_client_on_ping(irc_client *self, void(*callback)(irc_client *self, 
+		const char ping[], void *data), void *data) {
 	irc_client_add_callback(self->callbacks->ping, callback, data);
 }
 
-void irc_client_on_privmsg(irc_client *self, void(*callback)(irc_client *self, irc_user *from, const char to[], const char message[], void *data), void *data) {
+void irc_client_on_privmsg(irc_client *self, 
+		void(*callback)(irc_client *self, irc_user *from, 
+		const char to[], const char message[], void *data),
+		void *data) {
 	irc_client_add_callback(self->callbacks->privmsg, callback, data);
 }
 
-void irc_client_on_notice(irc_client *self, void(*callback)(irc_client *self, const char from[], const char message[], void *data), void *data) {
+void irc_client_on_notice(irc_client *self, void(*callback)(irc_client *self,
+		const char from[], const char message[], void *data),
+		void *data) {
 	irc_client_add_callback(self->callbacks->notice, callback, data);
 }
 
-void irc_client_on_num(irc_client *self, void(*callback)(irc_client *self, const char from[], int action, const char args[], void *data), void *data) {
+void irc_client_on_num(irc_client *self, void(*callback)(irc_client *self,
+		const char from[], int action, const char args[], void *data),
+		void *data) {
 	irc_client_add_callback(self->callbacks->num, callback, data);
 }
 
-void irc_client_on_register(irc_client *self, void(*callback)(irc_client *self, const char from[], const char args[], void *data), void *data) {
+void irc_client_on_register(irc_client *self, void(*callback)(irc_client *self,
+		const char from[], const char args[], void *data),
+		void *data) {
 	irc_client_add_callback(self->callbacks->regist, callback, data);
 }
 
-void irc_client_on_other(irc_client *self, void(*callback)(irc_client *self, const char from[], const char action[], const char args[], void *data), void *data) {
+void irc_client_on_other(irc_client *self, void(*callback)(irc_client *self,
+		const char from[], const char action[], const char args[],
+		void *data), void *data) {
 	irc_client_add_callback(self->callbacks->other, callback, data);
 }
 
@@ -378,7 +403,8 @@ void irc_client_on_ping_pong(irc_client *self, const char ping[], void *data) {
 	cstring_free(pong);
 }
 
-int irc_client_on_all_do(irc_client *self, const char from[], const char action[], const char args[]) {
+int irc_client_on_all_do(irc_client *self, const char from[], 
+		const char action[], const char args[]) {
 	clist_node *node;
 	int handled;
 	irc_client_callback *callback;
@@ -406,7 +432,8 @@ void irc_client_on_ping_do(irc_client *self, const char ping[]) {
 	}
 }
 
-void irc_client_on_privmsg_do(irc_client *self, const char from[], const char to[], const char message[]) {
+void irc_client_on_privmsg_do(irc_client *self, const char from[], 
+		const char to[], const char message[]) {
 	clist_node *node;
 	irc_user *ufrom;
 	irc_client_callback *callback;
@@ -423,7 +450,8 @@ void irc_client_on_privmsg_do(irc_client *self, const char from[], const char to
 	}
 }
 
-void irc_client_on_notice_do(irc_client *self, const char from[], const char message[]) {
+void irc_client_on_notice_do(irc_client *self, const char from[], 
+		const char message[]) {
 	clist_node *node;
 	irc_client_callback *callback;
 	void (*function)(irc_client *self, const char from[], const char message[], void *data);
@@ -435,7 +463,8 @@ void irc_client_on_notice_do(irc_client *self, const char from[], const char mes
 	}
 }
 
-void irc_client_on_num_do(irc_client *self, const char from[], int action, const char args[]) {
+void irc_client_on_num_do(irc_client *self, const char from[], int action, 
+		const char args[]) {
 	clist_node *node;
 	irc_client_callback *callback;
 	int (*function)(irc_client *self, const char from[], int action, const char args[], void *data);
@@ -459,7 +488,8 @@ void irc_client_on_num_do(irc_client *self, const char from[], int action, const
 	}
 }
 
-void irc_client_on_other_do(irc_client *self, const char from[], const char action[], const char args[]) {
+void irc_client_on_other_do(irc_client *self, const char from[], 
+		const char action[], const char args[]) {
 	clist_node *node;
 	irc_client_callback *callback;
 	int (*function)(irc_client *self, const char from[], const char action[], const char args[], void *data);
@@ -563,8 +593,8 @@ int irc_client_handle_line(irc_client *self, const char line[]) {
 			}
 		}
 
-		if (action != NULL) { cstring_free(action); }
-		if (from   != NULL) { cstring_free(from); }
+		cstring_free(action);
+		cstring_free(from);
 	}
 
 	cstring_free(string);

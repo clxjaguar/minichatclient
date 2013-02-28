@@ -114,24 +114,24 @@ void irc_server_callback_free(irc_server_callback *self) {
 }
 
 void irc_server_callbacks_free(irc_server_callbacks *self) {
-	if (self->join != NULL)
-		clist_free(self->join);
-	if (self->regist != NULL)
-		clist_free(self->regist);
-	if (self->idle != NULL)
-		clist_free(self->idle);
-	if (self->mess != NULL)
-		clist_free(self->mess);
+	if (!self)
+		return;
+	
+	clist_free(self->join);
+	clist_free(self->regist);
+	clist_free(self->idle);
+	clist_free(self->mess);
 
 	free(self);
 }
 
 void irc_server_connection_free(irc_server_connection *self) {
 	// Socket should already be closed.
-	if (self->client != NULL)
-		irc_client_free(self->client);
-	if (self->user != NULL)
-		irc_user_free(self->user);
+	if (!self)
+		return;
+	
+	irc_client_free(self->client);
+	irc_user_free(self->user);
 
 	free(self);
 }
@@ -153,14 +153,13 @@ irc_server *irc_server_new() {
 }
 
 void irc_server_free(irc_server *self) {
-	if (self->server != NULL)
-		free(self->server);
-	if (self->chans != NULL)
-		clist_free(self->chans);
-	if (self->clients != NULL)
-		clist_free(self->clients);
-	if (self->callbacks != NULL)
-		irc_server_callbacks_free(self->callbacks);
+	if (!self)
+		return;
+	
+	free(self->server);
+	clist_free(self->chans);
+	clist_free(self->clients);
+	irc_server_callbacks_free(self->callbacks);
 
 	free(self);
 }
@@ -174,8 +173,7 @@ void irc_server_set_name(irc_server *self, const char name[]) {
 
 	string = cstring_new();
 	cstring_adds(string, name);
-	if (self->server != NULL)
-		free(self->server);
+	free(self->server);
 	self->server = cstring_convert(string);
 }
 
@@ -197,7 +195,7 @@ int irc_server_do_work(irc_server *self) {
 	did_work = 0;
 	for (work = 1 ; work ; ) {
 		work = irc_server_accept_connection(self);
-		for (node = self->clients->first ; node != NULL ; ) {
+		for (node = self->clients->first ; node ; ) {
 			to_del = NULL;
 			con = (irc_server_connection *)node->data;
 			if (con->client && !irc_client_is_alive(con->client)) {
@@ -239,8 +237,7 @@ void irc_server_idle(irc_server *self) {
 	irc_server_callback *callback;
 	void (*function)(irc_server *self, void *data);
 	
-	for (node = self->callbacks->idle->first; node != NULL; node
-			= node->next) {
+	for (node = self->callbacks->idle->first; node ; node = node->next) {
 		callback = (irc_server_callback *)node->data;
 		function = callback->callback;
 		function(self, callback->data);
@@ -271,10 +268,10 @@ void irc_server_join(irc_server *self, const char channame[], irc_user *user) {
 	cstring_adds(string, chan->name);
 	
 	// Don't answer if already joined (TODO: report error to client?)
-	for (node = chan->users->first ; node != NULL ; node = node->next) {
+	for (node = chan->users->first ; node ; node = node->next) {
 		if (!strcmp(((irc_user *)node->data)->nick, user->nick)) {
 			con = irc_server_get_connection(self, ((irc_user *)node->data)->nick);
-			if (con != NULL) {
+			if (con) {
 				irc_client_raw(con->client, string->string);
 				irc_server_rpl_names(con, chan);
 				irc_server_rpl_topic(con, chan);
@@ -289,9 +286,9 @@ void irc_server_join(irc_server *self, const char channame[], irc_user *user) {
 	
 	irc_chan_add_user(chan, user);
 
-	for (node = chan->users->first ; node != NULL ; node = node->next) {
+	for (node = chan->users->first ; node ; node = node->next) {
 		con = irc_server_get_connection(self, ((irc_user *)node->data)->nick);
-		if (con != NULL)
+		if (con)
 			irc_client_raw(con->client, string->string);
 	}
 	
@@ -299,13 +296,12 @@ void irc_server_join(irc_server *self, const char channame[], irc_user *user) {
 	cstring_free(string);
 	
 	con = irc_server_get_connection(self, user->nick);
-	if (con != NULL) {		
+	if (con) {		
 		irc_server_rpl_names(con, chan);
 		irc_server_rpl_topic(con, chan);
 	}
 	
-	for (node = self->callbacks->join->first; node != NULL; node
-			= node->next) {
+	for (node = self->callbacks->join->first; node ; node = node->next) {
 		callback = node->data;
 		function = callback->callback;
 		function(self, user, chan, callback->data);
@@ -337,9 +333,9 @@ void irc_server_part(irc_server *self, const char channame[], irc_user *user, ch
 	// Add user to chan (so the sender also recieve the PART message)
 	irc_chan_add_user(chan, user);
 	
-	for (node = chan->users->first ; node != NULL ; node = node->next) {
+	for (node = chan->users->first ; node ; node = node->next) {
 		con = irc_server_get_connection(self, ((irc_user *)node->data)->nick);
-		if (con != NULL)
+		if (con)
 			irc_client_raw(con->client, string->string);
 	}
 }
@@ -352,10 +348,10 @@ void irc_server_topic(irc_server *self, const char channame[],
 	
 	chan = irc_server_get_chan(self, channame);
 	irc_chan_set_topic(chan, topic);
-	for (node = chan->users->first ; node != NULL ; node = node->next) {
+	for (node = chan->users->first ; node ; node = node->next) {
 		con = irc_server_get_connection(self, 
 			((irc_user *)node->data)->nick);
-		if (con != NULL)
+		if (con)
 			irc_server_rpl_topic(con, chan);
 	}
 }
@@ -380,7 +376,7 @@ void irc_server_ping_all(irc_server *self) {
 	clist_node *node;
 	irc_server_connection *con;
 
-	for (node = self->clients->first ; node != NULL ; node = node->next) {
+	for (node = self->clients->first ; node ; node = node->next) {
 		con = (irc_server_connection *)node->data;
 		irc_client_raw(con->client, "PING ping_all");
 	}
@@ -421,7 +417,7 @@ int irc_server_handle_line(irc_server_connection *con) {
 	if (con->socket < 0)
 		return 0;
 
-	if (con->client == NULL) {
+	if (!con->client) {
 		con->client = irc_client_new();
 		irc_client_connect_to(con->client, "127.0.0.1", con->server->port,
 				con->socket);
@@ -460,9 +456,9 @@ irc_server_connection *irc_server_get_connection(irc_server *self, const char us
 	clist_node *node;
 	irc_server_connection *con;
 
-	for (node = self->clients->first; node != NULL; node = node->next) {
+	for (node = self->clients->first; node ; node = node->next) {
 		con = (irc_server_connection *)node->data;
-		if (con->user != NULL && !strcmp(con->user->nick, username))
+		if (con->user && !strcmp(con->user->nick, username))
 			return con;
 	}
 	return NULL;
@@ -473,13 +469,13 @@ irc_chan *irc_server_get_chan(irc_server *self, const char channame[]) {
 	irc_chan *chan;
 
 	chan = NULL;
-	for (node = self->chans->first; node != NULL; node = node->next) {
+	for (node = self->chans->first ; node ; node = node->next) {
 		if (!strcmp(((irc_chan *) node->data)->name, channame)) {
 			chan = (irc_chan *) node->data;
 		}
 	}
 
-	if (chan == NULL) {
+	if (!chan) {
 		chan = irc_chan_new();
 		irc_chan_set_name(chan, channame);
 		node = clist_node_new();
@@ -501,7 +497,7 @@ void irc_server_privmsg_int(irc_server *self, const char target[], irc_user *use
 	
 	con = irc_server_get_connection(self, target);
 	// Target is a USER
-	if (con != NULL) {
+	if (con) {
 		irc_server_privmsg_u(con, target, user, message);
 		if (notify_sender)
 			irc_server_privmsg_u(con, user->nick, user, message);
@@ -509,18 +505,18 @@ void irc_server_privmsg_int(irc_server *self, const char target[], irc_user *use
 	// Target is a CHAN
 	else {
 		chan = irc_server_get_chan(self, target);
-		if (chan != NULL) {
+		if (chan) {
 			// Tell all users from CHAN, caller excluded
-			for (node = chan->users->first; node != NULL; node = node->next) {
+			for (node = chan->users->first ; node ; node = node->next) {
 				con = irc_server_get_connection(self, ((irc_user *) (node->data))->nick);
-				if ((con != NULL) && (notify_sender || strcmp(con->user->nick, user->nick))) {
+				if (con && (notify_sender || strcmp(con->user->nick, user->nick))) {
 					irc_server_privmsg_u(con, target, user, message);
 				}
 			}
 		}
 	}
 	
-	for (node = self->callbacks->mess->first; node != NULL; node = node->next) {
+	for (node = self->callbacks->mess->first ; node ; node = node->next) {
 		callback = node->data;
 		function = callback->callback;
 		function(self, user, target, message, callback->data);

@@ -30,12 +30,12 @@ irc_chan *irc_chan_new() {
 }
 
 void irc_chan_free(irc_chan *self) {
-	if (self->name != NULL)
-		free(self->name);
-	if (self->topic != NULL)
-		free(self->topic);
-	if (self->users != NULL)
-		clist_free(self->users);
+	if (!self)
+		return;
+
+	free(self->name);
+	free(self->topic);
+	clist_free(self->users);
 
 	free(self);
 }
@@ -49,8 +49,7 @@ void irc_chan_set_name(irc_chan *self, const char name[]) {
 	
 	string = name ? cstring_sclones(name) : NULL;
 	
-	if (self->name != NULL)
-		free(self->name);
+	free(self->name);
 	
 	self->name = string;
 }
@@ -60,8 +59,7 @@ void irc_chan_set_topic(irc_chan *self, const char topic[]) {
 	
 	string = topic ? cstring_sclones(topic) : NULL;
 	
-	if (self->topic != NULL)
-		free(self->topic);
+	free(self->topic);
 	
 	self->topic = string;
 }

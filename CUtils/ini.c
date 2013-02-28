@@ -54,7 +54,7 @@ char *ini_get(FILE *file, char name[]) {
 	out = NULL;
 	list = ini_get_all(file, name);
 	
-	if (list->last != NULL) {
+	if (list->last) {
 		out = cstring_new();
 		att = (attribute *)list->last->data;
 		cstring_adds(out, (att)->value);
