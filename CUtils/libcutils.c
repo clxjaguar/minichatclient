@@ -1,8 +1,4 @@
-#include "attribute.h"
-#include "clist.h"
-#include "cstring.h"
-#include "ini.h"
-#include "net.h"
+#include "libcutils.h"
 
 #include "attribute.c"
 #include "clist.c"

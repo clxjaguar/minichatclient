@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef ATTRIBUTE_H
 #define ATTRIBUTE_H
 
@@ -35,4 +39,8 @@ void attribute_free(attribute *att);
 
 clist_node *attribute_add_to_clist(clist *list, attribute *att);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

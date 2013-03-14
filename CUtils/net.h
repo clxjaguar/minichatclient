@@ -6,6 +6,10 @@
  * Allows you to make connections to/from a server, and to send/receive data.
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef NET_H
 #define NET_H
 
@@ -111,4 +115,8 @@ ssize_t net_write(int fd, const void *buf, size_t n);
  */
 ssize_t net_read(int fd, void *buf, size_t nbytes);
 
+#endif
+
+#ifdef __cplusplus
+extern }
 #endif
