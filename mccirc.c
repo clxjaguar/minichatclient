@@ -436,11 +436,11 @@ void mccirc_create_user(mccirc *self, const char username[]) {
 	mask = cstring_new();
 	sane_username = mccirc_sanitize_username(username);
 	cstring_adds(mask, sane_username);
-	free(sane_username);
 	cstring_addc(mask, '!');
 	cstring_adds(mask, sane_username);
 	cstring_addc(mask, '@');
 	cstring_adds(mask, self->channel);
+	free(sane_username);
 	
 	user = irc_user_new();
 	irc_user_set_hostmask(user, mask->string);
