@@ -330,14 +330,18 @@ void irc_server_part(irc_server *self, const char channame[], irc_user *user, ch
 		cstring_adds(string, reason);
 	}
 	
-	// Add user to chan (so the sender also recieve the PART message)
-	irc_chan_add_user(chan, user);
-	
 	for (node = chan->users->first ; node ; node = node->next) {
 		con = irc_server_get_connection(self, ((irc_user *)node->data)->nick);
 		if (con)
 			irc_client_raw(con->client, string->string);
 	}
+	
+	// Send message to sender, too
+	con = irc_server_get_connection(self, user->nick);
+	if (con)
+		irc_client_raw(con->client, string->string);
+	
+	cstring_free(string);
 }
 
 void irc_server_topic(irc_server *self, const char channame[],

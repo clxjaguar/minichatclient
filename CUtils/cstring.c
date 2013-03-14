@@ -9,11 +9,23 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
+
+/* Windows (and maybe others?) doesn't know about strnlen */
+#ifndef strnlen
+	#define strnlen(a, b) strlen(a)
+#endif
 
 #include "cstring.h"
 #include "net.h"
 
 #define BUFFER_SIZE 81
+
+#ifdef WIN32
+		#define CSTRING_SEP '\\'
+#else
+		#define CSTRING_SEP '/'
+#endif
 
 // Old
 cstring *new_cstring() {
@@ -49,9 +61,9 @@ cstring *cstring_new() {
 	cstring *string;
 
 	string = malloc(sizeof(cstring));
-	string->private = malloc(sizeof(struct cstring_private_struct));
+	string->priv = malloc(sizeof(struct cstring_private_struct));
 	string->length = 0;
-	string->private->buffer_length = BUFFER_SIZE;
+	string->priv->buffer_length = BUFFER_SIZE;
 	string->string = malloc(sizeof(char) * BUFFER_SIZE);
 	string->string[0] = '\0';
 
@@ -62,7 +74,7 @@ void cstring_free(cstring *string) {
 	if (!string)
 		return;
 	
-	free(string->private);
+	free(string->priv);
 	free(string->string);
 	
 	free(string);
@@ -77,7 +89,7 @@ char *cstring_convert(cstring *self) {
 	// Note: this could be skipped.
 	cstring_compact(self);
 
-	free(self->private);
+	free(self->priv);
 	string = (self->string);
 	free(self);
 
@@ -116,7 +128,7 @@ cstring *cstring_clones(const char self[]) {
 
 void cstring_compact(cstring *self) {
 	if (self != NULL) {
-		self->private->buffer_length = self->length + 1;
+		self->priv->buffer_length = self->length + 1;
 		self->string = (char *) realloc(self->string, self->length + 1);
 	}
 }
@@ -422,13 +434,50 @@ void cstring_addi(cstring *self, int source) {
 	cstring_addN(self, source, 10, 0);
 }
 
+//TODO: improve this or don't use it
+int cstring_pow(int a, int b);
+
+int cstring_pow(int val, int power) {
+	int rep = 1;
+	while (power > 0) {
+		rep *= val;
+		power--;
+	}
+	return rep;
+}
+
+void cstring_addd(cstring *self, double source, int afterDot) {
+	int big, low;
+	int i, add0;
+	cstring *slow;
+
+	big = (int)source;
+	low = 0;
+	if (afterDot > 0)
+		low = (int)((source - big) * cstring_pow(10, afterDot));
+
+	slow = cstring_new();
+	if (afterDot > 0) {
+		cstring_addi(slow, low);
+		add0 = afterDot - slow->length;
+		cstring_clear(slow);
+		cstring_addc(slow, '.');
+		for (i = 0 ; i < add0 ; i++)
+			cstring_addi(slow, 0);
+		cstring_addi(slow, low);
+	}
+
+	cstring_addi(self, big);
+	cstring_add(self, slow);
+}
+
 void cstring_addN(cstring *self, int source, int radix, int cap) {
 	int value;
 	int tmp;
 	cstring *string;
 
 	string = cstring_new();
-	value = source;
+	value = source > 0 ? source : -source;
 
 	if (value == 0) {
 		cstring_addc(string, '0');
@@ -446,6 +495,8 @@ void cstring_addN(cstring *self, int source, int radix, int cap) {
 	}
 
 	cstring_reverse(string);
+	if (source < 0)
+		cstring_addc(self, '-');
 	cstring_add(self, string);
 	cstring_free(string);
 }
@@ -459,10 +510,10 @@ void cstring_addfs(cstring *self, const char source[], size_t indexi) {
 
 	if (source != NULL && strlen(source) > indexi) {
 		ss = strlen(source) - indexi;
-		while ((self->length + ss) >= (self->private->buffer_length)) {
-			self->private->buffer_length += BUFFER_SIZE;
+		while ((self->length + ss) >= (self->priv->buffer_length)) {
+			self->priv->buffer_length += BUFFER_SIZE;
 			self->string = (char *) realloc(self->string, sizeof(char)
-					* self->private->buffer_length);
+					* self->priv->buffer_length);
 		}
 
 		for (ptr = self->length; ptr <= (self->length + ss); ptr++) {
@@ -586,4 +637,87 @@ int cstring_readlinenet(cstring *self, FILE *file, int fd) {
 		return 1;
 	}
 	return 0;
+}
+
+cstring *cstring_combine(cstring *self, cstring *file) {
+	cstring *str;
+
+	str = cstring_clone(self);
+	cstring_addc(str, CSTRING_SEP);
+	cstring_add(str, file);
+
+	return str;
+}
+
+cstring *cstring_combines(cstring *self, const char file[]) {
+	cstring *csfile;
+	cstring *rep;
+
+	csfile = cstring_clones(file);
+	rep = cstring_combine(self, csfile);
+	cstring_free(csfile);
+	return rep;
+}
+
+cstring *cstring_scombines(const char dir[], const char file[]) {
+	cstring *csfile, *csdir;
+	cstring *rep;
+
+	csfile = cstring_clones(file);
+	csdir = cstring_clones(dir);
+	rep = cstring_combine(csdir, csfile);
+	cstring_free(csfile);
+	cstring_free(csdir);
+	return rep;
+}
+
+cstring *cstring_getdir(cstring *path) {
+	cstring *result;
+	ssize_t i;
+
+	i = path->length - 1;
+	if (i >= 0 && path->string[i] == CSTRING_SEP)
+		i--;
+	for ( ; i >= 0 && path->string[i] != CSTRING_SEP ; i--);
+
+	if (i < 0)
+		return cstring_new();
+
+	result = cstring_clone(path);
+	cstring_cut_at(result, i);
+	return result;
+}
+
+cstring *cstring_getdirs(const char path[]) {
+	cstring *copy, *result;
+
+	copy = cstring_clones(path);
+	result = cstring_getdir(copy);
+	cstring_free(copy);
+	return result;
+}
+
+cstring *cstring_getfile(cstring *path) {
+	cstring *result;
+	ssize_t i;
+
+	i = path->length - 1;
+	if (i >= 0 && path->string[i] == CSTRING_SEP)
+		i--;
+	for ( ; i >= 0 && path->string[i] != CSTRING_SEP ; i--);
+
+	if (i < 0 || (size_t)(i + 1) >= path->length)
+		return cstring_new();
+
+	result = cstring_clones(path->string + i + 1);
+	return result;
+}
+
+cstring *cstring_getfiles(const char path[]) {
+	cstring *copy, *result;
+
+	copy = cstring_clones(path);
+	result = cstring_getfile(copy);
+	cstring_free(copy);
+	return result;
 }

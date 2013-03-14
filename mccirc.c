@@ -94,18 +94,13 @@ void mccirc_free(mccirc *self) {
 	
 	irc_server_free(self->server);
 	cstring_free(self->buffer);
-	if (self->channel != NULL)
-		free(self->channel);
-	if (self->topic != NULL)
-		free(self->topic);
-	if (self->username != NULL)
-		free(self->username);
-	if (self->ffname != NULL)
-		free(self->ffname);
-	if (self->juser != NULL)
-		irc_user_free(self->juser);
-	if (self->nicklist != NULL)
-		free(self->nicklist);
+	free(self->channel);
+	free(self->topic);
+	free(self->username);
+	free(self->ffname);
+	irc_user_free(self->juser);
+	clist_free(self->nicklist);
+	
 	free(self);
 }
 
@@ -149,7 +144,7 @@ char *mccirc_check_message(mccirc *self) {
 	// take care of the optional pending force join
 	if (self->juser) {
 		self->jpending++;
-		if (self->jpending > 10) {
+		if (self->jpending > 20) {
 			mccirc_force_join(self, self->juser);
 			irc_user_free(self->juser);
 			self->juser = NULL;
@@ -178,14 +173,14 @@ void mccirc_chatserver_resume(mccirc *self) {
 
 void mccirc_add_nick(mccirc *self, const char name[]) {
 	// should not happen, but just in case:
-	if (!self || !self->username)
+	if (!name || !self || !self->username)
 		return;
 	
 	// do not add myself
 	if (mccirc_is_me(self, name))
 		return;
 	
-	if (! mccirc_get_user(self, name))
+	if (!mccirc_get_user(self, name))
 		mccirc_create_user(self, name);
 }
 
@@ -193,7 +188,7 @@ void mccirc_remove_nick(mccirc *self, const char name[]) {
 	irc_user *user;
 	
 	// should not happen, but just in case:
-	if (!self || !self->username)
+	if (!name || !self || !self->username)
 		return;
 	
 	user = mccirc_get_user(self, name);
@@ -207,7 +202,7 @@ void mccirc_chatserver_message(mccirc *self, const char name[], const char messa
 	irc_user *user;
 	
 	// should not happen, but just in case:
-	if (!self || !self->username)
+	if (!self || !self->username || !name || !message)
 		return;
 	
 	// do not convey messages for the connected client

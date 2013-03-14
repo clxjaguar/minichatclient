@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef CSTRING_H
 #define CSTRING_H
 
@@ -17,7 +21,7 @@ typedef struct cstring_private_struct cstring_private;
 struct cstring_struct {
 	char *string;
 	size_t length;
-	cstring_private *private;
+	cstring_private *priv;
 };
 
 // Old
@@ -131,6 +135,8 @@ void cstring_addfns(cstring *self, const char source[], size_t index, size_t n);
  * @param source the integer to add to the string
  */
 void cstring_addi(cstring *self, int source);
+
+void cstring_addd(cstring *self, double source, int afterDot);
 
 /**
  * Add an int at the end of the given cstring, in hexadecimal format (lower case).
@@ -418,4 +424,43 @@ int cstring_readline(cstring *self, FILE *file);
  */
 int cstring_readnet(cstring *self, int fd);
 
+/**
+ * Combine two paths and return a newly allocated strings with it.
+ * @param dir the first path component
+ * @param file the second path component
+ *
+ * @return a new string that you are responsible to free
+ */
+cstring *cstring_combine(cstring *self, cstring *file);
+
+/**
+ * Combine two paths and return a newly allocated strings with it.
+ * @param dir the first path component
+ * @param file the second path component
+ *
+ * @return a new string that you are responsible to free
+ */
+cstring *cstring_combines(cstring *self, const char file[]);
+
+/**
+ * Combine two paths and return a newly allocated strings with it.
+ * @param dir the first path component
+ * @param file the second path component
+ *
+ * @return a new string that you are responsible to free
+ */
+cstring *cstring_scombines(const char dir[], const char file[]);
+
+cstring *cstring_getdir(cstring *path);
+
+cstring *cstring_getdirs(const char path[]);
+
+cstring *cstring_getfile(cstring *path);
+
+cstring *cstring_getfiles(const char path[]);
+
+#endif
+
+#ifdef __cplusplus
+}
 #endif

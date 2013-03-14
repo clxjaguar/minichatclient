@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef CLIST_H
 #define CLIST_H
 
@@ -129,4 +133,8 @@ void clist_free(clist *list);
  */
 void clist_node_free(clist_node *node);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

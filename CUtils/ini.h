@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef INI_H
 #define INI_H
 
@@ -10,7 +14,7 @@
  * It will only return the attributes that match the given name (or NULL for all),
  * in a clist of <attribute>s.
  */
-clist *ini_get_all(FILE *file, char mask[]);
+clist *ini_get_all(FILE *file, const char mask[]);
 
 /**
  * Return all the attributes that match the filter.
@@ -33,6 +37,27 @@ clist *ini_get_select(FILE *file, int (*filter)(attribute *att, void *argument),
  *
  * @return the attribute or NULL
  */
-char *ini_get(FILE *file, char name[]);
+char *ini_get(FILE *file, const char name[]);
 
+/**
+ * Return the default configuration file for the given conf name.
+ * It will check (in order) for:
+ * ./NAME
+ * ./.NAME
+ * $HOME/NAME (not on WIN32)
+ * $HOME/.NAME (not on WIN32)
+ * /etc/NAME (not on WIN32)
+ * /etc/.NAME (not on WIN32)
+ *
+ * @brief ini_open_default_conf open the default configuration file for the
+ *        given name
+ * @param name the configuration file name (example: prog.ini)
+ * @return the opened FILE or NULL
+ */
+char *ini_get_default_conf_file(const char name[]);
+
+#endif
+
+#ifdef __cplusplus
+}
 #endif

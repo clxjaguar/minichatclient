@@ -18,6 +18,12 @@
 #include <stdio.h>
 #include "attribute.h"
 
+#ifndef WIN32
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+#endif
+
 #define bool int
 #define true 1
 #define false 0
@@ -34,7 +40,7 @@
  *
  * @return the attribute, or NULL
  */
-attribute *get_attribute(char data[]);
+attribute *get_attribute(const char data[]);
 
 /**
  * Remove a trailing LN, or CRLN, and replace it by '\0'.
@@ -46,7 +52,7 @@ bool match(attribute *att, void *argument);
 // end of privates prototypes
 
 
-char *ini_get(FILE *file, char name[]) {
+char *ini_get(FILE *file, const char name[]) {
 	clist *list;
 	attribute *att;
 	cstring *out;
@@ -64,8 +70,8 @@ char *ini_get(FILE *file, char name[]) {
 	return cstring_convert(out);
 }
 
-clist *ini_get_all(FILE *file, char mask[]) {
-	return ini_get_select(file, match, mask);
+clist *ini_get_all(FILE *file, const char mask[]) {
+	return ini_get_select(file, match, (void *)mask);
 }
 
 bool match(attribute *att, void *argument) {
@@ -139,7 +145,7 @@ clist *ini_get_select(FILE *file, bool (*filter)(attribute *att, void *argument)
 	return atts;
 }
 
-attribute *get_attribute(char data[]) {
+attribute *get_attribute(const char data[]) {
 	size_t i;
 	cstring *key, *value;
 	cstring *tmp;
@@ -197,3 +203,68 @@ void remove_crlf(char data[], size_t size) {
 			data[size - 2] = '\0';
 	}
 }
+
+char *ini_get_conf_file(const char dir[], const char file[]);
+
+char *ini_get_default_conf_file(const char name[]) {
+#ifndef WIN32
+	char *user, *home;
+	struct passwd *pwd;
+#endif
+	char *file;
+
+	file = NULL;
+
+	file = ini_get_conf_file(".", name);
+	if (file != NULL)
+		return file;
+
+#ifndef WIN32
+	user = getlogin(); // statically allocated, DO NOT free
+	if (user != NULL) {
+		pwd = getpwnam(user); // statically allocated, DO NOT free
+		if (pwd != NULL) {
+			home = pwd->pw_dir; // statically allocated, DO NOT free
+			if (home != NULL)
+				file = ini_get_conf_file(home, name);
+		}
+	}
+	if (file != NULL)
+		return file;
+
+	file = ini_get_conf_file("/etc", name);
+	if (file != NULL)
+		return file;
+#endif
+
+	return file; // NULL
+}
+
+char *ini_get_conf_file(const char dir[], const char name[]) {
+	cstring *file;
+	cstring *dotname;
+	FILE *f;
+
+	file = cstring_scombines(dir, name);
+	f = fopen(file->string, "rb");
+	if (f) {
+		fclose(f);
+		return cstring_convert(file);
+	}
+	cstring_free(file);
+
+	dotname = cstring_clones(".");
+	cstring_adds(dotname, name);
+	file = cstring_scombines(dir, dotname->string);
+	cstring_free(dotname);
+
+	f = fopen(file->string, "rb");
+	if (f) {
+		fclose(f);
+		return cstring_convert(file);
+	}
+	cstring_free(file);
+
+	return NULL;
+}
+
