@@ -264,7 +264,7 @@ int irc_client_user(irc_client *self, const char user[], const char hostname[],
 	cstring_adds(mess, server);
 	cstring_adds(mess, " :");
 	cstring_adds(mess, real_name);
-	cstring_adds(mess, "\n");
+	cstring_adds(mess, "\r\n");
 	bytes = (size_t) net_write(self->socket, mess->string, mess->length);
 	ok = bytes == mess->length;
 
@@ -280,10 +280,38 @@ int irc_client_raw(irc_client *self, const char message[]) {
 	cstring *mess;
 	ssize_t sbytes;
 	int ok;
+	size_t inlen;
+	char *sanitized, *out;
+	const char *in;
+
+	inlen = strlen(message);
+	if (!inlen) {
+		fprintf(stderr, "irc_client.c: Zero len message");
+		return -1;
+	}
+
+	sanitized = malloc(inlen+1);
+	if (!sanitized) {
+		fprintf(stderr, "irc_client.c: malloc() failed to allocate %d bytes\n", inlen+1);
+		fprintf(stderr, "\"%s\"\n", message);
+		return -1;
+	}
+
+	in = message;
+	out = sanitized;
+	while (*in){
+		if (*in != 0x0d && *in != 0x0a) { // a feline solution to a roo problem !
+			*out = *in; out++;
+		}
+		in++;
+	}
+	*out='\0';
 
 	mess = cstring_new();
-	cstring_adds(mess, message);
-	cstring_adds(mess, "\n");
+	//cstring_adds(mess, message);
+	cstring_adds(mess, sanitized);
+	free(sanitized);
+	cstring_adds(mess, "\r\n"); // used to respond to an IRC client
 	sbytes = net_write(self->socket, mess->string, mess->length);
 	ok = (sbytes >= 0 && ((size_t) sbytes) == mess->length);
 
