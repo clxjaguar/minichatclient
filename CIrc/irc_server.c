@@ -116,7 +116,7 @@ void irc_server_callback_free(irc_server_callback *self) {
 void irc_server_callbacks_free(irc_server_callbacks *self) {
 	if (!self)
 		return;
-	
+
 	clist_free(self->join);
 	clist_free(self->regist);
 	clist_free(self->idle);
@@ -129,7 +129,7 @@ void irc_server_connection_free(irc_server_connection *self) {
 	// Socket should already be closed.
 	if (!self)
 		return;
-	
+
 	irc_client_free(self->client);
 	irc_user_free(self->user);
 
@@ -155,7 +155,7 @@ irc_server *irc_server_new() {
 void irc_server_free(irc_server *self) {
 	if (!self)
 		return;
-	
+
 	free(self->server);
 	clist_free(self->chans);
 	clist_free(self->clients);
@@ -207,25 +207,25 @@ int irc_server_do_work(irc_server *self) {
 					did_work = work = 1;
 				}
 			}
-			
+
 			node = node->next;
-			
+
 			if (to_del) {
 				clist_remove(self->clients, to_del);
 				clist_node_free(to_del);
 			}
 		}
 	}
-	
+
 	irc_server_idle(self);
-	
+
 	return did_work;
 }
 
 int irc_server_main_loop(irc_server *self) {
 	if (self->socket < 0)
 		return 0;
-	
+
 	while (self->cont)
 		irc_server_do_work(self);
 
@@ -236,7 +236,7 @@ void irc_server_idle(irc_server *self) {
 	clist_node *node;
 	irc_server_callback *callback;
 	void (*function)(irc_server *self, void *data);
-	
+
 	for (node = self->callbacks->idle->first; node ; node = node->next) {
 		callback = (irc_server_callback *)node->data;
 		function = callback->callback;
@@ -254,11 +254,11 @@ void irc_server_join(irc_server *self, const char channame[], irc_user *user) {
 		irc_chan *chan, void *data);
 
 	chan = irc_server_get_chan(self, channame);
-	
+
 	// If the user is NULL, just create the chan
 	if (!user)
 		return;
-	
+
 	// Prepare JOIN message
 	string = cstring_new();
 	cstring_addc(string, ':');
@@ -266,7 +266,7 @@ void irc_server_join(irc_server *self, const char channame[], irc_user *user) {
 	cstring_addc(string, ' ');
 	cstring_adds(string, "JOIN :");
 	cstring_adds(string, chan->name);
-	
+
 	// Don't answer if already joined (TODO: report error to client?)
 	for (node = chan->users->first ; node ; node = node->next) {
 		if (!strcmp(((irc_user *)node->data)->nick, user->nick)) {
@@ -276,14 +276,14 @@ void irc_server_join(irc_server *self, const char channame[], irc_user *user) {
 				irc_server_rpl_names(con, chan);
 				irc_server_rpl_topic(con, chan);
 			}
-			
+
 			// Free JOIN message
 			cstring_free(string);
-			
+
 			return;
 		}
 	}
-	
+
 	irc_chan_add_user(chan, user);
 
 	for (node = chan->users->first ; node ; node = node->next) {
@@ -291,16 +291,16 @@ void irc_server_join(irc_server *self, const char channame[], irc_user *user) {
 		if (con)
 			irc_client_raw(con->client, string->string);
 	}
-	
+
 	// Free JOIN message
 	cstring_free(string);
-	
+
 	con = irc_server_get_connection(self, user->nick);
-	if (con) {		
+	if (con) {
 		irc_server_rpl_names(con, chan);
 		irc_server_rpl_topic(con, chan);
 	}
-	
+
 	for (node = self->callbacks->join->first; node ; node = node->next) {
 		callback = node->data;
 		function = callback->callback;
@@ -317,7 +317,7 @@ void irc_server_part(irc_server *self, const char channame[], irc_user *user, ch
 	chan = irc_server_get_chan(self, channame);
 	if (!user || !chan)
 		return;
-	
+
 	// Prepare PART message
 	string = cstring_new();
 	cstring_addc(string, ':');
@@ -329,18 +329,18 @@ void irc_server_part(irc_server *self, const char channame[], irc_user *user, ch
 		cstring_adds(string, " :");
 		cstring_adds(string, reason);
 	}
-	
+
 	for (node = chan->users->first ; node ; node = node->next) {
 		con = irc_server_get_connection(self, ((irc_user *)node->data)->nick);
 		if (con)
 			irc_client_raw(con->client, string->string);
 	}
-	
+
 	// Send message to sender, too
 	con = irc_server_get_connection(self, user->nick);
 	if (con)
 		irc_client_raw(con->client, string->string);
-	
+
 	cstring_free(string);
 }
 
@@ -349,25 +349,23 @@ void irc_server_topic(irc_server *self, const char channame[],
 	irc_chan *chan;
 	irc_server_connection *con;
 	clist_node *node;
-	
+
 	chan = irc_server_get_chan(self, channame);
 	irc_chan_set_topic(chan, topic);
 	for (node = chan->users->first ; node ; node = node->next) {
-		con = irc_server_get_connection(self, 
-			((irc_user *)node->data)->nick);
+		con = irc_server_get_connection(self, ((irc_user *)node->data)->nick);
 		if (con)
 			irc_server_rpl_topic(con, chan);
 	}
 }
 
-int irc_server_privmsg_s(irc_server *self, const char target[], 
-		const char  username[], const char message[]) {
+int irc_server_privmsg_s(irc_server *self, const char target[], const char username[], const char message[]) {
 	irc_server_connection *con;
-	
+
 	con = irc_server_get_connection(self, username);
 	if (con)
 		irc_server_privmsg(self, target, con->user, message);
-	
+
 	return !!con;
 }
 
@@ -574,13 +572,15 @@ void irc_server_rpl_register(irc_server_connection *con) {
 	clist_node *node;
 	irc_server_callback *callback;
 	void (*function)(irc_server *self, irc_user *target, void *data);
-	
+
 	string = cstring_new();
 
+	// 001
 	irc_server_cstring_add_action(con, string, "001");
 	cstring_adds(string, ":Welcome on CIrc");
 	irc_client_raw(con->client, string->string);
 
+	// 002
 	cstring_clear(string);
 	irc_server_cstring_add_action(con, string, "002");
 	cstring_adds(string, ":Your host is ");
@@ -588,11 +588,13 @@ void irc_server_rpl_register(irc_server_connection *con) {
 	cstring_adds(string, ", running version CIrc-0.1");
 	irc_client_raw(con->client, string->string);
 
+	// 003
 	cstring_clear(string);
 	irc_server_cstring_add_action(con, string, "003");
-	cstring_adds(string, ":This server was created 02:10:00 Jan  1 1987");
+	cstring_adds(string, ":This server was created 02:10:00 Jan  1 2010");
 	irc_client_raw(con->client, string->string);
 
+	// 004
 	cstring_clear(string);
 	irc_server_cstring_add_action(con, string, "004");
 	cstring_adds(string, con->server->server);
@@ -600,22 +602,53 @@ void irc_server_rpl_register(irc_server_connection *con) {
 	cstring_adds(string, " Rdikorsw MRabiklmnopqrstv abkloqv"); //TODO
 	irc_client_raw(con->client, string->string);
 
-	//TODO
+	// 005
 	cstring_clear(string);
 	irc_server_cstring_add_action(con, string, "005");
-	cstring_adds(
-			string,
-			"AWAYLEN=201 CASEMAPPING=rfc1459 CHANMODES=b,k,l,MRimnprst CHANTYPES=# CHARSET=ascii ELIST=MU EXTBAN=,R FNC KICKLEN=256 MAP MAXBANS=60 MAXCHANNELS=20 MAXPARA=32 :are supported by this server");
+	cstring_adds(string, "AWAYLEN=0 CASEMAPPING=rfc1459 CHANMODES=b,k,l,MRimnprst CHANTYPES=# CHARSET=ascii ELIST=MU FNC MAXPARA=32 :are supported by this server");
 	irc_client_raw(con->client, string->string);
 
-	//TODO
+	// 005
 	cstring_clear(string);
 	irc_server_cstring_add_action(con, string, "005");
 	cstring_adds(string, "MAXTARGETS=20 MODES=20 NAMESX NETWORK=");
 	cstring_adds(string, con->server->server); // TODO should be a name, not a server name
-	cstring_adds(
-			string,
-			" NICKLEN=32 PREFIX=(qaov)~&@+ SSL=[::]:6697 STARTTLS STATUSMSG=~&@+ TOPICLEN=308 UHNAMES VBANLIST WALLCHOPS :are supported by this server");
+	cstring_adds(string," NICKLEN=32 PREFIX=(qaov)~&@+ STATUSMSG=~&@+ TOPICLEN=0 :are supported by this server");
+	irc_client_raw(con->client, string->string);
+
+	// 251
+	cstring_clear(string);
+	irc_server_cstring_add_action(con, string, "251");
+	cstring_adds(string, ":There are 1 users and 0 invisible on 1 servers");
+	irc_client_raw(con->client, string->string);
+
+	// 252
+	cstring_clear(string);
+	irc_server_cstring_add_action(con, string, "252");
+	cstring_adds(string, "0 :operator(s) online");
+	irc_client_raw(con->client, string->string);
+
+	// 254
+	cstring_clear(string);
+	irc_server_cstring_add_action(con, string, "254");
+	cstring_adds(string, "1 :channels formed");
+	irc_client_raw(con->client, string->string);
+
+	// 255
+	cstring_clear(string);
+	irc_server_cstring_add_action(con, string, "255");
+	cstring_adds(string, ":I have 1 clients and 1 servers");
+	irc_client_raw(con->client, string->string);
+
+	// 265, 266
+	cstring_clear(string);
+	irc_server_cstring_add_action(con, string, "265");
+	cstring_adds(string, ":Current Local Users: 1  Max: 1");
+	irc_client_raw(con->client, string->string);
+
+	cstring_clear(string);
+	irc_server_cstring_add_action(con, string, "266");
+	cstring_adds(string, ":Current Global Users: 1  Max: 1");
 	irc_client_raw(con->client, string->string);
 
 	//375, 372++, 376
@@ -634,40 +667,6 @@ void irc_server_rpl_register(irc_server_connection *con) {
 	cstring_adds(string, ":End of MOTD");
 	irc_client_raw(con->client, string->string);
 
-	// 251
-	cstring_clear(string);
-	irc_server_cstring_add_action(con, string, "251");
-	cstring_adds(string, ":There are 1 users and 1 invisible on 1 servers"); //TODO
-	irc_client_raw(con->client, string->string);
-
-	// 252
-	cstring_clear(string);
-	irc_server_cstring_add_action(con, string, "252");
-	cstring_adds(string, "0 :operator(s) online"); //TODO
-	irc_client_raw(con->client, string->string);
-
-	// 254
-	cstring_clear(string);
-	irc_server_cstring_add_action(con, string, "254");
-	cstring_adds(string, "0 :channels formed"); //TODO
-	irc_client_raw(con->client, string->string);
-
-	// 255
-	cstring_clear(string);
-	irc_server_cstring_add_action(con, string, "255");
-	cstring_adds(string, ":I have 0 clients and 1 servers"); //TODO
-	irc_client_raw(con->client, string->string);
-
-	// 265, 266
-	cstring_clear(string);
-	irc_server_cstring_add_action(con, string, "265");
-	cstring_adds(string, ":Current Local Users: 1  Max: 10"); //TODO
-	irc_client_raw(con->client, string->string);
-
-	cstring_clear(string);
-	irc_server_cstring_add_action(con, string, "266");
-	cstring_adds(string, ":Current Global Users: 1  Max: 10"); //TODO
-	irc_client_raw(con->client, string->string);
 
 	cstring_free(string);
 
@@ -681,17 +680,17 @@ void irc_server_rpl_register(irc_server_connection *con) {
 void irc_server_rpl_topic(irc_server_connection *con, irc_chan *chan) {
 	cstring *string;
 
-	string = cstring_new();	
+	string = cstring_new();
 	if (chan->topic != NULL) {
 		irc_server_cstring_add_action(con, string, "332"); //RPL_TOPIC
-		cstring_addc(string, ' ');
-		cstring_adds(string, chan->name);
+		//cstring_addc(string, ' '); //TODO DEBUG : irc_server_cstring_add_action() gives us an extra space !
+		cstring_adds(string, (chan->name));
 		cstring_adds(string, " :");
 		cstring_adds(string, chan->topic);
 	}
 	else {
 		irc_server_cstring_add_action(con, string, "331"); //RPL_NOTOPIC
-		cstring_addc(string, ' ');
+		//cstring_addc(string, ' '); //TODO DEBUG : irc_server_cstring_add_action() gives us an extra space !
 		cstring_adds(string, chan->name);
 		cstring_adds(string, " :");
 		cstring_adds(string, "No topic is set");
@@ -826,7 +825,7 @@ int irc_server_on_all_do(irc_client *client, const char from[], const char actio
 		cstring_adds(string, con->server->server);
 		irc_client_raw(con->client, string->string);
 		cstring_free(string);
-	} 
+	}
 	else if (!strcmp(action, "NICK")) {
 		if (con->user->hostname != NULL && con->user->server != NULL) {
 			irc_user_set_user(con->user, args, con->user->hostname, con->user->server);
@@ -863,27 +862,32 @@ int irc_server_on_all_do(irc_client *client, const char from[], const char actio
 
 		irc_user_set_real_name(con->user, uname->string);
 		if (con->user->nick != NULL) {
-			irc_user_set_user(con->user, con->user->nick, uhost->string,
-					userver->string);
+			irc_user_set_user(con->user, con->user->nick, uhost->string, userver->string);
 			irc_server_rpl_register(con);
-		} else {
+		}
+		else {
 			irc_user_set_user(con->user, "", uhost->string, userver->string);
 		}
 
 		cstring_free(uhost);
 		cstring_free(userver);
 		cstring_free(uname);
-	} else if (!strcmp(action, "JOIN")) {
+	}
+	else if (!strcmp(action, "JOIN")) {
 		irc_server_join(con->server, args, con->user);
-	} else if (!strcmp(action, "NAMES")) {
+	}
+	else if (!strcmp(action, "NAMES")) {
 		irc_server_rpl_names(con, irc_server_get_chan(con->server, args));
-	} else if (!strcmp(action, "WHO")) {
+	}
+	else if (!strcmp(action, "WHO")) {
 		irc_server_rpl_who(con, irc_server_get_chan(con->server, args));
-	} else if (!strcmp(action, "PRIVMSG")) {
+	}
+	else if (!strcmp(action, "PRIVMSG")) {
 		s1 = irc_server_extract_bc(args);
 		s2 = irc_server_extract_ac(args);
 		irc_server_privmsg_int(con->server, s1, con->user, s2, 0);
-	}  else if (!strcmp(action, "TOPIC")) {
+	}
+	else if (!strcmp(action, "TOPIC")) {
 		s1 = irc_server_extract_bc(args);
 		s2 = irc_server_extract_ac(args);
 		
