@@ -654,7 +654,7 @@ void irc_server_rpl_register(irc_server_connection *con) {
 
 	// 255
 	cstring_clear(string);
-	irc_server_cstring_add_action(con, string, "254");
+	irc_server_cstring_add_action(con, string, "255");
 	cstring_adds(string, ":I have 0 clients and 1 servers"); //TODO
 	irc_client_raw(con->client, string->string);
 
