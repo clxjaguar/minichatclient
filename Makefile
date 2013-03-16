@@ -14,6 +14,11 @@
 ### If OUT is null,    we will use a dummy output (i.e., no output)
 ### I.E.: "make all OUT=text"
 
+### Special code to support auto-crashing when a nickname is set to NULL
+ifeq ($(CRASH_NO_NICK), 1)
+	CFLAGS += -DCRASH_NO_NICK
+endif
+
 ### Special code for enabling/disabling IRC server builtin support
 ifeq ($(IRC), 1)
 	CIrc=mccirc.c CIrc/libcirc.c
