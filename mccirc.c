@@ -209,7 +209,11 @@ void mccirc_chatserver_message(mccirc *self, const char name[], const char messa
 	// do not convey messages for the connected client
 	// unless it came from another client
 	if (mccirc_is_me(self, name)) {
-		if (!strcmp(self->last_message->string, message)) {
+		// We should compare the last message and this one.
+		// But. It won't work with smileys and other modifications.
+		
+		//if (!strcmp(self->last_message->string, message)) {
+		if (self->last_message->length)
 			cstring_clear(self->last_message);
 			return;
 		}
