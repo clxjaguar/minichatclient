@@ -224,7 +224,6 @@ int irc_client_connect_to(irc_client *self, const char server[], int port,
 
 int irc_client_nick(irc_client *self, const char nick[]) {
 	cstring *mess;
-	size_t bytes;
 	int ok;
 
 	mess = cstring_new();
@@ -235,13 +234,11 @@ int irc_client_nick(irc_client *self, const char nick[]) {
 	mess = cstring_new();
 	cstring_adds(mess, "NICK ");
 	cstring_adds(mess, nick);
-	cstring_adds(mess, "\n");
-	bytes = (size_t) net_write(self->socket, mess->string, mess->length);
-	ok = bytes == mess->length;
-
+	ok = irc_client_raw(self, mess->string);
+	
 	if (self->debug)
 		fprintf(stderr, "OUT: %s\n", mess->string);
-
+	
 	cstring_free(mess);
 	return ok;
 }
@@ -249,7 +246,6 @@ int irc_client_nick(irc_client *self, const char nick[]) {
 int irc_client_user(irc_client *self, const char user[], const char hostname[],
 		const char server[], const char real_name[]) {
 	cstring *mess;
-	size_t bytes;
 	int ok;
 
 	irc_user_set_user(self->user, user, hostname, server);
@@ -265,8 +261,7 @@ int irc_client_user(irc_client *self, const char user[], const char hostname[],
 	cstring_adds(mess, " :");
 	cstring_adds(mess, real_name);
 	cstring_adds(mess, "\r\n");
-	bytes = (size_t) net_write(self->socket, mess->string, mess->length);
-	ok = bytes == mess->length;
+	ok = irc_client_raw(self, mess->string);
 
 	if (self->debug)
 		fprintf(stderr, "OUT: %s\n", mess->string);
@@ -280,23 +275,10 @@ int irc_client_raw(irc_client *self, const char message[]) {
 	cstring *mess;
 	ssize_t sbytes;
 	int ok;
-	cstring *feline_solution;
 	
-	feline_solution = cstring_clones(message);
-	if (!feline_solution->length) {
-		fprintf(stderr, "irc_client.c: Zero len message");
-		return -1;
-	}
-	
-	cstring_replaces(feline_solution, "\r", "");
-	cstring_replaces(feline_solution, "\n", "");
-	// so, mister feline... \r OR \r\n ???
-	cstring_adds(feline_solution, "\r\n"); // used to respond to an IRC client
-
 	mess = cstring_new();
-	//cstring_adds(mess, message);
-	cstring_add(mess, feline_solution);
-	free(feline_solution);
+	cstring_adds(mess, message);
+	cstring_adds(mess, "\r\n");
 
 	sbytes = net_write(self->socket, mess->string, mess->length);
 	ok = (sbytes >= 0 && ((size_t) sbytes) == mess->length);
@@ -327,10 +309,13 @@ int irc_client_do_work(irc_client *self) {
 	cstring_readnet(self->buffer, self->socket);
 	work = 0;
 	if (self->buffer->length > 0) {
+		//note: we support \r, \r\n, but NOT \r.
 		lines = cstring_splitc(self->buffer, '\n', '\0');
 		for (node = lines->first ; node ; node = node->next) {
 			line = (cstring *)node->data;
-			irc_client_handle_line(self, line->string);
+			cstring_remove_crlf(line);
+			if (line->length)
+				irc_client_handle_line(self, line->string);
 		}
 		clist_free(lines);
 

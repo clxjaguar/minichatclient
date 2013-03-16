@@ -47,7 +47,7 @@ struct cstring_private_struct {
  * @param data
  * @param size
  */
-void cstring_remove_crlf(char data[], size_t size);
+void cstring_remove_crlfs(char data[], size_t *size);
 
 /**
  * implement cstring_readline and cstring_readnet.
@@ -564,12 +564,18 @@ cstring *cstring_trimc(cstring *self, char car, int start, int end) {
 		return cstring_substring(self, n, size);
 }
 
-void cstring_remove_crlf(char data[], size_t size) {
-	if (size > 0 && data[size - 1] == '\n') {
-		data[size - 1] = '\0';
-		if (size > 1 && data[size - 2] == '\r')
-			data[size - 2] = '\0';
+int cstring_remove_crlf(cstring *self) {
+	int before = self->length;
+	cstring_remove_crlfs(self->string, &self->length);
+	return before - self->length;
+}
+
+void cstring_remove_crlfs(char data[], size_t *size) {
+	while (*size > 0 && (data[*size - 1] == '\r' || data[*size - 1] == '\n')) {
+		(*size)--;
 	}
+
+	data[*size] = '\0';
 }
 
 int cstring_readline(cstring *self, FILE *file) {
@@ -622,7 +628,7 @@ int cstring_readlinenet(cstring *self, FILE *file, int fd) {
 			return 0;
 		
 		full_line = ((file && feof(file)) || size == 0 || buffer[size - 1] == '\n');
-		cstring_remove_crlf(buffer, size);
+		cstring_remove_crlfs(buffer, &size);
 		cstring_adds(self, buffer);
 		
 		// No luck, we need to continue getting data
@@ -631,7 +637,7 @@ int cstring_readlinenet(cstring *self, FILE *file, int fd) {
 				break;
 
 			full_line = ((file && feof(file)) || size == 0 || buffer[size - 1] == '\n');
-			cstring_remove_crlf(buffer, size);
+			cstring_remove_crlfs(buffer, &size);
 			cstring_adds(self, buffer);
 		}
 		return 1;

@@ -459,6 +459,13 @@ cstring *cstring_getfile(cstring *path);
 
 cstring *cstring_getfiles(const char path[]);
 
+/**
+ * Remove all the \r and \n at the end of the given cstring.
+ * 
+ * @return how many removed characters
+ */
+int cstring_remove_crlf(cstring *self);
+
 #endif
 
 #ifdef __cplusplus
