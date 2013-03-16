@@ -90,6 +90,14 @@ void irc_user_set_hostmask(irc_user *self, const char hostmask[]) {
 		self->server = NULL;
 		self->hostmask = NULL;
 	}
+
+#if CRASH_NO_NICK
+	if (!self->nick) {
+		int a = 0;
+		int b = 1;
+		b = b / a;
+	}
+#endif
 }
 
 void irc_user_set_user(irc_user *self, const char nick[], const char hostname[], const char server[]) {
