@@ -339,6 +339,13 @@ void mccirc_nicks_stop(mccirc *self) {
 void on_server_message(irc_server *serv,
 		irc_user *user, const char target[], const char message[], void *data) {
 	mccirc *self = (mccirc *)data;
+	cstring *ACTION, *ACTION_END;
+
+	ACTION = cstring_new();
+	cstring_addc(ACTION, (char)1);
+	cstring_adds(ACTION, "ACTION");
+	ACTION_END = cstring_new();
+	cstring_addc(ACTION_END, (char)1);
 	
 	if (serv) {}
 	if (target) {}
@@ -347,7 +354,17 @@ void on_server_message(irc_server *serv,
 		cstring_clear(self->last_message);
 		cstring_clear(self->buffer);
 		cstring_adds(self->last_message, message);
-		cstring_adds(self->buffer, message);
+
+		if (cstring_starts_with(self->last_message, ACTION, 0)
+				&& cstring_ends_with(self->last_message, ACTION_END, 0)) {
+			cstring_clear(self->last_message);
+			cstring_addc(self->last_message, '*');
+			cstring_adds(self->last_message, message + ACTION->length + 1);
+			cstring_cut_at(self->last_message, self->last_message->length - 1);
+			cstring_addc(self->last_message, '*');
+		}
+
+		cstring_add(self->buffer, self->last_message);
 	}
 }
 
