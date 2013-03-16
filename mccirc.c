@@ -75,6 +75,7 @@ mccirc *mccirc_new() {
 	self = malloc(sizeof(mccirc));
 	self->server = NULL;
 	self->buffer = NULL;
+	self->last_message = cstring_new();
 	self->channel = NULL;
 	self->topic = NULL;
 	self->port = -1;
@@ -206,8 +207,13 @@ void mccirc_chatserver_message(mccirc *self, const char name[], const char messa
 		return;
 	
 	// do not convey messages for the connected client
-	if (mccirc_is_me(self, name))
-		return;
+	// unless it came from another client
+	if (mccirc_is_me(self, name)) {
+		if (!strcmp(self->last_message->string, message)) {
+			cstring_clear(self->last_message);
+			return;
+		}
+	}
 	
 	user = mccirc_get_user(self, name);
 	if (!user) {
@@ -332,9 +338,11 @@ void on_server_message(irc_server *serv,
 	
 	if (serv) {}
 	if (target) {}
-	
-	if (self->username && !strcmp(user->nick, self->username)) {
+
+	if (self->username && mccirc_is_me(self, user->nick)) {
+		cstring_clear(self->last_message);
 		cstring_clear(self->buffer);
+		cstring_adds(self->last_message, message);
 		cstring_adds(self->buffer, message);
 	}
 }
