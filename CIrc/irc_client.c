@@ -280,49 +280,35 @@ int irc_client_raw(irc_client *self, const char message[]) {
 	cstring *mess;
 	ssize_t sbytes;
 	int ok;
-	size_t inlen;
-	char *sanitized, *out;
-	const char *in;
-
-	inlen = strlen(message);
-	if (!inlen) {
+	cstring *feline_solution;
+	
+	feline_solution = cstring_clones(message);
+	if (!feline_solution->length) {
 		fprintf(stderr, "irc_client.c: Zero len message");
 		return -1;
 	}
-
-	sanitized = malloc(inlen+1);
-	if (!sanitized) {
-		fprintf(stderr, "irc_client.c: malloc() failed to allocate %d bytes\n", inlen+1);
-		fprintf(stderr, "\"%s\"\n", message);
-		return -1;
-	}
-
-	in = message;
-	out = sanitized;
-	while (*in){
-		if (*in != 0x0d && *in != 0x0a) { // a feline solution to a roo problem !
-			*out = *in; out++;
-		}
-		in++;
-	}
-	*out='\0';
+	
+	cstring_replaces(feline_solution, "\r", "");
+	cstring_replaces(feline_solution, "\n", "");
+	// so, mister feline... \r OR \r\n ???
+	cstring_adds(feline_solution, "\r\n"); // used to respond to an IRC client
 
 	mess = cstring_new();
 	//cstring_adds(mess, message);
-	cstring_adds(mess, sanitized);
-	free(sanitized);
-	cstring_adds(mess, "\r\n"); // used to respond to an IRC client
+	cstring_add(mess, feline_solution);
+	free(feline_solution);
+
 	sbytes = net_write(self->socket, mess->string, mess->length);
 	ok = (sbytes >= 0 && ((size_t) sbytes) == mess->length);
 
-	if (self->debug) {
+	if (self->debug)
 		fprintf(stderr, ok ? "OUT: %s" : "O!!: %s", mess->string);
-	}
+
 	cstring_free(mess);
 
-	if ((!ok) /* && errno == SIGPIPE)*/) {
+	if ((!ok) /* && errno == SIGPIPE)*/)
 		irc_client_stop(self);
-	}
+
 	return ok;
 }
 
