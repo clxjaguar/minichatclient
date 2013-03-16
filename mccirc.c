@@ -343,7 +343,7 @@ void on_server_message(irc_server *serv,
 
 	ACTION = cstring_new();
 	cstring_addc(ACTION, (char)1);
-	cstring_adds(ACTION, "ACTION");
+	cstring_adds(ACTION, "ACTION ");
 	ACTION_END = cstring_new();
 	cstring_addc(ACTION_END, (char)1);
 	
@@ -359,7 +359,7 @@ void on_server_message(irc_server *serv,
 				&& cstring_ends_with(self->last_message, ACTION_END, 0)) {
 			cstring_clear(self->last_message);
 			cstring_addc(self->last_message, '*');
-			cstring_adds(self->last_message, message + ACTION->length + 1);
+			cstring_adds(self->last_message, message + ACTION->length);
 			cstring_cut_at(self->last_message, self->last_message->length - 1);
 			cstring_addc(self->last_message, '*');
 		}
