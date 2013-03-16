@@ -17,6 +17,7 @@
  */
 typedef struct {
 	irc_server* server;
+	cstring *last_message;
 	cstring *buffer;
 	char *channel;
 	char *topic;
