@@ -683,14 +683,12 @@ void irc_server_rpl_topic(irc_server_connection *con, irc_chan *chan) {
 	string = cstring_new();
 	if (chan->topic != NULL) {
 		irc_server_cstring_add_action(con, string, "332"); //RPL_TOPIC
-		//cstring_addc(string, ' '); //TODO DEBUG : irc_server_cstring_add_action() gives us an extra space !
 		cstring_adds(string, (chan->name));
 		cstring_adds(string, " :");
 		cstring_adds(string, chan->topic);
 	}
 	else {
 		irc_server_cstring_add_action(con, string, "331"); //RPL_NOTOPIC
-		//cstring_addc(string, ' '); //TODO DEBUG : irc_server_cstring_add_action() gives us an extra space !
 		cstring_adds(string, chan->name);
 		cstring_adds(string, " :");
 		cstring_adds(string, "No topic is set");
