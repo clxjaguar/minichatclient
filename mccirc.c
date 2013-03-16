@@ -213,7 +213,7 @@ void mccirc_chatserver_message(mccirc *self, const char name[], const char messa
 		// But. It won't work with smileys and other modifications.
 		
 		//if (!strcmp(self->last_message->string, message)) {
-		if (self->last_message->length)
+		if (self->last_message->length) {
 			cstring_clear(self->last_message);
 			return;
 		}
