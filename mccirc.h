@@ -27,6 +27,7 @@ typedef struct {
 	int jpending; /*<< force join pending delay (starts at 0) */
 	irc_user *juser;
 	clist *nicklist;
+	int topic_mode;
 } mccirc;
 
 /** Constructors and destructors */
@@ -49,6 +50,7 @@ void mccirc_free(mccirc *self);
 
 void mccirc_init(mccirc *self, const char server_name[], const char ffname[],
 		const char channel_name[], const char channel_topic[], int port);
+void mccirc_set_topic_mode(mccirc *self, int topic_mode);
 //note: the result must be free()ed by the sender!!
 char *mccirc_check_message(mccirc *self);
 void mccirc_chatserver_error(mccirc *self);
