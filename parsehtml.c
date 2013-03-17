@@ -62,7 +62,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 	unsigned int i = 0;
 	static unsigned int j, l;
 	static tstate state;
-	static int nbmessages = 0;
+	static unsigned int nbmessages = 0;
 
 	const char str1[] = "<div id=\"mess";
 	const char str2[] = "<a href=\".";
@@ -112,6 +112,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 		if (input[i] == '\n') { continue; }
 
 		switch(state){
+			default:
 			case READY:
 				// message ?
 				if (input[i] == str1[j++]) {

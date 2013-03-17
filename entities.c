@@ -271,18 +271,12 @@ static const char *named_entities[][2] =
 	{ "zwnj;", "\xE2\x80\x8C" }
 };
 
-static int cmp(const void *key, const void *element)
-{
-	return strncmp((const char *)key, *(const char **)element,
-		strlen(*(const char **)element));
+static int cmp(const void *key, const void *element) {
+	return strncmp((const char *)key, *(const char **)element, strlen(*(const char **)element));
 }
 
-static const char *get_named_entity(const char *name)
-{
-	const char **entity = bsearch(name, named_entities,
-		sizeof(named_entities) / sizeof(*named_entities),
-		sizeof(*named_entities), cmp);
-
+static const char *get_named_entity(const char *name) {
+	const char **entity = bsearch(name, named_entities, sizeof(named_entities) / sizeof(*named_entities), sizeof(*named_entities), cmp);
 	return entity ? entity[1] : NULL;
 }
 

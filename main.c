@@ -204,9 +204,13 @@ int main(void) {
 		char *username = NULL;
 		unsigned int irc_port = 0;
 		char *channel_name = NULL;
-		username     = read_conf_string("username", username, 0); // 0 means: do the malloc if found !
-		irc_port     = read_conf_int   ("irc_port", 0); // default value : 0
-		channel_name = read_conf_string("channel_name", channel_name, 0); // 0 means: do the malloc if found !
+		int irc_topic_mode;
+
+		username       = read_conf_string("username", username, 0); // 0 means: do the malloc if found !
+		irc_port       = read_conf_int   ("irc_port", 0); // default value : 0
+		channel_name   = read_conf_string("channel_name", channel_name, 0); // 0 means: do the malloc if found !
+		irc_topic_mode = read_conf_int   ("irc_topic_mode", 1); // default value : 1 (send once at join, not at changes)
+
 		if (username) {
 			if (irc_port) {
 				display_debug("IRC: initialyzing, using channel name: ", 0);
@@ -214,6 +218,7 @@ int main(void) {
 				irc = mccirc_new();
 				if (!irc) { display_debug("IRC: ERROR! mccirc_new() returned NULL. IRC support not compiled in ?", 0); }
 				mccirc_init(irc, username, "minichatclient.sourceforge.net", channel_name?channel_name:"#MiniChatDefaultName", NULL, irc_port);
+				mccirc_set_topic_mode(irc, irc_topic_mode);
 			}
 			free(username); username = NULL;
 		}

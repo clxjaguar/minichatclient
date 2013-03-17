@@ -13,9 +13,9 @@
 #include "cookies.h"
 #include "display_interfaces.h"
 
-int debug_cookie = 1;
+int debug_cookie = 0;
 
-int storecookie(cookie_t *cookies, char* name, char* value){
+int storecookie(cookie_t *cookies, const char *name, const char *value){
     int i;
 	char debugbuf[300];
     for (i=0; i<MAXCOOKIES; i++){
@@ -43,7 +43,7 @@ int storecookie(cookie_t *cookies, char* name, char* value){
 						snprintf(debugbuf, 300, "Cookie slot %d already containing \"%s\". We change \"%s\" for \"%s\".", i, name, cookies[i].value, value);
 					}
 					display_debug(debugbuf, 0);
-				}	
+				}
                 free(cookies[i].name);
                 cookies[i].name = malloc((strlen(name)+1)*sizeof(char));
                 strcpy(cookies[i].name, name);
@@ -125,7 +125,7 @@ typedef enum {
     IN_HEADER,
     HEADER_FOUND,
     IN_COOKIENAME,
-    COOKIE_NAME_STORED,
+//    COOKIE_NAME_STORED,
     IN_COOKIE_VALUE,
     ENDOFHTTPHEADERS
 } tstate;
@@ -180,7 +180,7 @@ int parsehttpheadersforgettingcookies(cookie_t *cookies, const char *string, uns
             case IN_COOKIENAME:
                  if (string[i] < ' ' || string[i] == ';') { // caractères invalides ou fin de cookie prématurée
                      bufname[j++] = 0; j=0;
-                     if (debug_cookie) { 
+                     if (debug_cookie) {
 							display_debug("I got the half of a cookie ?!", 0);
 					 }
                      storecookie(cookies, bufname, "");
