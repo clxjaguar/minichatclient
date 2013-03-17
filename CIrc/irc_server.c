@@ -457,12 +457,19 @@ int irc_server_accept_connection(irc_server *self) {
 irc_server_connection *irc_server_get_connection(irc_server *self, const char username[]) {
 	clist_node *node;
 	irc_server_connection *con;
+	
+	// Should NOT happen
+	if (!username) {
+		fprintf(stderr, "Cannot get a connection for a user whose username is NULL.\n");
+		return NULL;
+	}
 
 	for (node = self->clients->first; node ; node = node->next) {
 		con = (irc_server_connection *)node->data;
 		if (con->user && !strcmp(con->user->nick, username))
 			return con;
 	}
+
 	return NULL;
 }
 
