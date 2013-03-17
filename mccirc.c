@@ -75,7 +75,7 @@ mccirc *mccirc_new() {
 	self = malloc(sizeof(mccirc));
 	self->server = NULL;
 	self->buffer = NULL;
-	self->last_message = cstring_new();
+	self->last_message = NULL;
 	self->channel = NULL;
 	self->topic = NULL;
 	self->port = -1;
@@ -95,6 +95,7 @@ void mccirc_free(mccirc *self) {
 	
 	irc_server_free(self->server);
 	cstring_free(self->buffer);
+	cstring_free(self->last_message);
 	free(self->channel);
 	free(self->topic);
 	free(self->username);
@@ -118,6 +119,7 @@ void mccirc_init(mccirc *self, const char ffname[], const char server_name[],
 		
 	self->channel = cstring_sclones(channel_name);
 	self->buffer = cstring_new();
+	self->last_message = cstring_new();
 	self->ffname = mccirc_sanitize_username(ffname);
 	
 	self->server = irc_server_new();
@@ -487,8 +489,8 @@ char *mccirc_sanitize_username(const char name[]) {
 	mask = cstring_new();
 	cstring_adds(mask, name);
 	cstring_replaces(mask, " ", "_");
-	cstring_replaces(mask, "@", "_");
-	cstring_replaces(mask, "!", "_");
+	cstring_replaces(mask, "@", "a");
+	cstring_replaces(mask, "!", "");
 	
 	return cstring_convert(mask);
 }
