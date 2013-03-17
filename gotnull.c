@@ -4,7 +4,7 @@
 
 #include "commons.h"
 
-char* display_driver(void) {
+const char* display_driver(void) {
 #ifdef WIN32
 	Sleep(WAITING_TIME_GRANOLOSITY);
 #else
@@ -35,4 +35,5 @@ void display_end(void) {
 }
 
 char display_waitforchar(const char *msg) {
+	return ' ';
 }
