@@ -32,7 +32,7 @@ ttranslit transliterating;
 
 const char* transliterate_from_utf8(const char* in){
 	static char *tmp = NULL;
-	char *p = NULL;
+	const char *p = NULL;
 	unsigned int c; // not "char" !
 	unsigned int i;
 
@@ -47,11 +47,11 @@ const char* transliterate_from_utf8(const char* in){
 		case ISO8859_1:
 		default:
 			tmp = malloc(strlen(in)+1); // la source utf8 sera toujours plus longue!
-			p = (char*)in;
+			p = (const char*)in;
 
 			i = 0;
 			while((c = extract_codepoints_from_utf8(&p))){
-				tmp[i++] = transliterate_ucs_to_iso88591(c);
+				tmp[i++] = (char)transliterate_ucs_to_iso88591(c);
 			}
 			tmp[i] = '\0';
 			return (const char*)tmp; // please do not try to free() the returned pointer.
@@ -59,11 +59,11 @@ const char* transliterate_from_utf8(const char* in){
 
 		case CP850:
 			tmp = malloc(strlen(in)+1); // la source utf8 sera toujours plus longue!
-			p = (char*)in;
+			p = (const char*)in;
 
 			i = 0;
 			while((c = extract_codepoints_from_utf8(&p))){
-				tmp[i++] = transliterate_ucs_to_cp850(c);
+				tmp[i++] = (char)transliterate_ucs_to_cp850(c);
 			}
 			tmp[i] = '\0';
 			return (const char*)tmp; // please do not try to free() the returned pointer.
@@ -168,8 +168,8 @@ void display_nicklist(const char *text){
 
 	if (!text) { //reset !
 		// il ne faut pas utiliser wclear(nicklist.content) car ça redraw le terminal entier
-		p = malloc(nicklist_width-4+1);
-		memset(p, ' ', nicklist_width-4);
+		p = malloc((size_t)(nicklist_width-4+1));
+		memset(p, ' ', (size_t)(nicklist_width-4));
 		//create_dwin(&nicklist, maxrows-debug_height-4-1, nicklist_width, debug_height, maxcols-nicklist_width, "nicklist");
 		//void create_dwin(dwin *w, int rows, int cols, int startrow, int startcol, const char *title){
 		//  w->content    = subwin(w->decoration, rows-2, cols-4, startrow+1, startcol+2);
@@ -193,7 +193,7 @@ void display_end(void){
 	endwin(); // end curses mode
 }
 
-char* display_driver(void){
+const char* display_driver(void){
 	int ch;
 	unsigned int j = 0;
 	static unsigned int nbrofbytes=0;

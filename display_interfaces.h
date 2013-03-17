@@ -9,7 +9,7 @@
    what have been returned, as the fonction does it itself on the next call.
    Oh, and it also take care of the 250ms delay before returning. */
 
-char* display_driver(void);
+const char* display_driver(void);
 
 // others interfaces fonctions
 

@@ -5,19 +5,22 @@
  * This file is in the public domain. Yours to do with as you please.
  * Modified by cLx (06/09/11)
  *     --   -- cLx (26/10/11)
+ *     --   -- cLx (17/03/13) (removing some warnings)
  * */
 #include <stdlib.h>
 #include <string.h>
 
 #include "strfunctions.h"
 
-void strrep(const char* input, char** out, char* old, char* new) {
-	char* in;
-	char* temp;
-	char* found;
+void strrep(const char *input, char **out, const char *old, const char *new) {
+	const char *in;
+	char  *tofree = NULL;
+	char *temp;
+	char *found;
+	int idx;
 
-	if (input == NULL) { in = *out; *out = NULL; }
-	else { in = (char *)input; }
+	if (input == NULL) { in = *out; tofree = *out; *out = NULL; }
+	else { in = input; }
 
 	found = strstr(in, old);
 	if(!found) {
@@ -26,24 +29,25 @@ void strrep(const char* input, char** out, char* old, char* new) {
 		return;
 	}
 
-	int idx = found - in;
+	idx = found - in;
 	if (!*out) { *out = malloc(strlen(in) - strlen(old) + strlen(new) + 1); }
 	else { *out = realloc(*out, strlen(in) - strlen(old) + strlen(new) + 1); }
 
-	strncpy(*out, in, idx);
+	strncpy(*out, in, (size_t)idx);
 	strcpy(*out + idx, new);
 	strcpy(*out + idx + strlen(new), in + idx + strlen(old));
 
 
-	temp = malloc(idx+strlen(new)+1);
-	strncpy(temp,*out,idx+strlen(new));
-	temp[idx + strlen(new)] = '\0';
+	temp = malloc((size_t)idx+strlen(new)+1);
+	strncpy(temp,*out,(size_t)idx+strlen(new));
+	temp[(size_t)idx + strlen(new)] = '\0';
 
 	strrep(found + strlen(old), out, old, new);
 	temp = realloc(temp, strlen(temp) + strlen(*out) + 1);
 	strcat(temp,*out);
 	*out = temp;
-	if (!input) { free(in); }
+	//if (!input) { free(in); }
+	if (tofree) { free(tofree); }
 }
 
 /*
@@ -63,7 +67,7 @@ void test(int argc, char* argv[]) {
   Name:         (all of theses following functions)
   Copyright:    GPL (but you don't want to reuse that)
   Author:       cLx (http://clx.freeshell.org/)
-  Date:         09/11/11 
+  Date:         09/11/11
   Description:  String transliteration founctions for dos terminal / latin-1 terminals
 */
 
@@ -85,13 +89,13 @@ void test(int argc, char* argv[]) {
 #define B00000001   1
 #define B00000000   0
 
-unsigned int extract_codepoints_from_utf8(char **in){
+unsigned int extract_codepoints_from_utf8(const char **in){
 	unsigned int value = 0;
-	
+
 	if (!in)          { return 0; } 	         // got a null pointer ?
 	else if (!(*in))  { (*in)=NULL; return 0; }  // point to null string ?
 	else if (!(**in)) { (*in)=NULL; return 0; }  // end of string reached ?
-	
+
 	// 1 byte (ascii) character ?
 	else if (((**in)&B10000000) == B00000000) {
 		value = (unsigned int)**in;
@@ -141,7 +145,7 @@ unsigned int extract_codepoints_from_utf8(char **in){
 			  + ((((unsigned int)*(*in+4))&B00111111)    );
 		(*in)+=5;
 	}
-	
+
 	// 6 bytes character ?
 	else if (((**in)&B11111110) == B11111100) {
 		if (!*(*in+1)) { (*in)=NULL; return 0; }
@@ -159,7 +163,7 @@ unsigned int extract_codepoints_from_utf8(char **in){
 	}
 
 	else { value = '?'; (*in)+=1; }
-	
+
 	return value;
 }
 

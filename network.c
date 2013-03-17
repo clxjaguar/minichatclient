@@ -6,11 +6,12 @@
   Description:  ce qu'il faut pour se connecter vers des trucs en TCP.
 */
 
-#include "display_interfaces.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "display_interfaces.h"
+#include "network.h"
 
 #if defined (WIN32)
 	#include <winsock2.h>
@@ -36,7 +37,7 @@ void ws_cleanup(void){
 #endif
 }
 
-int maketcpconnexion(char* hostname, int port){
+int maketcpconnexion(const char* hostname, unsigned int port){
 	struct hostent	 *he;
 	struct sockaddr_in  server;
 	int sockfd;
@@ -45,7 +46,7 @@ int maketcpconnexion(char* hostname, int port){
 	display_debug("Resolving ", 0);
 	display_debug(hostname, 1);
 	display_debug(" ... ", 1);
-	
+
 	/* resolve host to an IP */
 	if ((he = (void *)gethostbyname(hostname)) == NULL) { // deprécié !
 		display_debug("Error resolving hostname.", 1);
@@ -67,10 +68,10 @@ int maketcpconnexion(char* hostname, int port){
 	 * sockaddr_in structure which is passed to connect()
 	 */
 	server.sin_family = AF_INET;
-	server.sin_port = htons(port);
+	server.sin_port = htons((uint16_t)port);
 	server.sin_addr.s_addr = INADDR_ANY;
 
-	memcpy(&(server.sin_addr.s_addr), he->h_addr, he->h_length);
+	memcpy(&(server.sin_addr.s_addr), he->h_addr, (size_t)he->h_length);
 
 	/* open socket */
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -97,7 +98,7 @@ int maketcpconnexion(char* hostname, int port){
 
 //////////////////////////////////////////////////////////////////////////////
 
-int sendstr(int s, char* buf){
+int sendstr(int s, const char* buf){
 #ifdef DEBUG
 	fprintf(stderr, "%s", buf);
 #endif
@@ -105,7 +106,7 @@ int sendstr(int s, char* buf){
 	return 0;
 }
 
-int sendline(int s, char* buf){
+int sendline(int s, const char* buf){
 #ifdef DEBUG
 	fprintf(stderr, "%s\n", buf);
 #endif
@@ -114,11 +115,11 @@ int sendline(int s, char* buf){
 	return 0;
 }
 
-int http_get(int s, char* req, char* host, char* referer, char* cookies, char* useragent, char* mischeaders){
+int http_get(int s, const char* req, const char* host, const char* referer, const char* cookies, const char* useragent, const char* mischeaders){
 	char buf[200];
 	snprintf(buf, 200, "GET http://%s%s%s", host, req[0]=='/'?"":"/", req);
 	display_debug(buf, 0);
-	
+
 	sendstr(s, "GET ");
 	sendstr(s, req);
 	sendline(s, " HTTP/1.1");
@@ -130,10 +131,6 @@ int http_get(int s, char* req, char* host, char* referer, char* cookies, char* u
 		sendstr(s, "User-Agent: ");
 		sendline(s, useragent);
 	}
-	//sendline(s, "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-	//sendline(s, "Accept-Language: en,en-us;q=0.5");
-	//sendline(s, "Accept-Encoding: gzip, deflate");
-	//sendline(s, "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7");
 	sendline(s, "Connection: close");
 	if (referer) {
 		sendstr(s, "Referer: ");
@@ -148,7 +145,7 @@ int http_get(int s, char* req, char* host, char* referer, char* cookies, char* u
 	return 0;
 }
 
-int http_post(int s, char* req, char* host, char* datas, char* referer, char* cookies, char* useragent, char* mischeaders){
+int http_post(int s, const char* req, const char* host, const char* datas, const char* referer, const char* cookies, const char* useragent, const char* mischeaders){
 	char buf[200];
 	snprintf(buf, 200, "POST http://%s%s%s|%s", host, req[0]=='/'?"":"/", req, datas);
 	display_debug(buf, 0);

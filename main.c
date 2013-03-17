@@ -49,7 +49,7 @@ typedef enum {
 
 // quelques variables globales
 tstate state;
-FILE *f;
+FILE *logfile;
 char *host = NULL; unsigned int port = 0;
 char *path = NULL;
 mccirc *irc = NULL;
@@ -97,7 +97,7 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
 	free(p); p = NULL;
 
 	// and put it in the log file
-	put_timestamp(f); fprintf(f, "<%s> %s\r\n", username, message); fflush(f); //TODO?
+	put_timestamp(logfile); fprintf(logfile, "<%s> %s\r\n", username, message); fflush(logfile);
 
 	// gere si la user icon est sur le serveur (avec une adresse relative ./)
 	// (ne pas oublier d'alouer pour "http://", ":12345" et le \0 de fin de chaine)
@@ -138,12 +138,12 @@ int main(void) {
 	char buf[BUFSIZE+1]; // rx buffer
 	int bytes;
 	int k; // flag for any use
-	char *outgoingmsg = NULL;
+	const char *outgoingmsg = NULL;
 
-	int t; // timeslots remaining before next polling
+	unsigned int t; // timeslots remaining before next polling
 	unsigned int nberr = 0;
-	unsigned short wait_time = 40; // 10s
-	unsigned short wait_time_maxi, wait_time_mini, wait_time_awake;
+	unsigned int wait_time = 40; // 10s
+	unsigned int wait_time_maxi, wait_time_mini, wait_time_awake;
 
 	tstate oldstate, futurestate;
 	char *useragent = NULL;
@@ -164,8 +164,8 @@ int main(void) {
 	  "********************************************\n\n"
 	);
 
-	f = fopen("output.log", "a");
-	if (!f){
+	logfile = fopen("output.log", "a");
+	if (!logfile){
 		display_debug("Can't open output.log for writing !", 0);
 		display_waitforchar("Press any key to continue");
 		return -1;
@@ -174,13 +174,13 @@ int main(void) {
 	ws_init();
 
 	/* reading configuration file */
-	host            = read_conf_string("host",      host,      0);
-	port            = read_conf_int   ("port",                 80);
-	path            = read_conf_string("path",      path,      0);
-	useragent       = read_conf_string("useragent", useragent, 0);
-	wait_time_maxi  = read_conf_int   ("wait_time_maxi",       15) * (1000/WAITING_TIME_GRANOLOSITY);
-	wait_time_mini  = read_conf_int   ("wait_time_mini",       5)  * (1000/WAITING_TIME_GRANOLOSITY);
-	wait_time_awake = read_conf_int   ("wait_time_awake",      3)  * (1000/WAITING_TIME_GRANOLOSITY);
+	host            =               read_conf_string("host",      host,      0);
+	port            = (unsigned int)read_conf_int   ("port",                 80);
+	path            =               read_conf_string("path",      path,      0);
+	useragent       =               read_conf_string("useragent", useragent, 0);
+	wait_time_maxi  = (unsigned int)read_conf_int   ("wait_time_maxi",       15) * (1000/WAITING_TIME_GRANOLOSITY);
+	wait_time_mini  = (unsigned int)read_conf_int   ("wait_time_mini",       5)  * (1000/WAITING_TIME_GRANOLOSITY);
+	wait_time_awake = (unsigned int)read_conf_int   ("wait_time_awake",      3)  * (1000/WAITING_TIME_GRANOLOSITY);
 
 	{
 		char buf2show[200];
@@ -202,7 +202,7 @@ int main(void) {
 
 	{ // initialize the mini IRC server
 		char *username = NULL;
-		unsigned int irc_port = 0;
+		int irc_port = 0;
 		char *channel_name = NULL;
 		int irc_topic_mode;
 
@@ -239,9 +239,9 @@ int main(void) {
 			if (!s) { //
 				nberr++;
 				if (nberr == 5) {
-					put_timestamp(f);
-					fprintf(f, "Unable to connect to the server anymore !\r\n");
-					fflush(f);
+					put_timestamp(logfile);
+					fprintf(logfile, "Unable to connect to the server anymore !\r\n");
+					fflush(logfile);
 					mccirc_chatserver_error(irc);
 				}
 				wait_time = 10 * (1000/WAITING_TIME_GRANOLOSITY);
@@ -250,9 +250,9 @@ int main(void) {
 			}
 			else {
 				if (nberr >= 5) {
-					put_timestamp(f);
-					fprintf(f, "The server seem to be back now !\r\n");
-					fflush(f);
+					put_timestamp(logfile);
+					fprintf(logfile, "The server seem to be back now !\r\n");
+					fflush(logfile);
 					mccirc_chatserver_resume(irc);
 					if (nberr >= 30) { // 5' ? reconnect from beginning.
 						state = LOADING_LOGIN_PAGE;
@@ -264,6 +264,7 @@ int main(void) {
 
 		// now here is the main finite state machine
 		switch(state){
+			default:
 			case LOADING_LOGIN_PAGE:
 				// première étape, on se connecte sur la page de login pour aller chercher un sid
 				// (attention, il ne va fonctionner qu'avec l'user-agent spécifié, faut plus le changer !)
@@ -277,8 +278,8 @@ int main(void) {
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, bytes);
-						parsehttpheadersforgettingcookies(cookies, buf, bytes);
+						ishttpresponseok(buf, (unsigned int)bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
 					}
 					k=0;
 				}
@@ -339,8 +340,8 @@ int main(void) {
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, bytes);
-						parsehttpheadersforgettingcookies(cookies, buf, bytes);
+						ishttpresponseok(buf, (unsigned int)bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
 					}
 					k=0;
 				}
@@ -376,10 +377,10 @@ int main(void) {
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, bytes);
-						parsehttpheadersforgettingcookies(cookies, buf, bytes);
+						ishttpresponseok(buf, (unsigned int)bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
 					}
-					parse_minichat_mess(buf, bytes, &msg, k);
+					parse_minichat_mess(buf, (unsigned int)bytes, &msg, k);
 					k=0;
 				}
 				state = WAIT;
@@ -419,21 +420,21 @@ int main(void) {
 					free(cookiesstr); cookiesstr=NULL;
 				}
 				{
-					unsigned short nbmessages = 0, old_wait_time;
+					unsigned int nbmessages = 0, old_wait_time;
 
 					k=1;
 					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 						if(k) {
-							ishttpresponseok(buf, bytes);
-							parsehttpheadersforgettingcookies(cookies, buf, bytes);
+							ishttpresponseok(buf, (unsigned int)bytes);
+							parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
 						}
-						nbmessages = parse_minichat_mess(buf, bytes, &msg, k);
+						nbmessages = parse_minichat_mess(buf, (unsigned int)bytes, &msg, k);
 						k=0;
 					}
 
 					old_wait_time = wait_time;
 					if (nbmessages == 0) {
-						wait_time*=1.5;
+						wait_time = wait_time + (wait_time>>1);
 						if (wait_time>wait_time_maxi) { wait_time = wait_time_maxi; }
 					}
 					else {
@@ -481,19 +482,14 @@ int main(void) {
 				}
 				k=1;
 				{
-					//FILE *test;
-					//test = fopen("stats.txt", "w");
-				
 					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 						if(k) {
-							ishttpresponseok(buf, bytes);
-							parsehttpheadersforgettingcookies(cookies, buf, bytes);
+							ishttpresponseok(buf, (unsigned int)bytes);
+							parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
 						}
-						parse_minichat_mess(buf, bytes, &msg, k);
-						//fwrite(buf, bytes, 1, test);
+						parse_minichat_mess(buf, (unsigned int)bytes, &msg, k);
 						k=0;
 					}
-					//fclose(test); 
 				}
 				state = WATCHING_NEW_MESSAGES;
 				break;
@@ -553,8 +549,8 @@ int main(void) {
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, bytes);
-						parsehttpheadersforgettingcookies(cookies, buf, bytes);
+						ishttpresponseok(buf, (unsigned int)bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
 					}
 					k=0;
 				}
@@ -573,7 +569,7 @@ int main(void) {
 				if (t){{
 					const char anim[4] = {'\\', '-', '/', '|'};
 					char buf2show[15];
-					t--; 
+					t--;
 					//fprintf(stderr, "\b\b\b\b%c%3.0d", anim[t%4], (int)(t/(1000/WAITING_TIME_GRANOLOSITY))); 
 					//snprintf(buf, 15, "Waiting%3us %c", (unsigned int)(t/(1000/WAITING_TIME_GRANOLOSITY)), anim[t%4]); 
 					//display_statusbar(buf);
@@ -595,16 +591,16 @@ int main(void) {
 				if (outgoingmsg) {
 					state = POSTING_A_MESSAGE;
 				}
-				oldstate = state; // bug if not here ? why ?
+				oldstate = state; // bug if not here
 				break;
 		}
- 
+
 		// if a TCP connexion to the server is present, terminate it !
 		if (s) { closesocket(s); s = 0; }
 	} // MAIN LOOP END
 
 	// pour l'instant, le code qui suit ne sera jamais executé.
-	fclose(f);
+	fclose(logfile);
 	freecookies(cookies);
 	parser_freerules();
 	ws_cleanup();
