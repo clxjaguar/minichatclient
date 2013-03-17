@@ -5,7 +5,7 @@ typedef struct {
     char *value;
 } cookie_t;
 
-int storecookie(cookie_t *cookies, char* name, char* value);
+int storecookie(cookie_t *cookies, const char *name, const char *value);
 int listcookies(cookie_t *cookies);
 char* getcookie(cookie_t *cookies, char *name);
 char* generate_cookies_string(cookie_t *cookies, char *buf, unsigned int buflen);
