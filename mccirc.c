@@ -246,7 +246,7 @@ void mccirc_topic(mccirc *self, const char topic[]) {
 		return;
 	
 	// Only set the topic once for mode 1 or never for mode 0
-	if (!self->topic_mode || self->topic_mode == 1 && self->topic)
+	if (!self->topic_mode || (self->topic_mode == 1 && self->topic))
 		return;
 
 	// Remote the SUFFIX if found
