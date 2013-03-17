@@ -10,7 +10,7 @@
 
 cstring *gottext_buffer = NULL;
 
-char* display_driver(void) {
+const char* display_driver(void) {
 #ifdef WIN32
 	Sleep(WAITING_TIME_GRANOLOSITY);
 #else
@@ -24,6 +24,7 @@ char* display_driver(void) {
 
 	if (gottext_buffer->length > 0){
 		return gottext_buffer->string;
+		// TODO: hey le roo, t'es sur que tu nous fais pas une fuite de memoire la ? tu dois free au prochain appel !
 	}
 	return NULL;
 }
