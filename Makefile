@@ -107,9 +107,8 @@ gottext.o: gottext.c display_interfaces.h commons.h
 gotnull.o: gotnull.c display_interfaces.h commons.h
 mccirc.o: mccirc.c mccirc.h CUtils/libcutils.o CIrc/libcirc.o
 parser.o: parser.c parser.h parser_p.h CUtils/libcutils.o
-CUtils/libcutils.o: CUtils/libcutils.c CUtils/libcutils.h
+CUtils/libcutils.o: CUtils/libcutils.c CUtils/libcutils.h CUtils/attribute.h CUtils/attribute.c CUtils/clist.h CUtils/clist.c CUtils/ini.h CUtils/ini.c CUtils/net.h CUtils/net.c CUtils/cstring.h CUtils/cstring.c
 CIrc/libcirc.o: CUtils/libcutils.o CIrc/libcirc.c CIrc/irc_chan.h CIrc/irc_client.h CIrc/irc_server.h CIrc/irc_user.h CIrc/irc_chan.c CIrc/irc_client.c CIrc/irc_server.c CIrc/irc_user.c
-
 
 %.o: %.c
 	@echo --- Compiling $@
