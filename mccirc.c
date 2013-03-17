@@ -121,6 +121,7 @@ void mccirc_init(mccirc *self, const char ffname[], const char server_name[],
 	self->buffer = cstring_new();
 	self->last_message = cstring_new();
 	self->ffname = mccirc_sanitize_username(ffname);
+	self->topic_mode = 2;
 	
 	self->server = irc_server_new();
 	irc_server_set_name(self->server, server_name);
@@ -134,6 +135,10 @@ void mccirc_init(mccirc *self, const char ffname[], const char server_name[],
 	
 	// set topic
 	mccirc_topic(self, channel_topic);
+}
+
+void mccirc_set_topic_mode(mccirc *self, int topic_mode) {
+	self->topic_mode = topic_mode;
 }
 
 //note: sender is NOT responsible for the memory,
@@ -240,6 +245,10 @@ void mccirc_topic(mccirc *self, const char topic[]) {
 	if (!self)
 		return;
 	
+	// Only set the topic once for mode 1 or never for mode 0
+	if (!self->topic_mode || self->topic_mode == 1 && self->topic)
+		return;
+
 	// Remote the SUFFIX if found
 	string = topic ? cstring_clones(topic) : NULL;
 	if (string && cstring_ends_withs(string, TOPIC_SUFFIX, 0)) {
