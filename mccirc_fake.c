@@ -22,8 +22,7 @@ void mccirc_free(mccirc *self) {
 // other public functions //
 ////////////////////////////
 
-void mccirc_init(mccirc *self, const char ffname[], const char server_name[], 
-		const char channel_name[], const char channel_topic[], int port) {
+void mccirc_init(mccirc *self, const char ffname[], const char server_name[], const char channel_name[], const char channel_topic[], int port) {
 	if (self) {}
 	if (ffname) {}
 	if (server_name) {}
@@ -32,12 +31,8 @@ void mccirc_init(mccirc *self, const char ffname[], const char server_name[],
 	if (port) {}
 }
 
-//note: sender is NOT responsible for the memory,
-// and the memory MUST be useable UNTIL the next call
-// (hard to understand, in short: always free mem from last call or use bufer)
-char *mccirc_check_message(mccirc *self) {
+const char *mccirc_check_message(mccirc *self) {
 	if (self) {}
-
 	return NULL;
 }
 
