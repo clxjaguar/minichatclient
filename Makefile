@@ -117,7 +117,7 @@ CIrc/libcirc.o: CUtils/libcutils.o CIrc/libcirc.c CIrc/irc_chan.h CIrc/irc_clien
 
 $(EXECUTABLE): $(OBJECTS) $(MOBJECTS)
 	@echo --- Linking final executable $(EXECUTABLE)...
-	$(CC) $(ARCHFLAG) $(OBJECTS) $(MOBJECTS) -o $@ $(LDFLAGS)
+	@$(CC) $(ARCHFLAG) $(OBJECTS) $(MOBJECTS) -o $@ $(LDFLAGS)
 ifneq ($(DEBUG), 1)
 	@echo "--- Stripping $(EXECUTABLE)"
 	@strip $(EXECUTABLE)
