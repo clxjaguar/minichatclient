@@ -71,7 +71,7 @@ void mccirc_remove_nick(mccirc *self, const char user[]);
 
 mccirc *mccirc_new() {
 	mccirc *self;
-	
+
 	self = malloc(sizeof(mccirc));
 	self->server = NULL;
 	self->buffer = NULL;
@@ -84,7 +84,7 @@ mccirc *mccirc_new() {
 	self->jpending = 0;
 	self->juser = NULL;
 	self->nicklist = NULL;
-	
+
 	return self;
 }
 
@@ -92,7 +92,7 @@ void mccirc_free(mccirc *self) {
 	// should not happen, but just in case:
 	if (!self)
 		return;
-	
+
 	irc_server_free(self->server);
 	cstring_free(self->buffer);
 	cstring_free(self->last_message);
@@ -102,7 +102,7 @@ void mccirc_free(mccirc *self) {
 	free(self->ffname);
 	irc_user_free(self->juser);
 	clist_free(self->nicklist);
-	
+
 	free(self);
 }
 
@@ -110,29 +110,27 @@ void mccirc_free(mccirc *self) {
 // other public functions //
 ////////////////////////////
 
-void mccirc_init(mccirc *self, const char ffname[], const char server_name[], 
-		const char channel_name[], const char channel_topic[], int port) {
-			
+void mccirc_init(mccirc *self, const char ffname[], const char server_name[], const char channel_name[], const char channel_topic[], int port) {
 	// should not happen, but just in case:
 	if (!self)
 		return;
-		
+
 	self->channel = cstring_sclones(channel_name);
 	self->buffer = cstring_new();
 	self->last_message = cstring_new();
 	self->ffname = mccirc_sanitize_username(ffname);
 	self->topic_mode = 2;
-	
+
 	self->server = irc_server_new();
 	irc_server_set_name(self->server, server_name);
 	irc_server_listen(self->server, port, 5);
 
 	irc_server_on_register(self->server, on_server_register, self);
 	irc_server_on_message(self->server, on_server_message, self);
-	
+
 	// create channel
 	irc_server_join(self->server, self->channel, NULL);
-	
+
 	// set topic
 	mccirc_topic(self, channel_topic);
 }
@@ -141,13 +139,12 @@ void mccirc_set_topic_mode(mccirc *self, int topic_mode) {
 	self->topic_mode = topic_mode;
 }
 
-//note: sender is NOT responsible for the memory,
-// and the memory MUST be useable UNTIL the next call
-// (hard to understand, in short: always free mem from last call or use bufer)
-char *mccirc_check_message(mccirc *self) {
+//note: caller is not responsible for the free, it's done here at the next call.
+const char *mccirc_check_message(mccirc *self) {
 	// should not happen, but just in case:
-	if (!self)
+	if (!self) {
 		return NULL;
+	}
 
 	// take care of the optional pending force join
 	if (self->juser) {
@@ -159,14 +156,16 @@ char *mccirc_check_message(mccirc *self) {
 		}
 	}
 
-	if (self->buffer->length > 0)
+	if (self->buffer->length > 0) {
 		cstring_clear(self->buffer);
+	}
 
 	// must set buffer if needed:
 	irc_server_do_work(self->server);
-	
-	if (self->buffer->length > 0)
+
+	if (self->buffer->length > 0) {
 		return self->buffer->string;
+	}
 
 	return NULL;
 }
@@ -183,22 +182,22 @@ void mccirc_add_nick(mccirc *self, const char name[]) {
 	// should not happen, but just in case:
 	if (!name || !self || !self->username)
 		return;
-	
+
 	// do not add myself
 	if (mccirc_is_me(self, name))
 		return;
-	
+
 	if (!mccirc_get_user(self, name))
 		mccirc_create_user(self, name);
 }
 
 void mccirc_remove_nick(mccirc *self, const char name[]) {
 	irc_user *user;
-	
+
 	// should not happen, but just in case:
 	if (!name || !self || !self->username)
 		return;
-	
+
 	user = mccirc_get_user(self, name);
 	if (user) {
 		irc_server_part(self->server, self->channel, user, NULL);
@@ -208,30 +207,30 @@ void mccirc_remove_nick(mccirc *self, const char name[]) {
 
 void mccirc_chatserver_message(mccirc *self, const char name[], const char message[]) {
 	irc_user *user;
-	
+
 	// should not happen, but just in case:
 	if (!self || !self->username || !name || !message)
 		return;
-	
+
 	// do not convey messages for the connected client
 	// unless it came from another client
 	if (mccirc_is_me(self, name)) {
 		// We should compare the last message and this one.
 		// But. It won't work with smileys and other modifications.
-		
+
 		//if (!strcmp(self->last_message->string, message)) {
 		if (self->last_message->length) {
 			cstring_clear(self->last_message);
 			return;
 		}
 	}
-	
+
 	user = mccirc_get_user(self, name);
 	if (!user) {
 		mccirc_create_user(self, name);
 		user = mccirc_get_user(self, name);
 	}
-	
+
 	// only send message if user is still in channel
 	if (mccirc_get_user(self, self->username))
 		irc_server_privmsg(self->server, self->channel, user, message);
@@ -244,7 +243,7 @@ void mccirc_topic(mccirc *self, const char topic[]) {
 	// Just in case
 	if (!self)
 		return;
-	
+
 	// Only set the topic once for mode 1 or never for mode 0
 	if (!self->topic_mode || (self->topic_mode == 1 && self->topic))
 		return;
@@ -256,7 +255,7 @@ void mccirc_topic(mccirc *self, const char topic[]) {
 		string = cstring_substring(tmp, 0, string->length - strlen(TOPIC_SUFFIX));
 		cstring_free(tmp);
 	}
-	
+
 	// Don't do anything if we already have that very same topic
 	if (self->topic && topic && !strcmp(self->topic, string->string)) {
 		cstring_free(string);
