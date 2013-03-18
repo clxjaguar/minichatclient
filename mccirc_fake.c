@@ -69,6 +69,11 @@ void mccirc_chatserver_message(mccirc *self, const char name[], const char messa
 	if (message) {}
 }
 
+void mccirc_set_topic_mode(mccirc *self, int mode) {
+	if (self) {}
+	if (mode) {}
+}
+
 void mccirc_topic(mccirc *self, const char topic[]) {
 	if (self) {}
 	if (topic) {}
