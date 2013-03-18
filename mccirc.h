@@ -52,7 +52,7 @@ void mccirc_init(mccirc *self, const char server_name[], const char ffname[],
 		const char channel_name[], const char channel_topic[], int port);
 void mccirc_set_topic_mode(mccirc *self, int topic_mode);
 //note: the result must be free()ed by the sender!!
-char *mccirc_check_message(mccirc *self);
+const char *mccirc_check_message(mccirc *self);
 void mccirc_chatserver_error(mccirc *self);
 void mccirc_chatserver_resume(mccirc *self);
 void mccirc_chatserver_message(mccirc *self, const char username[], 
