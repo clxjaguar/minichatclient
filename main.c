@@ -145,7 +145,7 @@ int main(void) {
 	unsigned int wait_time = 40; // 10s
 	unsigned int wait_time_maxi, wait_time_mini, wait_time_awake;
 
-	tstate oldstate, futurestate;
+	tstate oldstate=LOADING_LOGIN_PAGE, futurestate=WAIT;
 	char *useragent = NULL;
 
 	cookie_t cookies[MAXCOOKIES]; // se configure dans cookies.h
