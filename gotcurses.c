@@ -162,7 +162,7 @@ void display_conversation(const char *text){
 }
 
 void display_nicklist(const char *text){
-	static signed int i;
+	static signed int i=0;
 	char *p = NULL;
 	if (!nicklist_width) return;
 
@@ -170,6 +170,7 @@ void display_nicklist(const char *text){
 		// il ne faut pas utiliser wclear(nicklist.content) car ça redraw le terminal entier
 		p = malloc((size_t)(nicklist_width-4+1));
 		memset(p, ' ', (size_t)(nicklist_width-4));
+		p[nicklist_width-4]='\0';
 		//create_dwin(&nicklist, maxrows-debug_height-4-1, nicklist_width, debug_height, maxcols-nicklist_width, "nicklist");
 		//void create_dwin(dwin *w, int rows, int cols, int startrow, int startcol, const char *title){
 		//  w->content    = subwin(w->decoration, rows-2, cols-4, startrow+1, startcol+2);
