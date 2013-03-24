@@ -471,6 +471,7 @@ void mccirc_create_user(mccirc *self, const char username[]) {
 	cstring *mask;
 	irc_user *user;
 	char *sane_username;
+	char *phost;
 	
 	mask = cstring_new();
 	sane_username = mccirc_sanitize_username(username);
@@ -478,7 +479,14 @@ void mccirc_create_user(mccirc *self, const char username[]) {
 	cstring_addc(mask, '!');
 	cstring_adds(mask, sane_username);
 	cstring_addc(mask, '@');
-	cstring_adds(mask, self->channel);
+	
+	// Do not use the # or & from the channel name
+	phost = self->channel;
+	if (phost[0] == '#' || phost[0] == '&')
+		phost++;
+	cstring_adds(mask, phost);
+	//
+
 	free(sane_username);
 	
 	user = irc_user_new();
@@ -499,6 +507,7 @@ char *mccirc_sanitize_username(const char name[]) {
 	cstring_replaces(mask, " ", "_");
 	cstring_replaces(mask, "@", "a");
 	cstring_replaces(mask, "!", "");
+	cstring_replaces(mask, "#", "");
 	
 	return cstring_convert(mask);
 }
