@@ -40,7 +40,7 @@
  *
  * @return the attribute, or NULL
  */
-attribute *get_attribute(const char data[]);
+attribute *get_attribute(const char data[], bool trim);
 
 /**
  * Remove a trailing LN, or CRLN, and replace it by '\0'.
@@ -51,14 +51,36 @@ bool match(attribute *att, void *argument);
 
 // end of privates prototypes
 
+ini *ini_new() {
+	return ini_new_f(NULL);
+}
 
-char *ini_get(FILE *file, const char name[]) {
+ini *ini_new_f(FILE *file) {
+	return ini_new_ft(file, 1);
+}
+
+ini *ini_new_ft(FILE *file, int trim) {
+	ini *self;
+	self = (ini *)malloc(sizeof(ini));
+	self->file = file;
+	self->trim = trim;
+	return self;
+}
+
+void ini_free(ini *self) {
+	if (!self)
+		return;
+	self->file = NULL;
+	free(self);
+}
+
+char *ini_get(ini *self, const char name[]) {
 	clist *list;
 	attribute *att;
 	cstring *out;
 	
 	out = NULL;
-	list = ini_get_all(file, name);
+	list = ini_get_all(self, name);
 	
 	if (list->last) {
 		out = cstring_new();
@@ -70,8 +92,8 @@ char *ini_get(FILE *file, const char name[]) {
 	return cstring_convert(out);
 }
 
-clist *ini_get_all(FILE *file, const char mask[]) {
-	return ini_get_select(file, match, (void *)mask);
+clist *ini_get_all(ini *self, const char mask[]) {
+	return ini_get_select(self, match, (void *)mask);
 }
 
 bool match(attribute *att, void *argument) {
@@ -87,7 +109,7 @@ bool match(attribute *att, void *argument) {
 	}
 }
 
-clist *ini_get_select(FILE *file, bool (*filter)(attribute *att, void *argument), void *argument) {
+clist *ini_get_select(ini *self, bool (*filter)(attribute *att, void *argument), void *argument) {
 	clist *atts;
 	attribute *att;
 	char buffer[81];
@@ -99,14 +121,15 @@ clist *ini_get_select(FILE *file, bool (*filter)(attribute *att, void *argument)
 	string = cstring_new();
 	buffer[80] = '\0'; // just in case
 	
-	if (file != NULL) {
-		while (!feof(file)) {
+	if (self && self->file) {
+		rewind(self->file);
+		while (!feof(self->file)) {
 			buffer[0]='\0';
-			fgets(buffer, 80, file);
+			fgets(buffer, 80, self->file);
 			// Note: strlen() could return 0 if the file contains \0
 			// at the start of a line
 			size = strlen(buffer);
-			full_line = (feof(file) || size == 0 || buffer[size - 1] == '\n');
+			full_line = (feof(self->file) || size == 0 || buffer[size - 1] == '\n');
 			remove_crlf(buffer, size);
 			
 			// No luck, we need to continue getting data
@@ -114,9 +137,9 @@ clist *ini_get_select(FILE *file, bool (*filter)(attribute *att, void *argument)
 				cstring_clear(string);
 				cstring_adds(string, buffer);
 				while (!full_line) {
-					fgets(buffer, 80, file);
+					fgets(buffer, 80, self->file);
 					size = strlen(buffer);
-					full_line = (feof(file) || size == 0 || buffer[size - 1] == '\n');
+					full_line = (feof(self->file) || size == 0 || buffer[size - 1] == '\n');
 					remove_crlf(buffer, size);
 					cstring_adds(string, buffer);
 				}
@@ -125,9 +148,9 @@ clist *ini_get_select(FILE *file, bool (*filter)(attribute *att, void *argument)
 			
 			// get the attribute, and add it if it is not a comment
 			if (full_line) {
-				att = get_attribute(buffer);
+				att = get_attribute(buffer, self->trim);
 			} else {
-				att = get_attribute(string->string);
+				att = get_attribute(string->string, self->trim);
 			}
 			
 			if (att != NULL) {
@@ -145,7 +168,7 @@ clist *ini_get_select(FILE *file, bool (*filter)(attribute *att, void *argument)
 	return atts;
 }
 
-attribute *get_attribute(const char data[]) {
+attribute *get_attribute(const char data[], bool trim) {
 	size_t i;
 	cstring *key, *value;
 	cstring *tmp;
@@ -178,8 +201,7 @@ attribute *get_attribute(const char data[]) {
 		key = cstring_trimc(key, ' ', true, true);
 		cstring_free(tmp);
 		
-		// TODO: trim or not to trim?
-		if (false && value != NULL) {
+		if (trim && value != NULL) {
 			tmp = value;
 			value = cstring_trimc(tmp, ' ', true, true);
 			cstring_free(tmp);
