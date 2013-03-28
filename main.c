@@ -129,6 +129,60 @@ int ishttpresponseok(char *buf, unsigned int bytes){
 	return 1; // TODO: analyze the response to know if it is ok !
 }
 
+int exit_requested;
+#ifdef __linux__
+#include <signal.h>
+
+static void sigkilled(int sig){
+	switch(sig){
+		case SIGINT:
+			display_conversation("Got SIGINT, exiting...");
+			exit_requested = 1;
+			return;
+			break;
+
+		case SIGTERM:
+			display_conversation("Got SIGTERM, exiting...");
+			exit_requested = 1;
+			return;
+			break;
+
+		case SIGSEGV:
+			display_conversation("Got SIGSEGV, dying..");
+			exit_requested = 1;
+			break;
+
+		case SIGABRT:
+			display_conversation("Got SIGABRT, dying..");
+			exit_requested = 1;
+			break;
+
+		case SIGQUIT:
+			display_conversation("Got SIGQUIT, dying..");
+			exit_requested = 1;
+			break;
+	}
+
+	signal(sig, SIG_DFL);
+	raise(sig);
+}
+
+int install_sighandlers(void){
+	signal(SIGTERM, sigkilled);
+	signal(SIGINT, sigkilled);
+	signal(SIGSEGV, sigkilled);
+	signal(SIGQUIT, sigkilled);
+	signal(SIGABRT, sigkilled);
+
+	return 0;
+}
+
+#else
+int install_sighandlers(){
+	return -1;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// ENTRY POINT /////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
@@ -155,6 +209,8 @@ int main(void) {
 	memset(&msg,        0, sizeof(msg));
 
 	display_init();
+	install_sighandlers();
+	exit_requested = 0;
 
 	display_conversation(
 	  "********************************************\n"
@@ -232,7 +288,7 @@ int main(void) {
 
 
 	state = LOADING_LOGIN_PAGE;
-	for(;;){
+	while(!exit_requested){
 		if (state != WAIT) {
 			// on se connecte sur le serveur pour tout les cas sauf attentes
 			s = maketcpconnexion(host, port);
@@ -599,12 +655,12 @@ int main(void) {
 		if (s) { closesocket(s); s = 0; }
 	} // MAIN LOOP END
 
-	// pour l'instant, le code qui suit ne sera jamais executé.
+	// nooooo!
 	fclose(logfile);
 	freecookies(cookies);
 	parser_freerules();
 	ws_cleanup();
-	display_end();
 	mccirc_free(irc);
+	display_end();
 	return 0;
 }

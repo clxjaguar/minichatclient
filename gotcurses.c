@@ -77,6 +77,7 @@ const char* transliterate_from_utf8(const char* in){
 
 void destroy_win(WINDOW *lwin){
 	wborder(lwin, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+	wclear(lwin);
 	wrefresh(lwin);
 	delwin(lwin);
 }
@@ -187,10 +188,12 @@ void display_nicklist(const char *text){
 }
 
 void display_end(void){
-	if (debug_height) destrow_dwin(&debug);
 	destrow_dwin(&typing_area);
+	if (nicklist_width) { destrow_dwin(&nicklist); }
+	if (debug_height)   { destrow_dwin(&debug); }
 	destrow_dwin(&conversation);
-	if (nicklist_width) destrow_dwin(&nicklist);
+	clear();
+	refresh();
 	endwin(); // end curses mode
 }
 
