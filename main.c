@@ -173,7 +173,7 @@ static void sigkilled(int sig){
 int install_sighandlers(void){
 	signal(SIGTERM, sigkilled);
 	signal(SIGINT, sigkilled);
-	signal(SIGSEGV, sigkilled);
+	//signal(SIGSEGV, sigkilled); //segfault!
 	signal(SIGQUIT, sigkilled);
 	signal(SIGABRT, sigkilled);
 
