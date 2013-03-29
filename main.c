@@ -161,6 +161,9 @@ static void sigkilled(int sig){
 			display_conversation("Got SIGQUIT, dying..");
 			exit_requested = 1;
 			break;
+
+		default:
+			break;
 	}
 
 	signal(sig, SIG_DFL);
@@ -391,6 +394,7 @@ int main(void) {
 
 					free(req);        req=NULL;
 					free(postdata);   postdata=NULL;
+					free(referer);    referer=NULL;
 					free(cookiesstr); cookiesstr=NULL;
 				}
 				k=1;
@@ -661,6 +665,9 @@ int main(void) {
 	parser_freerules();
 	ws_cleanup();
 	mccirc_free(irc);
+	if (host)      { free(host);      host=NULL; }
+	if (path)      { free(path);      path=NULL; }
+	if (useragent) { free(useragent); useragent=NULL; }
 	display_end();
 	return 0;
 }
