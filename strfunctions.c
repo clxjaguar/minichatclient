@@ -24,8 +24,13 @@ void strrep(const char *input, char **out, const char *old, const char *new) {
 
 	found = strstr(in, old);
 	if(!found) {
-		*out = malloc(strlen(in) + 1);
-		strcpy(*out, in);
+		if (input) {
+			if (*out){
+				free(*out); *out = NULL;
+			}
+			*out = malloc(strlen(in) + 1);
+			strcpy(*out, in);
+		}
 		return;
 	}
 
