@@ -136,29 +136,29 @@ int exit_requested;
 static void sigkilled(int sig){
 	switch(sig){
 		case SIGINT:
-			display_conversation("Got SIGINT, exiting...");
+			display_statusbar("Got SIGINT (^C), exiting...");
 			exit_requested = 1;
 			return;
 			break;
 
 		case SIGTERM:
-			display_conversation("Got SIGTERM, exiting...");
+			display_statusbar("Got SIGTERM, exiting...");
 			exit_requested = 1;
 			return;
 			break;
 
 		case SIGSEGV:
-			display_conversation("Got SIGSEGV, dying..");
+			display_statusbar("Got SIGSEGV, dying..");
 			exit_requested = 1;
 			break;
 
 		case SIGABRT:
-			display_conversation("Got SIGABRT, dying..");
+			display_statusbar("Got SIGABRT, dying..");
 			exit_requested = 1;
 			break;
 
 		case SIGQUIT:
-			display_conversation("Got SIGQUIT, dying..");
+			display_statusbar("Got SIGQUIT, dying..");
 			exit_requested = 1;
 			break;
 
