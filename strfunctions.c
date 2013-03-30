@@ -1,72 +1,113 @@
-/* C string replacement routine - sorely needed in libc
- * v1 written Nov 26th, 2004
- * initial version by Christian Lavoie
- * some improvements by Kacper Wysocki
- * This file is in the public domain. Yours to do with as you please.
- * Modified by cLx (06/09/11)
- *     --   -- cLx (26/10/11)
- *     --   -- cLx (17/03/13) (removing some warnings)
- * */
+#include "strfunctions.h"
+
+/*
+  Name:        strrep.c
+  Copyright:   GPLv3
+  Author:      cLx - http://clx.freehell.org/
+  Date:        29/03/13 23:47
+  Description: doing some search&replace into strings without recursion.
+*/
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "strfunctions.h"
+unsigned int strrep(const char *input, char **buffer, const char *search, const char *replace){
+	const char *i1, *i2;
+	char *o1, *tofree=NULL;
+	unsigned int n;
+	size_t len_search, len_replace, len_target, len;
 
-void strrep(const char *input, char **out, const char *old, const char *new) {
-	const char *in;
-	char  *tofree = NULL;
-	char *temp;
-	char *found;
-	int idx;
-
-	if (input == NULL) { in = *out; tofree = *out; *out = NULL; }
-	else { in = input; }
-
-	found = strstr(in, old);
-	if(!found) {
-		//if (input) {
-			if (*out){
-				//free(*out); *out = NULL;
-			}
-			*out = malloc(strlen(in) + 1);
-			strcpy(*out, in);
-		//}
-		return;
+	if (!buffer) { return 0; } // passed NULL. absolutly invalid.
+	
+	if (input) { 
+		if (*buffer){ free(*buffer); *buffer = NULL; }
+	}
+	else {
+		input = *buffer;
+		tofree = *buffer;
+		*buffer = NULL;
 	}
 
-	idx = found - in;
-	if (!*out) { *out = malloc(strlen(in) - strlen(old) + strlen(new) + 1); }
-	else { *out = realloc(*out, strlen(in) - strlen(old) + strlen(new) + 1); }
+	len_search = strlen(search);
+	len_replace = strlen(replace);
+	
+	if (!len_search) { // passed empty search string. invalid.
+		if (tofree) { // input was by the buffer
+			*buffer = tofree;
+		}
+		else { // input was by the input string
+			*buffer = malloc(strlen(input));
+			strcpy(*buffer, input);
+		}
+		return 0;
+	}
+	
+	// count the number of patten into the input string.
+	n=0;
+	i2=input;
+	do {
+		i2=strstr(i2, search);
+		if (i2){ i2+=len_search; n++; }
+	} while (i2);
+	
+	if (!n) { // no occurence found.
+		if (tofree) { // input was by the buffer
+			*buffer = tofree;
+		}
+		else { // input was by the input string
+			*buffer = malloc(strlen(input));
+			strcpy(*buffer, input);
+		}
+		return 0;
+	}
+	
+	len_target = strlen(input) - n*len_search + n*len_replace;
+	*buffer = malloc(len_target+1);
 
-	strncpy(*out, in, (size_t)idx);
-	strcpy(*out + idx, new);
-	strcpy(*out + idx + strlen(new), in + idx + strlen(old));
-
-
-	temp = malloc((size_t)idx+strlen(new)+1);
-	strncpy(temp,*out,(size_t)idx+strlen(new));
-	temp[(size_t)idx + strlen(new)] = '\0';
-
-	strrep(found + strlen(old), out, old, new);
-	temp = realloc(temp, strlen(temp) + strlen(*out) + 1);
-	strcat(temp,*out);
-	*out = temp;
-	//if (!input) { free(in); }
+	i2=input; i1=input; o1=*buffer;
+	do {
+		i2=strstr(i2, search); // searching pattern
+		if (i2){ // match found
+			len = (size_t)(i2 - i1); // length of the text before the pattern
+			memcpy(o1, i1, len); // copy before the found pattern
+			o1+=len; // advance the output pointer
+			memcpy(o1, replace, len_replace); // copy replacement pattern
+			i1=i2+=len_search; // advance inputs pointers
+			o1+=len_replace; // advance output pointer
+		}
+		else { // no more occurrences. now need to copy the remaining of the string.
+			strcpy(o1, i1);
+		}
+	} while (i2);
 	if (tofree) { free(tofree); }
+	return n;
 }
 
-/*
-void test(int argc, char* argv[]) {
-	//char* in = "that's my string for testing ''s in 's\n";
-	char* out = malloc(1);
-	char* in = malloc(400);
-	while(fgets(in,400,stdin) != NULL){
-		strrep(in, &out, "'", "\\'");
-		printf("%s", out);
-	}
+/* tests
+int main(void){
+	char *p=NULL;
+	unsigned int n;
+	
+	n = strrep("peux-tu-mettre-le-beurre-au-frigo ?", &p, "beurre", "lait");
+	n = strrep("peux-tu-mettre-le-beurre-au-frigo ?", NULL, "beurre", "lait");
+	n = strrep("peux-tu-mettre-le-beurre-au-frigo ?", &p, "beurre", "lait");
+	n = strrep("peux-tu-mettre-le-beurre-au-frigo ?", &p, "beurre", "lait");
+	printf("(%d) %s\n", n, p);
+
+	n = strrep(NULL, &p, "", " ");
+	n = strrep(NULL, &p, "skjhf", "");
+	n = strrep(NULL, &p, "-", " ");
+	printf("(%d) %s\n", n, p);
+
+	n = strrep(NULL, &p, "au frigo", "dans le frigo");
+	printf("(%d) %s\n", n, p);
+	
+	free(p);
+	//scanf("%d", &n);
+	return 0;
 }
 */
-
 
 /*
   Name:         (all of theses following functions)

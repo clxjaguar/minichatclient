@@ -570,7 +570,7 @@ int main(void) {
 					char *postdata   = NULL;
 					char *referer    = NULL;
 					char *cookiesstr = NULL;
-					char *tmp = NULL; // please don't free() outgoingmsg! else it will be double freed.
+					char *tmp = NULL; // outgoingmsg don't has to be free()'d.
 
 					// replace some charactersdisturbing the POST string...
 					strrep(outgoingmsg, &tmp, "%", "%25");
