@@ -17,14 +17,15 @@ const char* display_driver(void) {
 	usleep(WAITING_TIME_GRANOLOSITY * 1000);
 #endif
 
-	if (!gottext_buffer){
+	if (!gottext_buffer)
 		gottext_buffer = cstring_new();
-	}
+	
 	cstring_readline(gottext_buffer, stdin);
 
-	if (gottext_buffer->length > 0){
+	if (gottext_buffer->length){
 		return gottext_buffer->string;
 		// TODO: hey le roo, t'es sur que tu nous fais pas une fuite de memoire la ? tu dois free au prochain appel !
+		// TODO: hey le chat, oui je suis sûr ? Je garde le même buffer durant toute la durée du programme (toujours pour la même raison, je n'étais pas sûr de ce qui allait advenir du buffer -- je déteste renvoyer une zone mémoire et de malgré tout devoir la gérer -- donc je la recycle)
 	}
 	return NULL;
 }
