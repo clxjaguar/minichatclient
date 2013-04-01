@@ -54,6 +54,7 @@ tstate state;
 FILE *logfile;
 char *host = NULL; unsigned int port = 0;
 char *path = NULL;
+
 mccirc *irc = NULL;
 
 mccirc *get_mccirc(void){
@@ -88,23 +89,12 @@ void put_timestamp(FILE *f){
 	}
 }
 
-void minichat_message(char* username, char* html, char *usericonurl, char *userprofileurl, parser_config *config) {
+void minichat_message(char *username, char *message, char *usericonurl, char *userprofileurl) {
 	char *p = NULL;
-	char *buffer = NULL;
-	char *message = NULL;
-	
-	buffer = config ? parse_html_in_message(html, config) : html;
-	message = (char *)malloc((strlen(buffer) + 1) * sizeof(char));
-	
-	// cLx: I'm quite sure we should NOT decode the html entities if we don't
-	// have a "config" (I think the code should be moved 1 line down)
-	decode_html_entities_utf8(message, buffer);
-	if (config) {
-		free(buffer);
-	}
+
+	// NIKI! PLEASE DON'T TOUCH THAT PORTION OF CODE, YOU ALREADY HAVE ENOUGH BUGS IN YOUR IRC SERVER !
 
 	// display the message
-	//put_timestamp(stdout);
 	p = malloc(strlen(username)+strlen(message)+4); // "<> \0"
 	strcpy(p, "<"); strcat(p, username); strcat(p, "> "); strcat(p, message);
 	display_conversation(p);
@@ -127,8 +117,6 @@ void minichat_message(char* username, char* html, char *usericonurl, char *userp
 	if (p) { free(p); p = NULL; }
 
 	mccirc_chatserver_message(irc, username, message);
-
-	free(message);
 }
 
 int ishttpresponseok(char *buf, unsigned int bytes){
@@ -679,6 +667,7 @@ int main(void) {
 	fclose(logfile);
 	freecookies(cookies);
 	parser_freerules();
+	parse_minichat_mess(NULL, 0, &msg, 1);
 	ws_cleanup();
 	mccirc_free(irc);
 	if (host)      { free(host);      host=NULL; }

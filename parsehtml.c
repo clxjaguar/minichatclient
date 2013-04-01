@@ -1,8 +1,8 @@
 /*
   Name:               parsehtml.c
-  Author:             Nejaa & cLx
+  Author:             cLx - Surtout ne pas toucher si vous voulez pas mettre tout cela en panne !
   Date:               13/04/11
-  Description:        Extrait d'une page HTML d'un minichat les messages et autres infos associées
+  Description:        Extrait des pages HTML de mchat.php les messages et autres infos associées
   Fonction à appeler: parse_minichat_mess(char *input, unsigned int bytes);
   Copyright:          cc-by-nc 2011
 
@@ -239,7 +239,6 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 						buffer[o] = '\0';
 						FREE(msg->message);
 						msg->message = malloc((o+1)*sizeof(char));
-						/*
 						{
 							char *buffer2 = NULL;
 							if (config != NULL){
@@ -254,13 +253,9 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 								decode_html_entities_utf8(msg->message, buffer); //strcpy(msg->message, buffer);
 							}
 						}
-						*/
+						//strcpy(msg->message, buffer);
 
-						// We just copy the HTML into the message
-						// (it will be processed later)
-						strcpy(msg->message, buffer);
-
-						minichat_message(msg->username, msg->message, msg->usericonurl, msg->userprofileurl, config);
+						minichat_message(msg->username, msg->message, msg->usericonurl, msg->userprofileurl);
 						state = READY;
 					}
 				}
