@@ -89,7 +89,7 @@ void put_timestamp(FILE *f){
 	}
 }
 
-void minichat_message(char *username, char *message, char *usericonurl, char *userprofileurl) {
+void minichat_message(const char *username, const char *message, const char *usericonurl, const char *userprofileurl) {
 	char *p = NULL;
 
 	// NIKI! PLEASE DON'T TOUCH THAT PORTION OF CODE, YOU ALREADY HAVE ENOUGH BUGS IN YOUR IRC SERVER !
@@ -116,6 +116,7 @@ void minichat_message(char *username, char *message, char *usericonurl, char *us
 
 	if (p) { free(p); p = NULL; }
 
+	// envoie le message vers le client IRC (s'il y en a un) via "mccirc".
 	mccirc_chatserver_message(irc, username, message);
 }
 
