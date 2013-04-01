@@ -41,7 +41,7 @@ parser_config *parser_get_config(const char filename[]) {
 		return NULL;
 	}
 
-	myini = ini_new_ft(file, 1);
+	myini = ini_new_ft(file, 0);
 	
 	rul = NULL;
 	config = NULL;
