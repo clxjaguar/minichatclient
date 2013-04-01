@@ -239,7 +239,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 						buffer[o] = '\0';
 						FREE(msg->message);
 						msg->message = malloc((o+1)*sizeof(char));
-
+						/*
 						{
 							char *buffer2 = NULL;
 							if (config != NULL){
@@ -254,7 +254,13 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 								decode_html_entities_utf8(msg->message, buffer); //strcpy(msg->message, buffer);
 							}
 						}
-						minichat_message(msg->username, msg->message, msg->usericonurl, msg->userprofileurl);
+						*/
+
+						// We just copy the HTML into the message
+						// (it will be processed later)
+						strcpy(msg->message, buffer);
+
+						minichat_message(msg->username, msg->message, msg->usericonurl, msg->userprofileurl, config);
 						state = READY;
 					}
 				}

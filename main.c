@@ -21,6 +21,8 @@
 	#define closesocket(s); close(s);
 #endif
 
+#include "main.h"
+#include "entities.h"
 #include "cookies.h"
 #include "network.h"
 #include "parsehtml.h"
@@ -86,8 +88,20 @@ void put_timestamp(FILE *f){
 	}
 }
 
-void minichat_message(char* username, char* message, char *usericonurl, char *userprofileurl){
+void minichat_message(char* username, char* html, char *usericonurl, char *userprofileurl, parser_config *config) {
 	char *p = NULL;
+	char *buffer = NULL;
+	char *message = NULL;
+	
+	buffer = config ? parse_html_in_message(html, config) : html;
+	message = (char *)malloc((strlen(buffer) + 1) * sizeof(char));
+	
+	// cLx: I'm quite sure we should NOT decode the html entities if we don't
+	// have a "config" (I think the code should be moved 1 line down)
+	decode_html_entities_utf8(message, buffer);
+	if (config) {
+		free(buffer);
+	}
 
 	// display the message
 	//put_timestamp(stdout);
@@ -113,6 +127,8 @@ void minichat_message(char* username, char* message, char *usericonurl, char *us
 	if (p) { free(p); p = NULL; }
 
 	mccirc_chatserver_message(irc, username, message);
+
+	free(message);
 }
 
 int ishttpresponseok(char *buf, unsigned int bytes){
