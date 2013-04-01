@@ -245,6 +245,14 @@ boolean do_operations(boolean verbose, const char filename[]) {
 	cstring_clear(string2);
 	cstring_clear(string3);
 	cstring_adds(string, "12345 67890");
+	cstring_adds(string2, "7");
+	cstring_adds(string3, "_");
+	cstring_replace(string, string2, string3);
+	result = result && test("replace", "12345 6_890", string->string, verbose);
+	cstring_clear(string);
+	cstring_clear(string2);
+	cstring_clear(string3);
+	cstring_adds(string, "12345 67890");
 	cstring_adds(string2, "78");
 	cstring_adds(string3, "___");
 	cstring_replace(string, string2, string3);

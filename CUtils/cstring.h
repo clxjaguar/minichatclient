@@ -247,6 +247,17 @@ int cstring_replace(cstring *self, cstring *from, cstring *to);
 int cstring_replaces(cstring *self, const char from[], const char to[]);
 
 /**
+ * Replace all occurences of a char inside the given cstring by another.
+ *
+ * @param self the cstring to work on
+ * @param from the char to replace
+ * @param to the replacement char
+ *
+ * @return the number of occurences changed
+ */
+int cstring_replacec(cstring *self, char from, char to);
+
+/**
  * Check if the cstring starts with the given pattern.
  *
  * @param self the cstring to work on
