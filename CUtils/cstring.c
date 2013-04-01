@@ -323,58 +323,58 @@ long long cstring_find_anys(cstring *self, const char find[],
 	return -1;
 }
 
-int cstring_replaces(cstring *self, const char from[], const char to[]) {
-	cstring *cfrom, *cto;
-	int rep;
-	
-	cfrom = cstring_clones(from);
-	cto = cstring_clones(to);
-	
-	rep = cstring_replace(self, cfrom, cto);
-	
-	cstring_free(cfrom);
-	cstring_free(cto);
-	
-	return rep;
-}
+int cstring_replacec(cstring *self, char from, char to) {
+	size_t i;
+	int occur = 0;
 
-int cstring_replace(cstring *self, cstring *from, cstring *to) {
-	int occurs;
-	size_t i, ii;
-	cstring *tmp;
-
-	occurs = 0;
-	for (i = 0; self->string[i] != '\0'; i++) {
-		if (cstring_starts_with(self, from, i)) {
-			occurs++;
-			if (from->length == to->length) {
-				for (ii = 0; ii < to->length; ii++) {
-					self->string[i + ii] = to->string[ii];
-				}
-			} else if (from->length > to->length) {
-				for (ii = 0; ii < to->length; ii++) {
-					self->string[i + ii] = to->string[ii];
-				}
-				for (; ii <= ((self->length - i) - (from->length - to->length)); ii++) {
-					self->string[i + ii] = self->string[i + ii + (from->length
-							- to->length)];
-				}
-			} else {
-				//TODO: this is not efficient...
-				tmp = cstring_substring(self, i + from->length, 0);
-				cstring_cut_at(self, i);
-				cstring_add(self, to);
-				cstring_add(self, tmp);
-				cstring_free(tmp);
-			}
-			i += to->length - 1;
+	for (i = 0 ; i < self->length ; i++) {
+		if (self->string[i] == from) {
+			self->string[i] = to;
+			occur++;
 		}
 	}
 
-	if (occurs > 0)
-		self->length = strlen(self->string); //TODO: NOT EFFICIENT!!!
+	return occur;
+}
 
-	return occurs;
+int cstring_replaces(cstring *self, const char from[], const char to[]) {
+	cstring *buffer;
+	size_t i;
+	size_t step;
+	char *swap;
+	int occur;
+
+	// easy optimization:
+	if (from && to && from[0] && to[0] && !from[1] && !to[1])
+		return cstring_replacec(self, from[0], to[0]);
+	
+	// optimize for same-size strings?
+	
+	step = strlen(from) - 1;
+	buffer = cstring_new();
+	occur = 0;
+	for (i = 0 ; i < self->length ; i++) {
+		if (cstring_starts_withs(self, from, i)) {
+			cstring_adds(buffer, to);
+			i += step;
+			occur++;
+		} else {
+			cstring_addc(buffer, self->string[i]);
+		}
+	}
+
+	// not clean, but quicker:
+	swap = self->string;
+	self->string = buffer->string;
+	buffer->string = swap;
+	self->length = buffer->length;
+
+	cstring_free(buffer);
+	return occur;
+}
+
+int cstring_replace(cstring *self, cstring *from, cstring *to) {
+	return cstring_replaces(self, from->string, to->string);
 }
 
 void cstring_clear(cstring *self) {
