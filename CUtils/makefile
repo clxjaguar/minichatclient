@@ -31,7 +31,7 @@ CFLAGS += -Wall -Wextra
 # Executable name, main source file, sources, test source files
 NAME=libcutils
 MSOURCES=
-SOURCES=ini.c attribute.c clist.c cstring.c net.c
+SOURCES=ini.c attribute.c clist.c cstring.c net.c htmlnode.c
 #TEST_SOURCES=test/ini-test.c test/clist-test.c test/cstring-test.c test/net-test.c
 TEST_SOURCES=test/test.c
 TEST_ASO=test/test.A test/test.SO
