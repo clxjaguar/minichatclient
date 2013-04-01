@@ -1,6 +1,6 @@
 // CE FICHIER EST UNIQUEMENT LA POUR APPELER LES FONCTIONS QUI SONT DANS MAIN.C
 
-void minichat_message(char *username, char *message, char *usericonurl, char *userprofileurl);
+void minichat_message(const char *username, const char *message, const char *usericonurl, const char *userprofileurl);
 
 #include "mccirc.h"
 // Cet include est la uniquement pour avoir le type mccirc afin de faire...
