@@ -77,8 +77,6 @@ const char* transliterate_from_utf8(const char* in){
 
 void destroy_win(WINDOW *lwin){
 	wborder(lwin, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
-	wclear(lwin);
-	wrefresh(lwin);
 	delwin(lwin);
 }
 
@@ -143,7 +141,6 @@ void display_debug(const char *text, int nonewline){
 	}
 	else {
 		if (!nonewline) {
-			//display_statusbar(NULL);
 			wmove(stdscr, maxrows-1, 0);
 		}
 		attron(A_REVERSE);

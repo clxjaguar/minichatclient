@@ -625,38 +625,28 @@ int main(void) {
 
 			case WAIT:
 				// on attends un peu entre chaque refresh pour ne pas saturer le serveur
-				if (state != oldstate) {
+				if (state != oldstate) { // init. du timer
 					t = wait_time;
-					//display_status(stderr, "\n[Waiting     ]\b");
 					display_debug("Waiting......", 0);
-					//oldstate = state;
+					oldstate = state;
 				}
-				if (t){{
+				if (t){{ // timer avec du temps restant
 					const char anim[4] = {'\\', '-', '/', '|'};
 					char buf2show[15];
 					t--;
-					//fprintf(stderr, "\b\b\b\b%c%3.0d", anim[t%4], (int)(t/(1000/WAITING_TIME_GRANOLOSITY))); 
-					//snprintf(buf, 15, "Waiting%3us %c", (unsigned int)(t/(1000/WAITING_TIME_GRANOLOSITY)), anim[t%4]); 
-					//display_statusbar(buf);
 					snprintf(buf2show, 15, "\b\b\b\b\b\b%3us %c", (unsigned int)(t/(1000/WAITING_TIME_GRANOLOSITY)), anim[t%4]); 
 					display_debug(buf2show, 1);
-					//oldstate = state;
 				}}
-				else {
+				else { // temps d'attente termine
 					state = futurestate;
-					//fprintf(stderr, "\r              \r");
-					//display_statusbar(NULL);
 					display_debug("\b\b\b\b\b\b\b\b\b\b\b\b\b             \b\b\b\b\b\b\b\b\b\b\b\b\b", 1);
 				}
 
 				// timebase and checks for keyboard inputs. eg, like "Sleep(WAITING_TIME_GRANOLOSITY);"
-				outgoingmsg = display_driver(); // Rule 42: rule for ougoingmsg: the driver MUST keep a copy of a buffer. that buffer is the driver's responsibility. main.c does not need the buffer when it calls the same method again next time. So the driver is then allowed to change/free/keep it.
-				if (!outgoingmsg)
-					outgoingmsg = mccirc_check_message(irc);
-				if (outgoingmsg) {
-					state = POSTING_A_MESSAGE;
-				}
-				oldstate = state; // bug if not here
+				outgoingmsg = display_driver();
+				if (!outgoingmsg) { outgoingmsg = mccirc_check_message(irc); }
+				if (outgoingmsg) { state = POSTING_A_MESSAGE; }
+				oldstate = state;
 				break;
 		}
 
@@ -664,7 +654,7 @@ int main(void) {
 		if (s) { closesocket(s); s = 0; }
 	} // MAIN LOOP END
 
-	// nooooo!
+	// end of program requested. closing everything now.
 	fclose(logfile);
 	freecookies(cookies);
 	parser_freerules();

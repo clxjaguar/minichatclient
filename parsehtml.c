@@ -238,22 +238,23 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 						o-=strlen(str5);
 						buffer[o] = '\0';
 						FREE(msg->message);
-						msg->message = malloc((o+1)*sizeof(char));
 						{
-							char *buffer2 = NULL;
+							char *withouthtmlmessage = NULL;
 							if (config != NULL){
-								buffer2 = parse_html_in_message(buffer, config);
+								// si le parseur de niki est activé, on l'utilise
+								withouthtmlmessage = parse_html_in_message(buffer, config);
 							}
 
-							if (buffer2 != NULL){
-								decode_html_entities_utf8(msg->message, buffer2); //strcpy(msg->message, buffer2);
-								free(buffer2);
+							if (withouthtmlmessage != NULL){
+								msg->message = malloc(strlen(withouthtmlmessage)+1);
+								decode_html_entities_utf8(msg->message, withouthtmlmessage); //strcpy-like
+								free(withouthtmlmessage);
 							}
 							else {
-								decode_html_entities_utf8(msg->message, buffer); //strcpy(msg->message, buffer);
+								msg->message = malloc((o+1)*sizeof(char));
+								decode_html_entities_utf8(msg->message, buffer); // strcpy-like
 							}
 						}
-						//strcpy(msg->message, buffer);
 
 						minichat_message(msg->username, msg->message, msg->usericonurl, msg->userprofileurl);
 						state = READY;
