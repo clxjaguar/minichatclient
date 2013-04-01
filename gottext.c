@@ -37,10 +37,11 @@ void display_init(void) {
 }
 
 void display_debug(const char *text, int nonewline) {
-	fprintf(stderr, "%s", text);
 	if (!nonewline){
 		fprintf(stderr, "\n");
 	}
+	fprintf(stderr, "%s", text);
+	fflush(stderr);
 }
 
 void display_statusbar(const char *text) {
@@ -48,7 +49,8 @@ void display_statusbar(const char *text) {
 }
 
 void display_conversation(const char *text) {
-	printf("%s\n", text);
+	fprintf(stdout, "\n%s", text);
+	fflush(stdout);
 }
 
 void display_nicklist(const char *text) {

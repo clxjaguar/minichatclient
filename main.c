@@ -181,7 +181,6 @@ int install_sighandlers(void){
 	//signal(SIGSEGV, sigkilled); //segfault!
 	signal(SIGQUIT, sigkilled);
 	signal(SIGABRT, sigkilled);
-
 	return 0;
 }
 
@@ -265,15 +264,10 @@ int main(void) {
 	}
 
 	{ // initialize the mini IRC server
-		char *username = NULL;
-		int irc_port = 0;
-		char *channel_name = NULL;
-		int irc_topic_mode;
-
-		username       = read_conf_string("username", username, 0); // 0 means: do the malloc if found !
-		irc_port       = read_conf_int   ("irc_port", 0); // default value : 0
-		channel_name   = read_conf_string("channel_name", channel_name, 0); // 0 means: do the malloc if found !
-		irc_topic_mode = read_conf_int   ("irc_topic_mode", 1); // default value : 1 (send once at join, not at changes)
+		char *username     = read_conf_string("username", NULL, 0); // 0 means: do the malloc if found !
+		int irc_port       = read_conf_int   ("irc_port", 0); // default value : 0
+		char *channel_name = read_conf_string("channel_name", NULL, 0); // 0 means: do the malloc if found !
+		int irc_topic_mode = read_conf_int   ("irc_topic_mode", 1); // default value : 1 (send once at join, not at changes)
 
 		if (username) {
 			if (irc_port) {
@@ -333,9 +327,7 @@ int main(void) {
 				// première étape, on se connecte sur la page de login pour aller chercher un sid
 				// (attention, il ne va fonctionner qu'avec l'user-agent spécifié, faut plus le changer !)
 				{
-					char *req = malloc(strlen(path)+strlen(LOGIN_PAGE)+1);
-					strcpy(req, path);
-					strcat(req, LOGIN_PAGE);
+					char *req = mconcat2(path, LOGIN_PAGE);
 					http_get(s, req, host, NULL, NULL, useragent, NULL);
 					free(req); req=NULL;
 				}
@@ -356,45 +348,34 @@ int main(void) {
 				// on s'identifie sur cette même page.
 				// génération de ce que l'en va envoyer en POST pour se logger
 				{
-					char *username   = NULL;
-					char *password   = NULL;
-
 					char *req        = NULL;
 					char *postdata   = NULL;
 					char *referer    = NULL;
 					char *cookiesstr = NULL;
-
-					username = read_conf_string("username", username, 0);
-					password = read_conf_string("password", password, 0);
+					char *username = read_conf_string("username", NULL, 0);
+					char *password = read_conf_string("password", NULL, 0);
 					close_conf_file();
 
 					if (!username || !password) {
 						if (username) { free(username); username=NULL; }
-						if (password) { free(password); password=NULL; }
+						if (password) { 
+							memset(password, 0, strlen(password)); // overwrite password stored in RAM for security reasons.
+							free(password); password=NULL; 
+						}
 						display_debug("Username/password informations missing or incomplete, skipping authentification. Tying to switch to the reading states though.", 0);
 						state = GET_THE_BACKLOG;
 						break;
 					}
 
-					req = malloc(strlen(path)+strlen(LOGIN_PAGE)+1);
-					strcpy(req, path);
-					strcat(req, LOGIN_PAGE);
-
-					//username=cLx&password=monpassword&redirect=index.php&login=Connexion
-					postdata = malloc(strlen("username=")+strlen(username)+strlen("&password=")+strlen(password)+strlen("&redirect=index.php&login=Connexion")+1);
-					strcpy(postdata, "username=");  strcat(postdata, username);
-					strcat(postdata, "&password="); strcat(postdata, password);
-					strcat(postdata, "&redirect=index.php&login=Connexion");
+					req = mconcat2(path, LOGIN_PAGE);
+					postdata = mconcat5("username=", username, "&password=", password, "&redirect=index.php&login=Connexion");
+					memset(password, 0, strlen(password)); // overwrite password stored in RAM for security reasons.
 					free(username); username=NULL;
 					free(password); password=NULL;
 
-					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(LOGIN_PAGE)+1);
-					strcpy(referer, "http://");
-					strcat(referer, host);
-					strcat(referer, path);
-					strcat(referer, LOGIN_PAGE);
-
-					cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
+					referer = mconcat4("http://", host, path, LOGIN_PAGE);
+					cookiesstr = generate_cookies_string(cookies, NULL, 0);
+					
 					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
 
 					free(req);        req=NULL;
@@ -418,21 +399,11 @@ int main(void) {
 			case GET_THE_BACKLOG:
 				// ça, c'est pour récupérer le texte de la conversation déjà écrite comme le fait le navigateur
 				{
-					char *req        = NULL;
-					char *referer    = NULL;
-					char *cookiesstr = NULL;
-
-					req = malloc(strlen(path)+strlen(MCHAT_PAGE)+1);
-					strcpy(req, path);
-					strcat(req, MCHAT_PAGE);
-
-					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(LOGIN_PAGE)+1);
-					strcpy(referer, "http://");
-					strcat(referer, host);
-					strcat(referer, path);
-					strcat(referer, LOGIN_PAGE);
-
-					cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
+					char *req = mconcat2(path, MCHAT_PAGE);
+					char *referer = mconcat4("http://", host, path, LOGIN_PAGE);
+					//char *cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
+					char *cookiesstr = generate_cookies_string(cookies, NULL, 0); // does the malloc
+					
 					http_get(s, req, host, referer, cookiesstr, useragent, NULL);
 
 					free(req);        req=NULL;
@@ -455,28 +426,13 @@ int main(void) {
 
 			case WATCHING_NEW_MESSAGES:
 				// ... et ça, c'est pour récupérer ce qui s'y passe !
+				// => donner l'id du dernier message reçu
 				{
-					char *req        = NULL;
-					char *postdata   = NULL;
-					char *referer    = NULL;
-					char *cookiesstr = NULL;
+					char *req = mconcat2(path, MCHAT_PAGE);					
+					char *postdata = mconcat2("mode=read&message_last_id=", msg.msgid);
+					char *referer = mconcat4("http://", host, path, MCHAT_PAGE);
+					char *cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
-					req = malloc(strlen(path)+strlen(MCHAT_PAGE)+1);
-					strcpy(req, path);
-					strcat(req, MCHAT_PAGE);
-
-					// => donner l'id du dernier message reçu
-					postdata = malloc(strlen("mode=read&message_last_id=")+strlen(msg.msgid)+1);
-					strcpy(postdata, "mode=read&message_last_id=");
-					strcat(postdata, msg.msgid);
-
-					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(MCHAT_PAGE)+1);
-					strcpy(referer, "http://");
-					strcat(referer, host);
-					strcat(referer, path);
-					strcat(referer, MCHAT_PAGE);
-
-					cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
 					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
 
 					free(req);        req=NULL;
@@ -524,21 +480,14 @@ int main(void) {
 			case RETRIEVING_THE_LIST_OF_USERS:
 				// de temps en temps, on peut regarder qui est là.
 				{
-					char *req        = NULL;
-					char *referer    = NULL;
-					char *cookiesstr = NULL;
-
-					req = malloc(strlen(path)+strlen(MCHAT_PAGE)+1);
-					strcpy(req, path);
-					strcat(req, MCHAT_PAGE);
-
-					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(MCHAT_PAGE)+1);
-					strcpy(referer, "http://");
-					strcat(referer, host);
-					strcat(referer, path);
-					strcat(referer, MCHAT_PAGE);
-
-					cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
+					//char *req        = NULL;
+					//char *referer    = NULL;
+					//char *cookiesstr = NULL;
+					
+					char *req = mconcat2(path, MCHAT_PAGE);
+					char *referer = mconcat4("http://", host, path, MCHAT_PAGE);
+					char *cookiesstr = generate_cookies_string(cookies, NULL, 0);
+					
 					http_post(s, req, host, "mode=stats", referer, cookiesstr, useragent, NULL);
 
 					free(req);        req=NULL;
@@ -584,25 +533,16 @@ int main(void) {
 					strrep(NULL,        &tmp, "=", "%3D");
 					strrep(NULL,        &tmp, " ", "+");
 
-					req = malloc(strlen(path)+strlen(MCHAT_PAGE)+1);
-					strcpy(req, path);
-					strcat(req, MCHAT_PAGE);
-
 					// mode=add&message=TESTMSG&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23
-					postdata = malloc(strlen(POSTDATALEFT) + strlen(tmp) + strlen(POSTDATARIGHT) + 1);
-					strcpy(postdata, POSTDATALEFT);
-					strcat(postdata, tmp);
-					strcat(postdata, POSTDATARIGHT);
-
-					referer = malloc(strlen("http://")+strlen(host)+strlen(path)+strlen(MCHAT_PAGE)+1);
-					strcpy(referer, "http://");
-					strcat(referer, host);
-					strcat(referer, path);
-					strcat(referer, MCHAT_PAGE);
-
+					
+					req = mconcat2(path, MCHAT_PAGE);
+					postdata = mconcat3(POSTDATALEFT, tmp, POSTDATARIGHT);
+					referer = mconcat4("http://", host, path, MCHAT_PAGE);
 					storecookie(cookies, "mChatShowUserList", "yes");
-					cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
+					cookiesstr = generate_cookies_string(cookies, NULL, 0);
+					
 					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
+					
 					outgoingmsg = NULL; // don't be afraid, a copy of this buffer is keep internally in the function providing it
 
 					free(req);        req=NULL;
@@ -625,7 +565,7 @@ int main(void) {
 
 			case WAIT:
 				// on attends un peu entre chaque refresh pour ne pas saturer le serveur
-				if (state != oldstate) { // init. du timer
+				if (state != oldstate) { // timer init.
 					t = wait_time;
 					display_debug("Waiting......", 0);
 					oldstate = state;
@@ -638,15 +578,20 @@ int main(void) {
 					display_debug(buf2show, 1);
 				}}
 				else { // temps d'attente termine
-					state = futurestate;
 					display_debug("\b\b\b\b\b\b\b\b\b\b\b\b\b             \b\b\b\b\b\b\b\b\b\b\b\b\b", 1);
+					state = futurestate;
 				}
 
-				// timebase and checks for keyboard inputs. eg, like "Sleep(WAITING_TIME_GRANOLOSITY);"
+				// the check for keyboard inputs (embedded) does the timebase
+				// eg. like "Sleep(WAITING_TIME_GRANOLOSITY)")
 				outgoingmsg = display_driver();
+				
+				// and now we check for a new message in the IRC interface
 				if (!outgoingmsg) { outgoingmsg = mccirc_check_message(irc); }
+				
+				// if we have something to send, we change the state of the state machine.
 				if (outgoingmsg) { state = POSTING_A_MESSAGE; }
-				oldstate = state;
+				oldstate = state; // this is important to know when reset the waiting time.
 				break;
 		}
 
