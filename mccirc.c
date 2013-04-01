@@ -78,6 +78,7 @@ mccirc *mccirc_new() {
 	self->last_message = NULL;
 	self->channel = NULL;
 	self->topic = NULL;
+	self->last_topic_for_mode1 = NULL;
 	self->port = -1;
 	self->username = NULL;
 	self->ffname = NULL;
@@ -98,6 +99,7 @@ void mccirc_free(mccirc *self) {
 	cstring_free(self->last_message);
 	free(self->channel);
 	free(self->topic);
+	free(self->last_topic_for_mode1);
 	free(self->username);
 	free(self->ffname);
 	irc_user_free(self->juser);
@@ -125,14 +127,14 @@ void mccirc_init(mccirc *self, const char ffname[], const char server_name[], co
 	irc_server_set_name(self->server, server_name);
 	irc_server_listen(self->server, port, 5);
 
-	irc_server_on_register(self->server, on_server_register, self);
-	irc_server_on_message(self->server, on_server_message, self);
-
 	// create channel
 	irc_server_join(self->server, self->channel, NULL);
 
 	// set topic
 	mccirc_topic(self, channel_topic);
+	
+	irc_server_on_register(self->server, on_server_register, self);
+	irc_server_on_message(self->server, on_server_message, self);
 }
 
 void mccirc_set_topic_mode(mccirc *self, int topic_mode) {
@@ -244,12 +246,20 @@ void mccirc_topic(mccirc *self, const char topic[]) {
 	if (!self)
 		return;
 
+	// this string will become the new topic
+	string = cstring_clones(topic);
+	
+	if (topic) {
+		tmp = self->last_topic_for_mode1;
+		self->last_topic_for_mode1 = cstring_sclones(topic);
+		free(tmp);
+	}
+
 	// Only set the topic once for mode 1 or never for mode 0
 	if (!self->topic_mode || (self->topic_mode == 1 && self->topic))
 		return;
 
-	// Remote the SUFFIX if found
-	string = topic ? cstring_clones(topic) : NULL;
+	// Remove the SUFFIX if found
 	if (string && cstring_ends_withs(string, TOPIC_SUFFIX, 0)) {
 		tmp = string;
 		string = cstring_substring(tmp, 0, string->length - strlen(TOPIC_SUFFIX));
@@ -257,15 +267,14 @@ void mccirc_topic(mccirc *self, const char topic[]) {
 	}
 
 	// Don't do anything if we already have that very same topic
-	if (self->topic && topic && !strcmp(self->topic, string->string)) {
+	if (self->topic && string && !strcmp(self->topic, string->string)) {
 		cstring_free(string);
 		return;
 	}
 	
-	if (self->topic)
-		free(self->topic);
+	free(self->topic);
 	self->topic = cstring_convert(string);
-	
+
 	irc_server_topic(self->server, self->channel, self->topic);
 }
 
@@ -407,6 +416,13 @@ void on_server_register(irc_server *serv, irc_user *user, void *data) {
 		irc_server_join(self->server, self->channel, NULL);
 	}
 	
+	// Handle "mode 1" topics
+	if (self->last_topic_for_mode1) {
+		free(self->topic);
+		self->topic = NULL;
+		mccirc_topic(self, self->last_topic_for_mode1);
+	}
+
 	// Force join later on if the client did not already do it
 	self->jpending = 0;
 	self->juser = irc_user_new();
