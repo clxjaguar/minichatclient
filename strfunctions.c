@@ -37,7 +37,7 @@ unsigned int strrep(const char *input, char **buffer, const char *search, const 
 			*buffer = tofree;
 		}
 		else { // input was by the input string
-			*buffer = malloc(strlen(input));
+			*buffer = malloc(strlen(input)+1);
 			strcpy(*buffer, input);
 		}
 		return 0;
@@ -56,7 +56,7 @@ unsigned int strrep(const char *input, char **buffer, const char *search, const 
 			*buffer = tofree;
 		}
 		else { // input was by the input string
-			*buffer = malloc(strlen(input));
+			*buffer = malloc(strlen(input)+1);
 			strcpy(*buffer, input);
 		}
 		return 0;
@@ -695,4 +695,50 @@ unsigned int transliterate_iso88591_to_ucs(unsigned char iso_codepoint){
 	else if (iso_codepoint == 159) { return 0x0178; }
 
 	return '?';
+}
+
+// misc things
+
+char *mconcat2(const char *str1, const char *str2){
+	char *outstr;
+	outstr = malloc(strlen(str1)+strlen(str2)+1);
+	if (outstr) {
+		strcpy(outstr, str1);
+		strcat(outstr, str2);
+	}
+	return outstr;
+}
+char *mconcat3(const char *str1, const char *str2, const char *str3){
+	char *outstr;
+	outstr = malloc(strlen(str1)+strlen(str2)+strlen(str3)+1);
+	if (outstr) {
+		strcpy(outstr, str1);
+		strcat(outstr, str2);
+		strcat(outstr, str3);
+
+	}
+	return outstr;
+}
+char *mconcat4(const char *str1, const char *str2, const char *str3, const char *str4){
+	char *outstr;
+	outstr = malloc(strlen(str1)+strlen(str2)+strlen(str3)+strlen(str4)+1);
+	if (outstr) {
+		strcpy(outstr, str1);
+		strcat(outstr, str2);
+		strcat(outstr, str3);
+		strcat(outstr, str4);
+	}
+	return outstr;
+}
+char *mconcat5(const char *str1, const char *str2, const char *str3, const char *str4, const char *str5){
+	char *outstr;
+	outstr = malloc(strlen(str1)+strlen(str2)+strlen(str3)+strlen(str4)+strlen(str5)+1);
+	if (outstr) {
+		strcpy(outstr, str1);
+		strcat(outstr, str2);
+		strcat(outstr, str3);
+		strcat(outstr, str4);
+		strcat(outstr, str5);
+	}
+	return outstr;
 }
