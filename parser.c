@@ -33,7 +33,7 @@ parser_config *parser_get_config(const char filename[]) {
 	parser_config *parserconf;
 	parser_config_private *data;
 	FILE *file;
-	ini *ini;
+	ini *myini;
 	
 	file = fopen(filename, "rb");
 	
@@ -41,12 +41,12 @@ parser_config *parser_get_config(const char filename[]) {
 		return NULL;
 	}
 
-	ini = ini_new_ft(file, 1);
+	myini = ini_new_ft(file, 1);
 	
 	rul = NULL;
 	config = NULL;
 	parser_config_lines = new_clist();
-	atts = ini_get_select(ini, filter_config, NULL);
+	atts = ini_get_select(myini, filter_config, NULL);
 
 	for (ptr = atts->first ; ptr != NULL ; ptr = ptr->next) {
 		att = (attribute *)ptr->data;
@@ -98,7 +98,7 @@ parser_config *parser_get_config(const char filename[]) {
 	parserconf->data = data;
 
 	fclose(file);
-	ini_free(ini);
+	ini_free(myini);
 	return parserconf;
 }
 
