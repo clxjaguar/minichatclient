@@ -26,6 +26,8 @@ void htmlnode_free(htmlnode *self) {
 
 int htmlnode_parse(htmlnode *self, FILE *file) {
 	//TODO
+	if (self) {}
+	if (file) {}
 	return 0;
 }
 

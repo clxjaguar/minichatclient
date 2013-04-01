@@ -21,6 +21,7 @@ typedef struct {
 	cstring *buffer;
 	char *channel;
 	char *topic;
+	char *last_topic_for_mode1;
 	int port;
 	char *username;
 	char *ffname;
