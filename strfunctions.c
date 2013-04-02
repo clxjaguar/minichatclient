@@ -19,8 +19,8 @@ unsigned int strrep(const char *input, char **buffer, const char *search, const 
 	size_t len_search, len_replace, len_target, len;
 
 	if (!buffer) { return 0; } // passed NULL. absolutly invalid.
-	
-	if (input) { 
+
+	if (input) {
 		if (*buffer){ free(*buffer); *buffer = NULL; }
 	}
 	else {
@@ -31,7 +31,7 @@ unsigned int strrep(const char *input, char **buffer, const char *search, const 
 
 	len_search = strlen(search);
 	len_replace = strlen(replace);
-	
+
 	if (!len_search) { // passed empty search string. invalid.
 		if (tofree) { // input was by the buffer
 			*buffer = tofree;
@@ -42,7 +42,7 @@ unsigned int strrep(const char *input, char **buffer, const char *search, const 
 		}
 		return 0;
 	}
-	
+
 	// count the number of patten into the input string.
 	n=0;
 	i2=input;
@@ -50,7 +50,7 @@ unsigned int strrep(const char *input, char **buffer, const char *search, const 
 		i2=strstr(i2, search);
 		if (i2){ i2+=len_search; n++; }
 	} while (i2);
-	
+
 	if (!n) { // no occurence found.
 		if (tofree) { // input was by the buffer
 			*buffer = tofree;
@@ -61,7 +61,7 @@ unsigned int strrep(const char *input, char **buffer, const char *search, const 
 		}
 		return 0;
 	}
-	
+
 	len_target = strlen(input) - n*len_search + n*len_replace;
 	*buffer = malloc(len_target+1);
 
@@ -88,7 +88,7 @@ unsigned int strrep(const char *input, char **buffer, const char *search, const 
 int main(void){
 	char *p=NULL;
 	unsigned int n;
-	
+
 	n = strrep("peux-tu-mettre-le-beurre-au-frigo ?", &p, "beurre", "lait");
 	n = strrep("peux-tu-mettre-le-beurre-au-frigo ?", NULL, "beurre", "lait");
 	n = strrep("peux-tu-mettre-le-beurre-au-frigo ?", &p, "beurre", "lait");
@@ -102,7 +102,7 @@ int main(void){
 
 	n = strrep(NULL, &p, "au frigo", "dans le frigo");
 	printf("(%d) %s\n", n, p);
-	
+
 	free(p);
 	//scanf("%d", &n);
 	return 0;
@@ -151,7 +151,7 @@ unsigned int extract_codepoints_from_utf8(const char **in){
 	// 2 bytes character ?
 	else if (((**in)&B11100000) == B11000000) {
 		if (!*(*in+1)) { (*in)=NULL; return 0; }
-		value = ((((unsigned int)*(*in+0))&B00011111)<< 6) 
+		value = ((((unsigned int)*(*in+0))&B00011111)<< 6)
 		      + ((((unsigned int)*(*in+1))&B00111111)    );
 		(*in)+=2;
 	}
@@ -160,8 +160,8 @@ unsigned int extract_codepoints_from_utf8(const char **in){
 	else if (((**in)&B11110000) == B11100000) {
 		if (!*(*in+1)) { (*in)=NULL; return 0; }
 		if (!*(*in+2)) { (*in)=NULL; return 0; }
-		value = ((((unsigned int)*(*in+0))&B00001111)<<12) 
-		      + ((((unsigned int)*(*in+1))&B00111111)<< 6) 
+		value = ((((unsigned int)*(*in+0))&B00001111)<<12)
+		      + ((((unsigned int)*(*in+1))&B00111111)<< 6)
 			  + ((((unsigned int)*(*in+2))&B00111111)    );
 		(*in)+=3;
 	}
@@ -171,8 +171,8 @@ unsigned int extract_codepoints_from_utf8(const char **in){
 		if (!*(*in+1)) { (*in)=NULL; return 0; }
 		if (!*(*in+2)) { (*in)=NULL; return 0; }
 		if (!*(*in+3)) { (*in)=NULL; return 0; }
-		value = ((((unsigned int)*(*in+0))&B00000111)<<18) 
-		      + ((((unsigned int)*(*in+1))&B00111111)<<12) 
+		value = ((((unsigned int)*(*in+0))&B00000111)<<18)
+		      + ((((unsigned int)*(*in+1))&B00111111)<<12)
 			  + ((((unsigned int)*(*in+2))&B00111111)<< 6)
 			  + ((((unsigned int)*(*in+3))&B00111111)    );
 		(*in)+=4;
@@ -184,9 +184,9 @@ unsigned int extract_codepoints_from_utf8(const char **in){
 		if (!*(*in+2)) { (*in)=NULL; return 0; }
 		if (!*(*in+3)) { (*in)=NULL; return 0; }
 		if (!*(*in+4)) { (*in)=NULL; return 0; }
-		value = ((((unsigned int)*(*in+0))&B00000011)<<24) 
+		value = ((((unsigned int)*(*in+0))&B00000011)<<24)
 		      + ((((unsigned int)*(*in+1))&B00111111)<<18)
-		      + ((((unsigned int)*(*in+2))&B00111111)<<12) 
+		      + ((((unsigned int)*(*in+2))&B00111111)<<12)
 			  + ((((unsigned int)*(*in+3))&B00111111)<< 6)
 			  + ((((unsigned int)*(*in+4))&B00111111)    );
 		(*in)+=5;
@@ -199,10 +199,10 @@ unsigned int extract_codepoints_from_utf8(const char **in){
 		if (!*(*in+3)) { (*in)=NULL; return 0; }
 		if (!*(*in+4)) { (*in)=NULL; return 0; }
 		if (!*(*in+5)) { (*in)=NULL; return 0; }
-		value = ((((unsigned int)*(*in+0))&B00000001)<<30) 
+		value = ((((unsigned int)*(*in+0))&B00000001)<<30)
 		      + ((((unsigned int)*(*in+1))&B00111111)<<24)
 		      + ((((unsigned int)*(*in+2))&B00111111)<<18)
-		      + ((((unsigned int)*(*in+3))&B00111111)<<12) 
+		      + ((((unsigned int)*(*in+3))&B00111111)<<12)
 			  + ((((unsigned int)*(*in+4))&B00111111)<< 6)
 			  + ((((unsigned int)*(*in+5))&B00111111)    );
 		(*in)+=6;
@@ -215,7 +215,7 @@ unsigned int extract_codepoints_from_utf8(const char **in){
 
 unsigned char* utf8_character_from_ucs_codepoint(unsigned int ucs_character){
 	static unsigned char buf[7];
-	
+
 	if (ucs_character == 0) {
 		buf[0] = '\0';
 	}
@@ -228,20 +228,20 @@ unsigned char* utf8_character_from_ucs_codepoint(unsigned int ucs_character){
 		buf[1] = (unsigned char)((ucs_character     & B00111111)|B10000000);
 		buf[2] = '\0';
 	}
-	else if (ucs_character <= 0x0000FFFF) { 
+	else if (ucs_character <= 0x0000FFFF) {
 		buf[0] = (unsigned char)((ucs_character>>12 & B00001111)|B11100000);
 		buf[1] = (unsigned char)((ucs_character>> 6 & B00111111)|B10000000);
 		buf[2] = (unsigned char)((ucs_character     & B00111111)|B10000000);
 		buf[3] = '\0';
 	}
-	else if (ucs_character <= 0x001FFFFF) { 
+	else if (ucs_character <= 0x001FFFFF) {
 		buf[0] = (unsigned char)((ucs_character>>18 & B00000111)|B11110000);
 		buf[1] = (unsigned char)((ucs_character>>12 & B00111111)|B10000000);
 		buf[2] = (unsigned char)((ucs_character>> 6 & B00111111)|B10000000);
 		buf[3] = (unsigned char)((ucs_character     & B00111111)|B10000000);
 		buf[4] = '\0';
 	}
-	else if (ucs_character <= 0x03FFFFFF) { 
+	else if (ucs_character <= 0x03FFFFFF) {
 		buf[0] = (unsigned char)((ucs_character>>24 & B00000011)|B11111000);
 		buf[1] = (unsigned char)((ucs_character>>18 & B00111111)|B10000000);
 		buf[2] = (unsigned char)((ucs_character>>12 & B00111111)|B10000000);
@@ -264,8 +264,8 @@ unsigned char* utf8_character_from_ucs_codepoint(unsigned int ucs_character){
 	return buf;
 }
 
-unsigned char transliterate_ucs_to_cp850(unsigned int ucs_codepoint){	
-	if (ucs_codepoint <= 0x007E) { 
+unsigned char transliterate_ucs_to_cp850(unsigned int ucs_codepoint){
+	if (ucs_codepoint <= 0x007E) {
 		return (unsigned char)ucs_codepoint;
 	}
 #ifdef WIN32
@@ -275,10 +275,10 @@ unsigned char transliterate_ucs_to_cp850(unsigned int ucs_codepoint){
 	else if (ucs_codepoint == 0x201A) { return ','; } //low curved quote x.x
 	else if (ucs_codepoint == 0x201C) { return '"'; } //a double quote
 	else if (ucs_codepoint == 0x201D) { return '"'; } //another double quote
-	else if (ucs_codepoint == 0x2013) { return '-'; } 
-	else if (ucs_codepoint == 0x2014) { return '-'; } 
-	else if (ucs_codepoint == 0x02DC) { return '~'; } 
-		
+	else if (ucs_codepoint == 0x2013) { return '-'; }
+	else if (ucs_codepoint == 0x2014) { return '-'; }
+	else if (ucs_codepoint == 0x02DC) { return '~'; }
+
 	// theses codes are from the wikipedia page about cp850
 	else if (ucs_codepoint == 0x263A) { return 0x01; }
 	else if (ucs_codepoint == 0x263B) { return 0x02; }
@@ -314,7 +314,7 @@ unsigned char transliterate_ucs_to_cp850(unsigned int ucs_codepoint){
 	else if (ucs_codepoint == 0x25BC) { return 0x1F; }
 
 	else if (ucs_codepoint == 0x2302) { return 0x7F; }
-	
+
 	else if (ucs_codepoint == 0x00C7) { return 0x80; }
 	else if (ucs_codepoint == 0x00FC) { return 0x81; }
 	else if (ucs_codepoint == 0x00E9) { return 0x82; }
@@ -331,7 +331,7 @@ unsigned char transliterate_ucs_to_cp850(unsigned int ucs_codepoint){
 	else if (ucs_codepoint == 0x00EC) { return 0x8D; }
 	else if (ucs_codepoint == 0x00C4) { return 0x8E; }
 	else if (ucs_codepoint == 0x00C5) { return 0x8F; }
-	
+
 	else if (ucs_codepoint == 0x00C9) { return 0x90; }
 	else if (ucs_codepoint == 0x00E6) { return 0x91; }
 	else if (ucs_codepoint == 0x00C6) { return 0x92; }
@@ -348,7 +348,7 @@ unsigned char transliterate_ucs_to_cp850(unsigned int ucs_codepoint){
 	else if (ucs_codepoint == 0x00D8) { return 0x9D; }
 	else if (ucs_codepoint == 0x00D7) { return 0x9E; }
 	else if (ucs_codepoint == 0x0192) { return 0x9F; }
-	
+
 	else if (ucs_codepoint == 0x00E1) { return 0xA0; }
 	else if (ucs_codepoint == 0x00ED) { return 0xA1; }
 	else if (ucs_codepoint == 0x00F3) { return 0xA2; }
@@ -454,9 +454,9 @@ unsigned char transliterate_ucs_to_cp850(unsigned int ucs_codepoint){
 	return '?';
 }
 
-unsigned int transliterate_cp850_to_ucs(unsigned char cp850_codepoint){	
-	if ((cp850_codepoint >= 0x0020) && (cp850_codepoint <= 0x007E)) { 
-	//if (cp850_codepoint <= 0x007E) { 
+unsigned int transliterate_cp850_to_ucs(unsigned char cp850_codepoint){
+	if ((cp850_codepoint >= 0x0020) && (cp850_codepoint <= 0x007E)) {
+	//if (cp850_codepoint <= 0x007E) {
 		return (unsigned int)cp850_codepoint;
 	}
 #ifdef WIN32
@@ -637,7 +637,7 @@ unsigned int transliterate_cp850_to_ucs(unsigned char cp850_codepoint){
 }
 
 unsigned char transliterate_ucs_to_iso88591(unsigned int ucs_codepoint){
-	if (ucs_codepoint <= 0x007E) { 
+	if (ucs_codepoint <= 0x007E) {
 		return (unsigned char)ucs_codepoint;
 	}
 	else if (ucs_codepoint == 0x20AC) { return 128; } //euro sign (windows)
@@ -646,26 +646,26 @@ unsigned char transliterate_ucs_to_iso88591(unsigned int ucs_codepoint){
 	else if (ucs_codepoint == 0x201A) { return ','; } //low curved quote x.x
 	else if (ucs_codepoint == 0x201C) { return '"'; } //a double quote
 	else if (ucs_codepoint == 0x201D) { return '"'; } //another double quote
-	else if (ucs_codepoint == 0x2013) { return '-'; } 
-	else if (ucs_codepoint == 0x2014) { return '-'; } 
-	else if (ucs_codepoint == 0x02DC) { return '~'; } 
+	else if (ucs_codepoint == 0x2013) { return '-'; }
+	else if (ucs_codepoint == 0x2014) { return '-'; }
+	else if (ucs_codepoint == 0x02DC) { return '~'; }
 	else if (ucs_codepoint == 0x2502) { return '|'; }
-	
-	else if (ucs_codepoint >= 0x00A0 && ucs_codepoint <= 0x00FF) { 
+
+	else if (ucs_codepoint >= 0x00A0 && ucs_codepoint <= 0x00FF) {
 		return (unsigned char)ucs_codepoint;
 	}
 	return '?';
 }
 
 unsigned int transliterate_iso88591_to_ucs(unsigned char iso_codepoint){
-	if (iso_codepoint <= 127) { // base iso8859-1 from ascii 
+	if (iso_codepoint <= 127) { // base iso8859-1 from ascii
 		return (unsigned int)iso_codepoint;
 	}
 	else if (iso_codepoint >= 160) { // iso8859-1 from 0xA0 up to 0xFF
 		return (unsigned int)iso_codepoint;
 	}
-	
-	// and some from Windows-1252 ... 
+
+	// and some from Windows-1252 ...
 	else if (iso_codepoint == 128) { return 0x20AC; }
 	else if (iso_codepoint == 130) { return 0x201A; }
 	else if (iso_codepoint == 131) { return 0x0192; }
