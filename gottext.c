@@ -17,9 +17,7 @@ const char* display_driver(void) {
 	usleep(WAITING_TIME_GRANOLOSITY * 1000);
 #endif
 
-	if (!gottext_buffer)
-		gottext_buffer = cstring_new();
-	
+	if (!gottext_buffer) { gottext_buffer = cstring_new(); }
 	cstring_readline(gottext_buffer, stdin);
 
 	if (gottext_buffer->length){
@@ -62,7 +60,8 @@ void display_end(void) {
 		cstring_free(gottext_buffer);
 	}
 	gottext_buffer = NULL;
-
+	fprintf(stderr, "\n");
+	fprintf(stdout, "\n");
 	net_set_blocking(fileno(stdin), 1);
 }
 
