@@ -254,6 +254,9 @@ int main(void) {
 	if (!host || !path || !useragent){
 		display_debug("Error: Server informations missing. Please edit your mchatclient.conf file !", 0);
 		display_waitforchar("Press any key to quit");
+		fclose(logfile);
+		ws_cleanup();
+		display_end();
 		return -1;
 	}
 
@@ -519,7 +522,7 @@ int main(void) {
 					char *postdata   = NULL;
 					char *referer    = NULL;
 					char *cookiesstr = NULL;
-					char *tmp = NULL; // outgoingmsg don't has to be free()'d.
+					char *tmp = NULL; // outgoingmsg don't have to be free()'d.
 
 					// replace some charactersdisturbing the POST string...
 					strrep(outgoingmsg, &tmp, "%", "%25");
@@ -580,10 +583,10 @@ int main(void) {
 				// the check for keyboard inputs (embedded) does the timebase
 				// eg. like "Sleep(WAITING_TIME_GRANOLOSITY)")
 				outgoingmsg = display_driver();
-				
+
 				// and now we check for a new message in the IRC interface
 				if (!outgoingmsg) { outgoingmsg = mccirc_check_message(irc); }
-				
+
 				// if we have something to send, we change the state of the state machine.
 				if (outgoingmsg) { state = POSTING_A_MESSAGE; }
 				oldstate = state; // this is important to know when reset the waiting time.
