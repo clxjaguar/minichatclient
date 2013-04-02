@@ -197,7 +197,7 @@ int install_sighandlers(){
 int main(void) {
 	int s; //socket descriptor
 	char buf[BUFSIZE+1]; // rx buffer
-	int bytes;
+	unsigned int bytes;
 	int k; // flag for any use
 	const char *outgoingmsg = NULL;
 
@@ -332,10 +332,10 @@ int main(void) {
 					free(req); req=NULL;
 				}
 				k=1;
-				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+				while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, (unsigned int)bytes);
-						parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
+						ishttpresponseok(buf, bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					k=0;
 				}
@@ -375,7 +375,7 @@ int main(void) {
 
 					referer = mconcat4("http://", host, path, LOGIN_PAGE);
 					cookiesstr = generate_cookies_string(cookies, NULL, 0);
-					
+
 					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
 
 					free(req);        req=NULL;
@@ -384,10 +384,10 @@ int main(void) {
 					free(cookiesstr); cookiesstr=NULL;
 				}
 				k=1;
-				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+				while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, (unsigned int)bytes);
-						parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
+						ishttpresponseok(buf, bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					k=0;
 				}
@@ -401,9 +401,8 @@ int main(void) {
 				{
 					char *req = mconcat2(path, MCHAT_PAGE);
 					char *referer = mconcat4("http://", host, path, LOGIN_PAGE);
-					//char *cookiesstr = generate_cookies_string(cookies, cookiesstr, 0);
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0); // does the malloc
-					
+
 					http_get(s, req, host, referer, cookiesstr, useragent, NULL);
 
 					free(req);        req=NULL;
@@ -411,12 +410,12 @@ int main(void) {
 					free(cookiesstr); cookiesstr=NULL;
 				}
 				k=1;
-				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+				while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, (unsigned int)bytes);
-						parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
+						ishttpresponseok(buf, bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
-					parse_minichat_mess(buf, (unsigned int)bytes, &msg, k);
+					parse_minichat_mess(buf, bytes, &msg, k);
 					k=0;
 				}
 				state = WAIT;
@@ -428,7 +427,7 @@ int main(void) {
 				// ... et ça, c'est pour récupérer ce qui s'y passe !
 				// => donner l'id du dernier message reçu
 				{
-					char *req = mconcat2(path, MCHAT_PAGE);					
+					char *req = mconcat2(path, MCHAT_PAGE);
 					char *postdata = mconcat2("mode=read&message_last_id=", msg.msgid);
 					char *referer = mconcat4("http://", host, path, MCHAT_PAGE);
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0);
@@ -444,12 +443,12 @@ int main(void) {
 					unsigned int nbmessages = 0, old_wait_time;
 
 					k=1;
-					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+					while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
 						if(k) {
-							ishttpresponseok(buf, (unsigned int)bytes);
-							parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
+							ishttpresponseok(buf, bytes);
+							parsehttpheadersforgettingcookies(cookies, buf, bytes);
 						}
-						nbmessages = parse_minichat_mess(buf, (unsigned int)bytes, &msg, k);
+						nbmessages = parse_minichat_mess(buf, bytes, &msg, k);
 						k=0;
 					}
 
@@ -480,14 +479,10 @@ int main(void) {
 			case RETRIEVING_THE_LIST_OF_USERS:
 				// de temps en temps, on peut regarder qui est là.
 				{
-					//char *req        = NULL;
-					//char *referer    = NULL;
-					//char *cookiesstr = NULL;
-					
 					char *req = mconcat2(path, MCHAT_PAGE);
 					char *referer = mconcat4("http://", host, path, MCHAT_PAGE);
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0);
-					
+
 					http_post(s, req, host, "mode=stats", referer, cookiesstr, useragent, NULL);
 
 					free(req);        req=NULL;
@@ -496,12 +491,12 @@ int main(void) {
 				}
 				k=1;
 				{
-					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+					while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
 						if(k) {
-							ishttpresponseok(buf, (unsigned int)bytes);
-							parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
+							ishttpresponseok(buf, bytes);
+							parsehttpheadersforgettingcookies(cookies, buf, bytes);
 						}
-						parse_minichat_mess(buf, (unsigned int)bytes, &msg, k);
+						parse_minichat_mess(buf, bytes, &msg, k);
 						k=0;
 					}
 				}
@@ -534,15 +529,15 @@ int main(void) {
 					strrep(NULL,        &tmp, " ", "+");
 
 					// mode=add&message=TESTMSG&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23
-					
+
 					req = mconcat2(path, MCHAT_PAGE);
 					postdata = mconcat3(POSTDATALEFT, tmp, POSTDATARIGHT);
 					referer = mconcat4("http://", host, path, MCHAT_PAGE);
 					storecookie(cookies, "mChatShowUserList", "yes");
 					cookiesstr = generate_cookies_string(cookies, NULL, 0);
-					
+
 					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
-					
+
 					outgoingmsg = NULL; // don't be afraid, a copy of this buffer is keep internally in the function providing it
 
 					free(req);        req=NULL;
@@ -552,10 +547,10 @@ int main(void) {
 					free(tmp);        tmp=NULL;
 				}
 				k=1;
-				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+				while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, (unsigned int)bytes);
-						parsehttpheadersforgettingcookies(cookies, buf, (unsigned int)bytes);
+						ishttpresponseok(buf, bytes);
+						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					k=0;
 				}
