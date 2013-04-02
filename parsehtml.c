@@ -235,7 +235,7 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 				buffer[o++] = input[i];
 				if (input[i] == str5[j++]) {
 					if (j >= strlen(str5)) {
-						o-=strlen(str5);
+						o-=(unsigned int)strlen(str5);
 						buffer[o] = '\0';
 						FREE(msg->message);
 						{

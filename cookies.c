@@ -94,30 +94,30 @@ char* getcookie(cookie_t *cookies, char *name){
 }
 
 char* generate_cookies_string(cookie_t *cookies, char *buf, unsigned int buflen){
-    unsigned int i;
-	
+	unsigned int i;
+
 	if (!buflen){
-	    for (i=0; i<MAXCOOKIES; i++){
-	        if (cookies[i].name != NULL && cookies[i].value != NULL) {
-	            if (i) { buflen+=2; } //"; "
-	            buflen+=strlen(cookies[i].name)+1+strlen(cookies[i].value); // "cookie=value"
-	        }
-	    }
-	    buflen+=1; // \0
-	    if (buf) { free(buf); buf=NULL; }
-	    buf = malloc(buflen);
+		for (i=0; i<MAXCOOKIES; i++){
+			if (cookies[i].name != NULL && cookies[i].value != NULL) {
+			if (i) { buflen+=2; } //"; "
+			buflen+=(unsigned int)strlen(cookies[i].name)+1+(unsigned int)strlen(cookies[i].value); // "cookie=value"
+		}
+	}
+	buflen+=1; // \0
+	if (buf) { free(buf); buf=NULL; }
+		buf = malloc(buflen);
 	}
 	if (!buf) { return 0; }
-    buf[0] = 0;
-    for (i=0; i<MAXCOOKIES; i++){
-        if (cookies[i].name != NULL && cookies[i].value != NULL) {
-            if (i) { strncat(buf, "; ", buflen); }
-            strncat(buf, cookies[i].name, buflen);
-            strncat(buf, "=", buflen);
-            strncat(buf, cookies[i].value, buflen);
-        }
-    }    
-    return buf;
+	buf[0] = 0;
+	for (i=0; i<MAXCOOKIES; i++){
+		if (cookies[i].name != NULL && cookies[i].value != NULL) {
+			if (i) { strncat(buf, "; ", buflen); }
+			strncat(buf, cookies[i].name, buflen);
+			strncat(buf, "=", buflen);
+			strncat(buf, cookies[i].value, buflen);
+		}
+	}
+	return buf;
 }
 
 typedef enum {
