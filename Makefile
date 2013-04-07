@@ -11,6 +11,7 @@
 ### If OUT is curses,  we will use ISO curses
 ### If OUT is cursesw, we will use UTF-8 cursesw (default)
 ### If OUT is text,    we will use pure text mode -- stdin/stdout/stderr
+### If OUT is text1,   we will use pure text mode -- stdin/stdout (no stderr)
 ### If OUT is null,    we will use a dummy output (i.e., no output)
 ### I.E.: "make all OUT=text"
 
@@ -33,6 +34,9 @@ ifeq ($(OUT), curses)
 	IFACE=gotcurses.c
 else ifeq ($(OUT), text)
 	IFACE=gottext.c
+else ifeq ($(OUT), text1)
+	IFACE=gottext.c
+	CFLAGS += -DNO_STD_ERR
 else ifeq ($(OUT), null)
 	IFACE=gotnull.c
 else

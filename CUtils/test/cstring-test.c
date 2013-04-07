@@ -4,57 +4,13 @@
 #include "../cstring.h"
 #include "../clist.h"
 
+#include "test.h"
+
 #define boolean int
 #define true 1
 #define false 0
 
-boolean test(const char *name, const char *expected, const char *value,
-		boolean verbose);
-boolean test_i(const char *name, int expected, int value, boolean verbose);
 boolean do_operations(boolean verbose, const char filename[]);
-
-boolean test(const char *name, const char *expected, const char *value,
-		boolean verbose) {
-	boolean result = true;
-
-	if (verbose) {
-		printf("*** %25.25s     ..........     ", name);
-		fflush(NULL);
-	}
-
-	result = !strcmp(value, expected);
-
-	if (verbose) {
-		printf((result ? "OK\n" : "KO\n"));
-		if (!result) {
-			printf("'%s' should have been '%s'\n", value, expected);
-		}
-		fflush(NULL);
-	}
-
-	return result;
-}
-
-boolean test_i(const char *name, int expected, int value, boolean verbose) {
-	boolean result = true;
-
-	if (verbose) {
-		printf("*** %25.25s     ..........     ", name);
-		fflush(NULL);
-	}
-
-	result = (value == expected);
-
-	if (verbose) {
-		printf((result ? "OK\n" : "KO\n"));
-		if (!result) {
-			printf("'%i' should have been '%i'\n", value, expected);
-		}
-		fflush(NULL);
-	}
-
-	return result;
-}
 
 int cstring_test(int argc, char **argv) {
 	unsigned long i;

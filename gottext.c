@@ -35,11 +35,16 @@ void display_init(void) {
 }
 
 void display_debug(const char *text, int nonewline) {
-	if (!nonewline){
+#ifdef NO_STD_ERR
+	if (text) {}
+	if (nonewline) {}
+#else
+	if (!nonewline) {
 		fprintf(stderr, "\n");
 	}
 	fprintf(stderr, "%s", text);
 	fflush(stderr);
+#endif
 }
 
 void display_statusbar(const char *text) {
