@@ -240,6 +240,7 @@ void mccirc_chatserver_message(mccirc *self, const char name[], const char messa
 
 void mccirc_topic(mccirc *self, const char topic[]) {
 	cstring *string, *tmp;
+	char *str;
 	char *TOPIC_SUFFIX = " ( basé sur les utilisateurs actifs depuis 10 minutes )";
 
 	// Just in case
@@ -250,9 +251,9 @@ void mccirc_topic(mccirc *self, const char topic[]) {
 	string = cstring_clones(topic);
 	
 	if (topic) {
-		tmp = self->last_topic_for_mode1;
+		str = self->last_topic_for_mode1;
 		self->last_topic_for_mode1 = cstring_sclones(topic);
-		free(tmp);
+		free(str);
 	}
 
 	// Only set the topic once for mode 1 or never for mode 0
