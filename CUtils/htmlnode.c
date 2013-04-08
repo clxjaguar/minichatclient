@@ -8,7 +8,7 @@ int htmlnode_parse_dom(htmlnode *self, FILE *file, int fd, const char input[]);
 int htmlnode_parse_sax(FILE *file, int fd, const char input[],void (*callback)(htmlnode_elem *elem, void *data), void *data);
 int htmlnode_read(cstring *string, FILE *file, int fd, const char input[]);
 void htmlnode_text_found(cstring *text, void (*callback)(htmlnode_elem *elem, void *data), void *data);
-void htmlnode_tag_found(cstring *name, int open, void (*callback)(htmlnode_elem *elem, void *data), void *data);
+void htmlnode_tag_found(cstring *name, int opentag, void (*callback)(htmlnode_elem *elem, void *data), void *data);
 void htmlnode_attribute_found(cstring *key, cstring *value, cstring *tag, void (*callback)(htmlnode_elem *elem, void *data), void *data);
 
 // private enum:
@@ -139,7 +139,7 @@ void htmlnode_text_found(cstring *text, void (*callback)(htmlnode_elem *elem, vo
 	htmlnode_elem_free(elem);
 }
 
-void htmlnode_tag_found(cstring *name, int open, void (*callback)(htmlnode_elem *elem, void *data), void *data) {
+void htmlnode_tag_found(cstring *name, int opentag, void (*callback)(htmlnode_elem *elem, void *data), void *data) {
 	htmlnode_elem *elem;
 	cstring *s;
 
@@ -147,7 +147,7 @@ void htmlnode_tag_found(cstring *name, int open, void (*callback)(htmlnode_elem 
 	elem->type = HTMLNODE_ELEM_TAG;
 	elem->name = cstring_sclone(name);
 
-	if (open) {
+	if (opentag) {
 		callback(elem, data);
 	} else {
 		s = cstring_new();
