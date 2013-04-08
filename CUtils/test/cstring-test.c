@@ -127,6 +127,15 @@ boolean do_operations(boolean verbose, const char filename[]) {
 	cstring_addfs(string, "1234567890", 4);
 	result = result && test("addfs", "567890", string->string, verbose);
 	cstring_clear(string);
+	cstring_addd(string, 12.4567843, 4);
+	result = result && test("addd", "12.4567", string->string, verbose);
+	cstring_clear(string);
+	cstring_addd(string, 12.442, 4);
+	result = result && test("addd 2", "12.4420", string->string, verbose);
+	cstring_clear(string);
+	cstring_addd(string, 12.06, 4);
+	result = result && test("addd 3", "12.0600", string->string, verbose);
+	cstring_clear(string);
 	cstring_addfns(string, "1234567890", 4, 4);
 	result = result && test("addfns", "5678", string->string, verbose);
 	cstring_clear(string);
