@@ -54,6 +54,8 @@ void cstring_remove_crlfs(char data[], size_t *size);
  */
 int cstring_readlinenet(cstring *self, FILE *file, int fd);
 
+int cstring_readit(char *buffer, FILE *file, int fd, size_t max, size_t *size);
+
 //end of private prototypes
 
 
@@ -435,37 +437,39 @@ void cstring_addi(cstring *self, int source) {
 }
 
 //TODO: improve this or don't use it
-int cstring_pow(int a, int b);
+int cstring_pow(int a, size_t b);
 
-int cstring_pow(int val, int power) {
+int cstring_pow(int val, size_t power) {
 	int rep = 1;
-	while (power > 0) {
+	while (power != 0) {
 		rep *= val;
 		power--;
 	}
 	return rep;
 }
 
-void cstring_addd(cstring *self, double source, int afterDot) {
+void cstring_addd(cstring *self, double source, size_t afterDot) {
 	int big, low;
-	int i, add0;
+	size_t i, add0;
 	cstring *slow;
 
 	big = (int)source;
 	low = 0;
-	if (afterDot > 0)
-		low = (int)((source - big) * cstring_pow(10, afterDot));
+	low = (int)((source - big) * cstring_pow(10, afterDot));
 
 	slow = cstring_new();
-	if (afterDot > 0) {
-		cstring_addi(slow, low);
+	cstring_addi(slow, low);
+	
+	add0 = 0;
+	if (afterDot > slow->length)
 		add0 = afterDot - slow->length;
-		cstring_clear(slow);
-		cstring_addc(slow, '.');
-		for (i = 0 ; i < add0 ; i++)
-			cstring_addi(slow, 0);
-		cstring_addi(slow, low);
-	}
+
+	cstring_clear(slow);
+	cstring_addc(slow, '.');
+	
+	for (i = 0 ; i < add0 ; i++)
+		cstring_addi(slow, 0);
+	cstring_addi(slow, low);
 
 	cstring_addi(self, big);
 	cstring_add(self, slow);
@@ -564,8 +568,10 @@ cstring *cstring_trimc(cstring *self, char car, int start, int end) {
 		return cstring_substring(self, n, size);
 }
 
-int cstring_remove_crlf(cstring *self) {
-	int before = self->length;
+size_t cstring_remove_crlf(cstring *self) {
+	size_t before;
+
+	before = self->length;
 	cstring_remove_crlfs(self->string, &self->length);
 	return before - self->length;
 }
@@ -586,11 +592,11 @@ int cstring_readnet(cstring *self, int fd) {
 	return cstring_readlinenet(self, NULL, fd);
 }
 
-int cstring_readit(char *buffer, FILE *file, int fd, int max, size_t *size) {
+int cstring_readit(char *buffer, FILE *file, int fd, size_t max, size_t *size) {
 	int net_ok;
 
 	if (file) {
-		fgets(buffer, max, file);
+		fgets(buffer, (int)max, file);
 		*size = strlen(buffer);
 	}
 	else {
@@ -681,7 +687,7 @@ cstring *cstring_getdir(cstring *path) {
 	cstring *result;
 	ssize_t i;
 
-	i = path->length - 1;
+	i = (ssize_t)path->length - 1;
 	if (i >= 0 && path->string[i] == CSTRING_SEP)
 		i--;
 	for ( ; i >= 0 && path->string[i] != CSTRING_SEP ; i--);
@@ -690,7 +696,7 @@ cstring *cstring_getdir(cstring *path) {
 		return cstring_new();
 
 	result = cstring_clone(path);
-	cstring_cut_at(result, i);
+	cstring_cut_at(result, (size_t)i);
 	return result;
 }
 
@@ -707,7 +713,7 @@ cstring *cstring_getfile(cstring *path) {
 	cstring *result;
 	ssize_t i;
 
-	i = path->length - 1;
+	i = (ssize_t)path->length - 1;
 	if (i >= 0 && path->string[i] == CSTRING_SEP)
 		i--;
 	for ( ; i >= 0 && path->string[i] != CSTRING_SEP ; i--);

@@ -77,6 +77,8 @@ void htmlnode_elem_free(htmlnode_elem *self) {
 		free(self->key);
 		free(self->value);
 	break;
+	default:
+	break;
 	}
 
 	free(self);
@@ -383,6 +385,9 @@ int htmlnode_parse_sax(FILE *file, int fd, const char input[], void (*callback)(
 				} else {
 					cstring_addc(value, str->string[i]);
 				}
+			break;
+			default:
+				state = HTMLNODE_TEXT;
 			break;
 			}
 

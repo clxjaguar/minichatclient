@@ -136,7 +136,7 @@ void cstring_addfns(cstring *self, const char source[], size_t index, size_t n);
  */
 void cstring_addi(cstring *self, int source);
 
-void cstring_addd(cstring *self, double source, int afterDot);
+void cstring_addd(cstring *self, double source, size_t afterDot);
 
 /**
  * Add an int at the end of the given cstring, in hexadecimal format (lower case).
@@ -475,7 +475,7 @@ cstring *cstring_getfiles(const char path[]);
  * 
  * @return how many removed characters
  */
-int cstring_remove_crlf(cstring *self);
+size_t cstring_remove_crlf(cstring *self);
 
 #endif
 
