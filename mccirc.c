@@ -386,6 +386,9 @@ void on_server_message(irc_server *serv,
 
 		cstring_add(self->buffer, self->last_message);
 	}
+
+	cstring_free(ACTION);
+	cstring_free(ACTION_END);
 }
 
 void on_server_register(irc_server *serv, irc_user *user, void *data) {	
@@ -455,6 +458,7 @@ int mccirc_is_me(mccirc *self, const char username[]) {
 			|| !strcmp(name, self->username))
 		me = 1;
 	
+	free(name);
 	return me;
 }
 

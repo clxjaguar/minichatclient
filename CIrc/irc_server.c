@@ -891,6 +891,8 @@ int irc_server_on_all_do(irc_client *client, const char from[], const char actio
 		s1 = irc_server_extract_bc(args);
 		s2 = irc_server_extract_ac(args);
 		irc_server_privmsg_int(con->server, s1, con->user, s2, 0);
+		free(s1);
+		free(s2);
 	}
 	else if (!strcmp(action, "TOPIC")) {
 		s1 = irc_server_extract_bc(args);
