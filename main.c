@@ -120,9 +120,15 @@ void minichat_message(const char *username, const char *message, const char *use
 	mccirc_chatserver_message(irc, username, message);
 }
 
-int ishttpresponseok(char *buf, unsigned int bytes){
+// the following routine is showing that "HTTP/1.1 200 OK" message
+int ishttpresponseok(char *buf, ssize_t bytes){
 	unsigned int i; char tmp;
-	for(i=0; i<bytes; i++){
+	
+	if (bytes <= 0) { 
+		display_debug("ERROR", 0);
+		return 0; 
+	}
+	for(i=0; i<(unsigned int)bytes; i++){
 		if (buf[i] == '\r' || buf[i] == '\n'){
 			tmp = buf[i];
 			buf[i] = '\0';
@@ -197,7 +203,7 @@ int install_sighandlers(){
 int main(void) {
 	int s; //socket descriptor
 	char buf[BUFSIZE+1]; // rx buffer
-	unsigned int bytes;
+	ssize_t bytes;
 	int k; // flag for any use
 	const char *outgoingmsg = NULL;
 
@@ -335,7 +341,7 @@ int main(void) {
 					free(req); req=NULL;
 				}
 				k=1;
-				while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
+				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
 						ishttpresponseok(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
@@ -387,7 +393,7 @@ int main(void) {
 					free(cookiesstr); cookiesstr=NULL;
 				}
 				k=1;
-				while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
+				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
 						ishttpresponseok(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
@@ -413,7 +419,7 @@ int main(void) {
 					free(cookiesstr); cookiesstr=NULL;
 				}
 				k=1;
-				while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
+				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
 						ishttpresponseok(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
@@ -446,7 +452,7 @@ int main(void) {
 					unsigned int nbmessages = 0, old_wait_time;
 
 					k=1;
-					while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
+					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 						if(k) {
 							ishttpresponseok(buf, bytes);
 							parsehttpheadersforgettingcookies(cookies, buf, bytes);
@@ -494,7 +500,7 @@ int main(void) {
 				}
 				k=1;
 				{
-					while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
+					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 						if(k) {
 							ishttpresponseok(buf, bytes);
 							parsehttpheadersforgettingcookies(cookies, buf, bytes);
@@ -550,7 +556,7 @@ int main(void) {
 					free(tmp);        tmp=NULL;
 				}
 				k=1;
-				while ((bytes=(unsigned int)recv(s, buf, sizeof(buf), 0)) > 0) {
+				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
 						ishttpresponseok(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
