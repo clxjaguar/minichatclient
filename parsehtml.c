@@ -58,7 +58,7 @@ int parser_loadrules(void){
 	else { return 1; }
 }
 
-unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *msg, int reset){
+unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg, int reset){
 	unsigned int i = 0;
 	static unsigned int j, l;
 	static tstate state;
@@ -98,9 +98,10 @@ unsigned int parse_minichat_mess(char input[], unsigned int bytes, message_t *ms
 	}
 #endif
 
+	if (bytes<=0) { return 0; }
 	if (o>=sizeof(buffer)) { o--; display_debug("Buffer full when parsing responses !", 0); }
 
-	for (i=0; i<bytes; i++){
+	for (i=0; i<(unsigned int)bytes; i++){
 #ifdef DEBUG
 		if (state != oldstate) {
 			fprintf(stderr, "[S%u=>S%u]", oldstate, state);
