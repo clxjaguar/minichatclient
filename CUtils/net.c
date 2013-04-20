@@ -81,12 +81,15 @@ int net_set_blocking(int fd, int block) {
 /* If they have O_NONBLOCK, use the POSIX way to do it */
 #if defined (O_NONBLOCK)
 	/* O_NONBLOCK is defined but broken on SunOS 4.1.x and AIX 3.2.5. */
-	if ((flags = fcntl(fd, F_GETFL, 0)) == -1)
+	if ((flags = fcntl(fd, F_GETFL, 0)) == -1) {
 		flags = 0;
-	if (block)
+	}
+	if (block) {
 		return fcntl(fd, F_SETFL, flags ^ O_NONBLOCK);
-	else
+	}
+	else {
 		return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+	}
 #else
 	flags = block?0:1;
 	return ioctl(fd, FIONBIO, (int)(&flags));
@@ -157,7 +160,7 @@ int net_listen(int port, int backlog) {
 #endif
 	int sockfd;
 	struct addrinfo hints, *servinfo, *p;
-	int yes = 1;
+	char yes = 1;
 	int rv;
 	cstring *str;
 
@@ -181,14 +184,12 @@ int net_listen(int port, int backlog) {
 
 	// loop through all the results and bind to the first we can
 	for (p = servinfo; p != NULL; p = p->ai_next) {
-		if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol))
-				== -1) {
+		if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
 			//perror("server: socket");
 			continue;
 		}
 
-		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int))
-				== -1) {
+		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
 			//perror("setsockopt");
 			return -1;
 		}
@@ -248,9 +249,11 @@ ssize_t net_read(int fd, void *buf, size_t nbytes) {
 }
 
 void *get_in_addr(struct sockaddr *sa) {
-	if (sa->sa_family == AF_INET)
+	if (sa->sa_family == AF_INET) {
 		return &(((struct sockaddr_in*) sa)->sin_addr);
-	else
+	}
+	else {
 		return &(((struct sockaddr_in6*) sa)->sin6_addr);
+	}
 }
 
