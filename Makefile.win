@@ -5,8 +5,8 @@ CPP  = g++.exe
 CC   = gcc.exe
 WINDRES = windres.exe
 RES  = project_private.res
-OBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o main.o mccirc.o strfunctions.o CIrc/irc_user.o CIrc/irc_chan.o CIrc/irc_client.o CIrc/irc_server.o CUtils/net.o CUtils/attribute.o CUtils/clist.o CUtils/cstring.o CUtils/ini.o ../minichatclient-niki/gotcurses.o $(RES)
-LINKOBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o main.o mccirc.o strfunctions.o CIrc/irc_user.o CIrc/irc_chan.o CIrc/irc_client.o CIrc/irc_server.o CUtils/net.o CUtils/attribute.o CUtils/clist.o CUtils/cstring.o CUtils/ini.o ../minichatclient-niki/gotcurses.o $(RES)
+OBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o main.o mccirc.o strfunctions.o CIrc/irc_user.o CIrc/irc_chan.o CIrc/irc_client.o CIrc/irc_server.o CUtils/net.o CUtils/attribute.o CUtils/clist.o CUtils/cstring.o CUtils/ini.o gotcurses.o nicklist.o $(RES)
+LINKOBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o main.o mccirc.o strfunctions.o CIrc/irc_user.o CIrc/irc_chan.o CIrc/irc_client.o CIrc/irc_server.o CUtils/net.o CUtils/attribute.o CUtils/clist.o CUtils/cstring.o CUtils/ini.o gotcurses.o nicklist.o $(RES)
 LIBS =  -L"C:/Dev-Cpp/lib" -lws2_32 "c:/Dev-Cpp/lib/libcurses.a  
 INCS =  -I"C:/Dev-Cpp/include" 
 CXXINCS =  -I"C:/Dev-Cpp/lib/gcc/mingw32/3.4.2/include"  -I"C:/Dev-Cpp/include/c++/3.4.2/backward"  -I"C:/Dev-Cpp/include/c++/3.4.2/mingw32"  -I"C:/Dev-Cpp/include/c++/3.4.2"  -I"C:/Dev-Cpp/include" 
@@ -80,8 +80,11 @@ CUtils/cstring.o: CUtils/cstring.c
 CUtils/ini.o: CUtils/ini.c
 	$(CC) -c CUtils/ini.c -o CUtils/ini.o $(CFLAGS)
 
-../minichatclient-niki/gotcurses.o: ../minichatclient-niki/gotcurses.c
-	$(CC) -c ../minichatclient-niki/gotcurses.c -o ../minichatclient-niki/gotcurses.o $(CFLAGS)
+gotcurses.o: gotcurses.c
+	$(CC) -c gotcurses.c -o gotcurses.o $(CFLAGS)
+
+nicklist.o: nicklist.c
+	$(CC) -c nicklist.c -o nicklist.o $(CFLAGS)
 
 project_private.res: project_private.rc 
 	$(WINDRES) -i project_private.rc --input-format=rc -o project_private.res -O coff 

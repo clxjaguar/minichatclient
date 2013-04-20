@@ -54,12 +54,10 @@ int maketcpconnexion(const char* hostname, unsigned int port){
 	}
 
 	if (he->h_addrtype == AF_INET) {
-		//p = malloc(50);
-		//snprintf(p, 25, "\b\b\b\b=> %d.%d.%d.%d", he->h_addr[0], he->h_addr[1], he->h_addr[2], he->h_addr[3]);
-		//display_debug(p, 1);
-		//free(p); p=NULL;
+		// ok, it's IPv4, we're good for now.
 	}
 	else {
+		// we're in IPv6 troubles.
 		display_debug("huh? not AF_INET?", 1);
 	}
 
@@ -68,7 +66,11 @@ int maketcpconnexion(const char* hostname, unsigned int port){
 	 * sockaddr_in structure which is passed to connect()
 	 */
 	server.sin_family = AF_INET;
+#ifdef WIN32
+	server.sin_port = htons(port);
+#else
 	server.sin_port = htons((uint16_t)port);
+#endif
 	server.sin_addr.s_addr = INADDR_ANY;
 
 	memcpy(&(server.sin_addr.s_addr), he->h_addr, (size_t)he->h_length);

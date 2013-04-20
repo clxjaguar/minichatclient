@@ -1,7 +1,7 @@
 [Project]
 FileName=project.dev
 Name=rmcgirr83.org minichat client
-UnitCount=28
+UnitCount=29
 Type=1
 Ver=1
 ObjFiles=
@@ -33,10 +33,10 @@ CompilerSettings=0000000000000000000000
 Major=0
 Minor=1
 Release=1
-Build=837
+Build=854
 LanguageID=1033
 CharsetID=1252
-CompanyName=cLx
+CompanyName=http://minichatclient.sourceforge.net/
 FileVersion=
 FileDescription=A client for the phpbb's rmcgirr83.org minichat
 InternalName=
@@ -50,7 +50,7 @@ AutoIncBuildNr=1
 [Unit2]
 FileName=cookies.c
 CompileCpp=0
-Folder=Client Minichat Francefurs
+Folder=rmcgirr83.org minichat client
 Compile=1
 Link=1
 Priority=1000
@@ -60,7 +60,7 @@ BuildCmd=
 [Unit3]
 FileName=cookies.h
 CompileCpp=0
-Folder=Client Minichat Francefurs
+Folder=rmcgirr83.org minichat client
 Compile=1
 Link=1
 Priority=1000
@@ -70,7 +70,7 @@ BuildCmd=
 [Unit4]
 FileName=network.c
 CompileCpp=0
-Folder=Client Minichat Francefurs
+Folder=rmcgirr83.org minichat client
 Compile=1
 Link=1
 Priority=1000
@@ -260,16 +260,6 @@ BuildCmd=
 [Unit1]
 FileName=network.h
 CompileCpp=0
-Folder=Client Minichat Francefurs
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit29]
-FileName=CUtils\ini.c
-CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
 Link=1
@@ -358,7 +348,17 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit28]
-FileName=..\minichatclient-niki\gotcurses.c
+FileName=gotcurses.c
+CompileCpp=0
+Folder=rmcgirr83.org minichat client
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit29]
+FileName=nicklist.c
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
