@@ -121,23 +121,45 @@ void minichat_message(const char *username, const char *message, const char *use
 }
 
 // the following routine is showing that "HTTP/1.1 200 OK" message
-int ishttpresponseok(char *buf, ssize_t bytes){
-	unsigned int i; char tmp;
-	
-	if (bytes <= 0) { 
-		display_debug("ERROR", 0);
-		return 0; 
+int check_http_response(char *buf, ssize_t bytes){
+	unsigned int i; int response=0; char tmp, *p=NULL;
+
+	if (bytes <= 0) {
+		display_debug("No data ?", 0);
+		return -1;
 	}
 	for(i=0; i<(unsigned int)bytes; i++){
-		if (buf[i] == '\r' || buf[i] == '\n'){
+		if (!p && buf[i] == ' '){
+			p = &buf[i+1];
+		}
+		else if (buf[i] == '\r' || buf[i] == '\n'){
 			tmp = buf[i];
 			buf[i] = '\0';
+			if (p) {
+				response = atoi(p);
+			}
 			display_debug(buf, 0);
 			buf[i] = tmp;
 			break;
 		}
 	}
-	return 1; // TODO: analyze the response to know if it is ok !
+	switch(response){
+		case 200:
+			display_debug("", 1);
+			return 0; // no error
+
+		case 403:
+			display_debug(" [Do not want]", 1);
+			return 403;
+
+		case 404:
+			display_debug(" [Page not found]", 1);
+			return 404;
+
+		default:
+			display_debug(" [error] ", 1);
+			return -2;
+	}
 }
 
 int exit_requested;
@@ -204,7 +226,7 @@ int main(void) {
 	int s; //socket descriptor
 	char buf[BUFSIZE+1]; // rx buffer
 	ssize_t bytes;
-	int k; // flag for any use
+	int k, response; // flag for any use
 	const char *outgoingmsg = NULL;
 
 	unsigned int t; // timeslots remaining before next polling
@@ -343,7 +365,7 @@ int main(void) {
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, bytes);
+						check_http_response(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					k=0;
@@ -367,9 +389,9 @@ int main(void) {
 
 					if (!username || !password) {
 						if (username) { free(username); username=NULL; }
-						if (password) { 
+						if (password) {
 							memset(password, 0, strlen(password)); // overwrite password stored in RAM for security reasons.
-							free(password); password=NULL; 
+							free(password); password=NULL;
 						}
 						display_debug("Username/password informations missing or incomplete, skipping authentification. Tying to switch to the reading states though.", 0);
 						state = GET_THE_BACKLOG;
@@ -395,7 +417,7 @@ int main(void) {
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, bytes);
+						check_http_response(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					k=0;
@@ -421,15 +443,17 @@ int main(void) {
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, bytes);
+						response = check_http_response(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					parse_minichat_mess(buf, bytes, &msg, k);
 					k=0;
 				}
-				state = WAIT;
-				wait_time = 10;
 				futurestate = WATCHING_NEW_MESSAGES;
+				wait_time = 10; state = WAIT;
+				if (response==403){
+					futurestate = LOADING_LOGIN_PAGE;
+				}
 				break;
 
 			case WATCHING_NEW_MESSAGES:
@@ -454,11 +478,16 @@ int main(void) {
 					k=1;
 					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 						if(k) {
-							ishttpresponseok(buf, bytes);
+							response = check_http_response(buf, bytes);
 							parsehttpheadersforgettingcookies(cookies, buf, bytes);
 						}
 						nbmessages = parse_minichat_mess(buf, bytes, &msg, k);
 						k=0;
+					}
+					if (response==403){
+						wait_time = 10; state = WAIT;
+						futurestate = LOADING_LOGIN_PAGE;
+						break;
 					}
 
 					old_wait_time = wait_time;
@@ -502,7 +531,7 @@ int main(void) {
 				{
 					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 						if(k) {
-							ishttpresponseok(buf, bytes);
+							check_http_response(buf, bytes);
 							parsehttpheadersforgettingcookies(cookies, buf, bytes);
 						}
 						parse_minichat_mess(buf, bytes, &msg, k);
@@ -558,7 +587,7 @@ int main(void) {
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						ishttpresponseok(buf, bytes);
+						check_http_response(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					k=0;
