@@ -340,7 +340,7 @@ int main(void) {
 			else {
 				if (nberr >= 5) {
 					put_timestamp(logfile);
-					fprintf(logfile, "The server seem to be back now !\r\n");
+					fprintf(logfile, "The server seems to be back now !\r\n");
 					fflush(logfile);
 					mccirc_chatserver_resume(irc);
 					if (nberr >= 30) { // 5' ? reconnect from beginning.
