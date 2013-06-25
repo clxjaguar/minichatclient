@@ -1,7 +1,16 @@
 sudo apt-get install subversion ncurses-dev libncursesw5-dev make
-svn checkout https://minichatclient.svn.sourceforge.net/svnroot/minichatclient minichatclient
+svn checkout svn://svn.code.sf.net/p/minichatclient/code/ minichatclient
 cd minichatclient
 make IRC=1
 cp mchatclient.conf.template mchatclient.conf && nano mchatclient.conf
 ./mchatclient
 
+
+*** PLEASE NOTE SOURCEFORGE SVN HAS CHANGED! ***
+
+See: http://sourceforge.net/p/forge/community-docs/Repository%20Upgrade%20FAQ/
+
+If you used:
+$ svn checkout https://minichatclient.svn.sourceforge.net/svnroot/minichatclient minichatclient
+Please type:
+$ svn switch --relocate https://minichatclient.svn.sourceforge.net/svnroot/minichatclient "svn+ssh://YOURSFUSERNAME@svn.code.sf.net/p/minichatclient/code/"
