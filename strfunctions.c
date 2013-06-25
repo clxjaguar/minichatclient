@@ -699,46 +699,63 @@ unsigned int transliterate_iso88591_to_ucs(unsigned char iso_codepoint){
 
 // misc things
 
+/*
+	//NB: this is more fast but not standard. May need to be added here.
+	//<man>This function is not part of the C or POSIX.1 standards, and is not customary on Unix systems, but is not a GNU invention
+    //either.  Perhaps it comes from MS-DOS.  Nowadays, it is also present on the BSDs.</man>
+    char *stpcpy(char *d, const char *s) {
+        while((*d++ = *s++));
+        return d-1;
+    }
+	// (<51c6f8bb$0$2577$426a34cc@news.free.fr>)
+*/
+
+
 char *mconcat2(const char *str1, const char *str2){
-	char *outstr;
-	outstr = malloc(strlen(str1)+strlen(str2)+1);
-	if (outstr) {
-		strcpy(outstr, str1);
-		strcat(outstr, str2);
+	char *dest, *p;
+	dest = malloc(strlen(str1)+strlen(str2)+1);
+	if (dest) {
+		p = dest;
+		p = stpcpy(p, str1);
+		p = stpcpy(p, str2);
 	}
-	return outstr;
+	return dest;
 }
 char *mconcat3(const char *str1, const char *str2, const char *str3){
-	char *outstr;
-	outstr = malloc(strlen(str1)+strlen(str2)+strlen(str3)+1);
-	if (outstr) {
-		strcpy(outstr, str1);
-		strcat(outstr, str2);
-		strcat(outstr, str3);
+	char *dest, *p;
+	dest = malloc(strlen(str1)+strlen(str2)+strlen(str3)+1);
+	if (dest) {
+		p = dest;
+		p = stpcpy(p, str1);
+		p = stpcpy(p, str2);
+		p = stpcpy(p, str3);
 
 	}
-	return outstr;
+	return dest;
 }
 char *mconcat4(const char *str1, const char *str2, const char *str3, const char *str4){
-	char *outstr;
-	outstr = malloc(strlen(str1)+strlen(str2)+strlen(str3)+strlen(str4)+1);
-	if (outstr) {
-		strcpy(outstr, str1);
-		strcat(outstr, str2);
-		strcat(outstr, str3);
-		strcat(outstr, str4);
+	char *dest, *p;
+	dest = malloc(strlen(str1)+strlen(str2)+strlen(str3)+strlen(str4)+1);
+	if (dest) {
+		p = dest;
+		p = stpcpy(p, str1);
+		p = stpcpy(p, str2);
+		p = stpcpy(p, str3);
+		p = stpcpy(p, str4);
 	}
-	return outstr;
+	return dest;
 }
 char *mconcat5(const char *str1, const char *str2, const char *str3, const char *str4, const char *str5){
-	char *outstr;
-	outstr = malloc(strlen(str1)+strlen(str2)+strlen(str3)+strlen(str4)+strlen(str5)+1);
-	if (outstr) {
-		strcpy(outstr, str1);
-		strcat(outstr, str2);
-		strcat(outstr, str3);
-		strcat(outstr, str4);
-		strcat(outstr, str5);
+	char *dest, *p;
+	dest = malloc(strlen(str1)+strlen(str2)+strlen(str3)+strlen(str4)+strlen(str5)+1);
+	if (dest) {
+		p = dest;
+		p = stpcpy(p, str1);
+		p = stpcpy(p, str2);
+		p = stpcpy(p, str3);
+		p = stpcpy(p, str4);
+		p = stpcpy(p, str5);
 	}
-	return outstr;
+	return dest;
 }
+
