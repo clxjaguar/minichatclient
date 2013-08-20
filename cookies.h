@@ -1,7 +1,5 @@
 #define MAXCOOKIES 10
 
-#include <sys/types.h>
-
 typedef struct {
     char *name;
     char *value;
