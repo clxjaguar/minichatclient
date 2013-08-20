@@ -1,67 +1,91 @@
+### Env Options:
+### 	IRC=1			enable IRC-server support
+### 	CROSS=x86		compile the x86 version under an AMD64 machine
+### 	DEBUG=1			debug build
 ###
-### Interesting options:
-### 	debug:			debug build
+### Output modules:
 ### 	cursesw (default):	cursesw (wide char, UTF-8) interface
 ### 	curses:			curses interface (ISO)
 ### 	text:			output plain text on stdout, stderr
 ### 	text1:			output plain text on stdout
 ### 	none:			do not output anything
-### 	irc:			enable IRC-server support
-### 	x86:			compile the x86 version under an AMD64 machine
 ###
 ### Exemples:
 ### 	make # will compile the program with default values
-### 	make irc debug none # will compile the program with IRC support
-### 			    # and no direct output
-###
-### Note that if you provide an explicit output module option,
-### it MUST be the last option you pass.
+### 	make IRC=1 DEBUG=1 none # will compile the program with IRC support
+### 				# and no direct output
 ###
 
 ### Options
 CFLAGS += -Wall -Wextra -fshort-enums
 
-# The active targets are not actual files
-.PHONY : all clean mrproper mrpropre rebuild test install love \
-	 irc debug curses cursesw text text1 none x86
+### Special code for cross compiling x86 from AMD64
+#if 0 == 1
+ifeq ($(CROSS), x86)
+#fi
+#if $(CROSS) == x86
+	ARCHFLAG="-m32"
+#fi
+#if 0 == 1
+endif
+#fi
+
+### DEBUG
+#if 0 == 1
+ifeq ($(DEBUG), 1)
+#fi
+#if $(DEBUG) == 1
+	CFLAGS += -g -ggdb -O0 -Wformat -Winit-self -Wmissing-include-dirs -Wparentheses -Wswitch-default -Wswitch-enum -Wunused-parameter -Wuninitialized -Wundef -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wwrite-strings -Wconversion -DDEBUG
+#fi
+#if 0 == 1
+endif
+#fi
+
 
 ### IRC built-in server support (default is off)
-CIrc = mccirc_fake.c
+#if 0 == 1
+ifeq ($(IRC), 1)
+#fi
+#if $(IRC) == 1
+	CIrc = mccirc.o CIrc/libcirc.o
+#if 0 == 1
+else
+#fi
+#else
+	CIrc = mccirc_fake.o
+#fi
+#if 0 == 1
+endif
+#fi
 
-irc: CIrc = mccirc.o CIrc/libcirc.o
-irc: mccirc.o CIrc/libcirc.o all
+# The active targets are not actual files
+.PHONY : all clean mrproper mrprorebuild test install love \
+	 irc debug curses cursesw text text1 none x86
+
+### default options
+all: cursesw
 
 ### out interface (default is cursesw)
 cursesw: LDFLAGS += -lncursesw
 cursesw: CFLAGS += -D_X_OPEN_SOURCE_EXTENDED
 cursesw: IFACE = gotcurses.c
-cursesw: mchatclient
+cursesw: gotcurses.o mchatclient
 
 curses: LDFLAGS +=-lncurses
 curses: IFACE = gotcurses.c
-curses: mchatclient 
+curses: gotcurses.o mchatclient 
 
 text: IFACE = gottext.c
-text: mchatclient 
+text: gottext.o mchatclient 
 
 text1: IFACE = gottext.c
 text1: CFLAGS += -DNO_STD_ERR
-text1: mchatclient 
+text1: gottext.o mchatclient 
 
 none: IFACE = gotnull.c
-none: mchatclient 
-
-### Special code for cross compiling x86 from AMD64
-x86: ARCHFLAG="-m32"
-x86: mchatclient.x86
-
-### DEBUG
-debug: CFLAGS += -g -ggdb -O0 -Wformat -Winit-self -Wmissing-include-dirs -Wparentheses -Wswitch-default -Wswitch-enum -Wunused-parameter -Wuninitialized -Wundef -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wwrite-strings -Wconversion -DDEBUG
+none: gotnull.o mchatclient 
 
 ### Active targets
-
-all: cursesw
-
 clean:
 	@echo --- Cleaning all objects files...
 	@rm -f *.o */*.o */*/*.o
@@ -71,6 +95,7 @@ mrpropre: mrproper
 mrproper: clean
 	@echo --- Cleaning all binary executables files...
 	@rm -f mchatclient mchatclient.x86
+	@rm -f iface-test cookies-test parser-test
 
 ### note: rebuild will always rebuild the default interface
 rebuild: mrproper all
@@ -79,21 +104,6 @@ test: cookies-test iface-test parser-test
 
 love:
 	@echo "... not war ?"
-
-### Dependencies
-conf.o: conf.c conf.h display_interfaces.h
-parsehtml.o: parsehtml.c parsehtml.h main.h entities.h parser.h display_interfaces.h nicklist.h
-nicklist.o: nicklist.c nicklist.h main.h mccirc.h 
-cookies.o: cookies.c cookies.h display_interfaces.h
-network.o: network.c display_interfaces.h
-main.o: main.c main.h conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h mccirc.h
-gotcurses.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
-gottext.o: gottext.c display_interfaces.h commons.h
-gotnull.o: gotnull.c display_interfaces.h commons.h
-mccirc.o: mccirc.c mccirc.h CUtils/libcutils.o CIrc/libcirc.o
-parser.o: parser.c parser.h parser_p.h CUtils/libcutils.o
-CUtils/libcutils.o: CUtils/libcutils.c CUtils/libcutils.h CUtils/attribute.h CUtils/attribute.c CUtils/clist.h CUtils/clist.c CUtils/ini.h CUtils/ini.c CUtils/net.h CUtils/net.c CUtils/cstring.h CUtils/cstring.c
-CIrc/libcirc.o: CUtils/libcutils.o CIrc/libcirc.c CIrc/irc_chan.h CIrc/irc_client.h CIrc/irc_server.h CIrc/irc_user.h CIrc/irc_chan.c CIrc/irc_client.c CIrc/irc_server.c CIrc/irc_user.c
 
 ### Test dependencies
 cookies-test: cookies-test.o gottext.o cookies.o CUtils/libcutils.o
@@ -112,17 +122,34 @@ parser-test: parser-test.o parser.o CUtils/libcutils.o
 ### Main dependencies
 OBJS = main.o conf.o parsehtml.o nicklist.o cookies.o entities.o network.o parser.o strfunctions.o CUtils/libcutils.o
 	
-mchatclient: $(OBJS) $(IFACE) $(CIrc)
-	@echo --- Linking final executable $@...
-	@$(CC) $(OBJS) $(IFACE) $(CIrc) -o $@ $(LDFLAGS)
-
-mchatclient.x86: $(OBJS) $(IFACE) $(CIrc)
+mchatclient: $(OBJS) $(CIrc)
 	@echo --- Linking final executable $@...
 	@$(CC) $(ARCHFLAG) $(OBJS) $(IFACE) $(CIrc) -o $@ $(LDFLAGS)
 
-### #if 0 == 1
 %.o: %.c
 	@echo --- Compiling $@
 	@$(CC) $(ARCHFLAG) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) $(TARGET_ARCH) -c $(@:.o=.c) -o $@
-### #endif
+
+### Implied dependencies
+conf.c: display_interfaces.h 
+cookies-test.c: cookies.h 
+cookies.c: cookies.h display_interfaces.h 
+entities.c: entities.h 
+gotcurses.c: display_interfaces.h commons.h strfunctions.h conf.h 
+gotnull.c: commons.h 
+gottext.c: CUtils/net.h CUtils/cstring.h display_interfaces.h commons.h 
+iface-test.c: display_interfaces.h CUtils/cstring.h 
+main.c: main.h entities.h cookies.h network.h parsehtml.h conf.h commons.h display_interfaces.h strfunctions.h mccirc.h 
+main.h: mccirc.h 
+mccirc.c: mccirc.h CUtils/cstring.h CUtils/clist.h CIrc/irc_server.h CIrc/irc_chan.h 
+mccirc.h: CIrc/irc_server.h CUtils/clist.h 
+mccirc_fake.c: mccirc.h 
+network.c: display_interfaces.h network.h 
+nicklist.c: display_interfaces.h mccirc.h main.h 
+parsehtml.c: entities.h parsehtml.h nicklist.h parser.h display_interfaces.h main.h 
+parser-test.c: parser.h CUtils/cstring.h 
+parser.c: CUtils/cstring.h CUtils/clist.h parser.h parser_p.h CUtils/ini.h 
+parser.h: CUtils/clist.h 
+parser_p.h: CUtils/ini.h 
+strfunctions.c: strfunctions.h 
 
