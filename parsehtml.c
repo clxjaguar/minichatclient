@@ -28,6 +28,7 @@ typedef enum {
 	IN_USERICON_URL,
 	LOOKING_FOR_MESSAGE,
 	IN_MESSAGE,
+	IN_MESSAGE_AND_IN_DIV,
 	LOOKING_FOR_USERNAME,
 	IN_USERNAME,
 	LOOKING_FOR_STATS,
@@ -73,7 +74,8 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 	const char str7[] = "<div class=\"mChatStats\" id=\"mChatStats\">";
 	const char str8[] = "<br />";
 	const char str9[] = "<a ";
-
+	const char str0a[]= "<div>";
+	const char str0b[]= "<div ";
 
 	static unsigned int o = 0;
 	static char buffer[4000];
@@ -224,8 +226,19 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 			case LOOKING_FOR_MESSAGE:
 				if (input[i] == str4[j++]) {
 					if (j >= strlen(str4)) {
-						j=0;
+						j=0; l=0;
 						o=0;
+						state = IN_MESSAGE;
+					}
+				}
+				else { j=0; }
+				break;
+
+			case IN_MESSAGE_AND_IN_DIV:
+				buffer[o++] = input[i];
+				if (input[i] == str5[j++]) {
+					if (j >= strlen(str5)) {
+						j=0; l=0;
 						state = IN_MESSAGE;
 					}
 				}
@@ -242,7 +255,7 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 						{
 							char *withouthtmlmessage = NULL;
 							if (config != NULL){
-								// si le parseur de niki est activé, on l'utilise
+								// si le parseur de niki est activÃ©, on l'utilise
 								withouthtmlmessage = parse_html_in_message(buffer, config);
 							}
 
@@ -262,6 +275,16 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 					}
 				}
 				else { j=0; }
+
+				if (input[i] == str0a[l] || input[i] == str0b[l]){
+					l++;
+					if (l >= strlen(str0a)) {
+						j=0; l=0;
+						state = IN_MESSAGE_AND_IN_DIV;
+					}
+				}
+				else { l=0; }
+
 				break;
 
 			case LOOKING_FOR_STATS:
