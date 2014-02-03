@@ -272,7 +272,9 @@ static const char *named_entities[][2] =
 };
 
 static int cmp(const void *key, const void *element) {
-	return strncmp((const char *)key, *(const char **)element, strlen(*(const char **)element));
+	const char *p;
+	p = *(const char **)element; // <-- warning: cast discards qualifiers from pointer target type
+	return strncmp((const char *)key, p, strlen(p));
 }
 
 static const char *get_named_entity(const char *name) {
