@@ -52,7 +52,8 @@ typedef enum {
 // quelques variables globales
 tstate state;
 FILE *logfile;
-char *host = NULL; unsigned int port = 0;
+char *host = NULL;
+char *port = NULL;
 char *path = NULL;
 
 mccirc *irc = NULL;
@@ -266,7 +267,7 @@ int main(void) {
 
 	/* reading configuration file */
 	host            =               read_conf_string("host",      host,      0);
-	port            = (unsigned int)read_conf_int   ("port",                 80);
+	port            =               read_conf_string("port",      port,      0);
 	path            =               read_conf_string("path",      path,      0);
 	useragent       =               read_conf_string("useragent", useragent, 0);
 	wait_time_maxi  = (unsigned int)read_conf_int   ("wait_time_maxi",       15) * (1000/WAITING_TIME_GRANOLOSITY);
@@ -593,7 +594,7 @@ int main(void) {
 					k=0;
 				}
 				wait_time = wait_time_awake;
-				state = WATCHING_NEW_MESSAGES; // le changement d'état est important ;)
+				state = WATCHING_NEW_MESSAGES; // le changement d'etat est important ;)
 				break;
 
 			case WAIT:

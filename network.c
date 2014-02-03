@@ -37,18 +37,78 @@ void ws_cleanup(void){
 #endif
 }
 
-int maketcpconnexion(const char* hostname, unsigned int port){
-	struct hostent	 *he;
-	struct sockaddr_in  server;
-	int sockfd;
-	char *p;
+#if !(defined (WIN32))
+// linux/bsd/whatever version
+char *get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen);
+int maketcpconnexion(const char* hostname, const char *service){
+	char buf[200];
+	int sockfd6;
+	struct addrinfo hints, *res, *r;
+	int rval;
 
 	display_debug("Resolving ", 0);
 	display_debug(hostname, 1);
-	display_debug(" ... ", 1);
+	display_debug("... ", 1);
 
-	/* resolve host to an IP */
-	if ((he = (void *)gethostbyname(hostname)) == NULL) { // deprécié !
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family=PF_UNSPEC;
+	hints.ai_socktype=SOCK_STREAM;
+	hints.ai_protocol=IPPROTO_TCP;
+	if ((rval = getaddrinfo(hostname, service, &hints, &res)) != 0) {
+		display_debug("getaddrinfo() failed !", 1);
+		return 0;
+	}
+
+	for (r=res; r; r = r->ai_next) {
+		sockfd6 = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
+		if (sockfd6==-1){ continue; }
+
+		display_debug("connecting to ", 1);
+		display_debug(get_ip_str((struct sockaddr *)r->ai_addr, buf, sizeof(buf)), 1);
+		display_debug(":", 1);
+		display_debug(service, 1);
+		display_debug("... ", 1);
+
+		if (connect(sockfd6, r->ai_addr, r->ai_addrlen) < 0) {
+			display_debug("failed.", 1);
+			close(sockfd6);
+			continue;
+		}
+
+		display_debug("ok.", 1);
+		freeaddrinfo(res);
+		return sockfd6;
+	}
+	return 0;
+}
+// code stolen from <http://owend.corp.he.net/ipv6/>
+char *get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen){
+	switch(sa->sa_family) {
+		case AF_INET:
+			inet_ntop(AF_INET, &(((const struct sockaddr_in *)sa)->sin_addr), s, maxlen);
+			break;
+
+		case AF_INET6:
+			inet_ntop(AF_INET6, &(((const struct sockaddr_in6 *)sa)->sin6_addr), s, maxlen);
+			break;
+
+		default:
+			strncpy(s, "Unknown AF", maxlen);
+			return s;
+	}
+	return s;
+}
+#else 
+// Windows version here (old code IPv4 compatible only)
+// http://mingw.5.n7.nabble.com/Undefined-reference-to-getaddrinfo-td5694.html
+int maketcpconnexion(const char* hostname, const char *service){
+	struct hostent *he;
+	struct sockaddr_in  server;
+	char buf[200];
+	int sockfd;
+
+	// gethostbyname is deprecated ! go see <http://owend.corp.he.net/ipv6/Porting/PortMeth.pdf> for documentation.
+	if ((he = (void *)gethostbyname(hostname)) == NULL) {
 		display_debug("Error resolving hostname.", 1);
 		return 0;
 	}
@@ -58,45 +118,38 @@ int maketcpconnexion(const char* hostname, unsigned int port){
 	}
 	else {
 		// we're in IPv6 troubles.
-		display_debug("huh? not AF_INET?", 1);
+		display_debug("Sorry, only linux version is IPv6 compatible.", 0);
 	}
 
-	/*
-	 * copy the network address part of the structure to the
-	 * sockaddr_in structure which is passed to connect()
-	 */
+	// copy the network address part of the structure to the
+	// sockaddr_in structure which is passed to connect()
+
 	server.sin_family = AF_INET;
-#ifdef WIN32
-	server.sin_port = htons(port);
-#else
-	server.sin_port = htons((uint16_t)port);
-#endif
+	server.sin_port = htons(atoi(service));
 	server.sin_addr.s_addr = INADDR_ANY;
 
 	memcpy(&(server.sin_addr.s_addr), he->h_addr, (size_t)he->h_length);
 
-	/* open socket */
+	// open socket
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		display_debug("Error: unable to open socket.", 0);
 		return 0;
 	}
 
-	/* connect */
+	// connect
 	if (connect(sockfd, (struct sockaddr *)&server, sizeof(server))) {
-		p = malloc(200);
-		snprintf(p, 200, "Error connecting to %s:%d", he->h_name, port);
-		display_debug(p, 0);
-		free(p); p=NULL;
+		snprintf(buf, sizeof(buf), "Error connecting to %s:%d", he->h_name, atoi(service));
+		display_debug(buf, 0);
 		close(sockfd);
 		return 0;
 	}
 
-	p = malloc(200);
-	snprintf(p, 200, "Connected to %s:%d", inet_ntoa(server.sin_addr), port);
-	display_debug(p, 0);
-	free(p); p=NULL;
+
+	snprintf(buf, sizeof(buf), "Connected to %s:%d", inet_ntoa(server.sin_addr), atoi(service));
+	display_debug(buf, 0);
 	return sockfd;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -185,3 +238,4 @@ int http_post(int s, const char* req, const char* host, const char* datas, const
 
 	return 0;
 }
+
