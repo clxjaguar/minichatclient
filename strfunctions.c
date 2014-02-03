@@ -710,6 +710,12 @@ unsigned int transliterate_iso88591_to_ucs(unsigned char iso_codepoint){
 	// (<51c6f8bb$0$2577$426a34cc@news.free.fr>)
 */
 
+#if defined (WIN32) 
+char *stpcpy(char *d, const char *s) {
+	while((*d++ = *s++));
+	return d-1;
+}
+#endif
 
 char *mconcat2(const char *str1, const char *str2){
 	char *dest, *p;

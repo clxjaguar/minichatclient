@@ -115,7 +115,7 @@ void display_statusbar(const char *text){
 	else {
 		wmove(stdscr, maxrows-1, 0);
 	}
-	clrtoeol();
+	clrtoeol();	
 	wrefresh(stdscr);
 }
 

@@ -18,6 +18,7 @@
 #include "parser.h"
 #include "display_interfaces.h"
 #include "main.h"
+#include "strfunctions.h"
 
 typedef enum {
 	READY=0,
@@ -301,6 +302,11 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 						{
 							char *tmp = malloc(o);
 							decode_html_entities_utf8(tmp, buffer);
+							strrep(NULL, &tmp, "  ", " ");
+							strrep(NULL, &tmp, "( ", "(");
+							strrep(NULL, &tmp, " )", ")");
+							strrep(NULL, &tmp, "  ", " ");
+							strrep(NULL, &tmp, "  ", " ");
 							nicklist_topic(tmp);
 							free(tmp);
 						}
