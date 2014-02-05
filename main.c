@@ -1,10 +1,10 @@
-// Ce truc est une sorte declient http afin de servir depasserelle vers le minichat rmcgirr83.org pour phpbb.
+// Ce truc est une sorte de client http afin de servir depasserelle vers le minichat rmcgirr83.org pour phpbb.
 // Rha, Mais pourquoi toujours utiliser les trucs les moins compatibles possibles ? Parce que c'est 'web'.
 //
-// Avec gcc sous windows, il faut passer -lws2_32 et "c:\Dev-Cpp\lib\libcurses.a" au 
-// linker (avec pdcurses-3.2-1mol.DevPak d'installÈ dans dev-c++ dans cet exemple).
+// Avec gcc sous windows, il faut passer -lws2_32 et "c:\Dev-Cpp\lib\libcurses.a" au
+// linker (avec pdcurses-3.2-1mol.DevPak d'install√© dans dev-c++ dans cet exemple).
 
-// Licence: Au cas o˘ Áa se rÈvÈlerait indispensable, la GPL ? ou alors CC-BY-NC ?
+// Licence: Au cas o√π √ßa se r√©v√©lerait indispensable, la GPL ? ou alors CC-BY-NC ?
 // Garantie: Aucune. Timmy, si quelqu'un crashe ton serveur avec ce truc, c'est pas notre faute ! ^^
 
 #include <stdio.h>
@@ -27,6 +27,7 @@
 #include "network.h"
 #include "parsehtml.h"
 #include "conf.h"
+#include "nicklist.h" //nicklist_msg_update(), nicklist_init(), nicklist_destroy()
 #include "commons.h"
 #include "display_interfaces.h"
 #include "strfunctions.h"
@@ -38,7 +39,7 @@
 // have to be large enough to contain the http headers
 #define BUFSIZE 800
 
-// hÈÈÈ oui, encore une machine ‡ Ètats ! ^^
+// h√©√©√©√©√© oui, encore une machine √† √©tats ! ^^
 typedef enum {
 	LOADING_LOGIN_PAGE = 0,
 	SUBMIT_AUTHENTIFICATION,
@@ -90,32 +91,39 @@ void put_timestamp(FILE *f){
 	}
 }
 
+char *malloc_globalise_url(const char *url){
+	char *output;
+	if (!url) { return NULL; }
+	if (url[0] == '.' && url[1] == '/' && host && path) {
+		if (port && port[0] && strcmp(port, "80")) {
+			return mconcat6("http://", host, ":", port, path, &url[2]);
+		}
+		else {
+			return mconcat4("http://", host, path, &url[2]);
+		}
+	}
+	else {
+		output = malloc(strlen(url)+1);
+		if (output) { strcpy(output, url); }
+		return output;
+	}
+}
+
 void minichat_message(const char *username, const char *message, const char *usericonurl, const char *userprofileurl) {
 	char *p = NULL;
 
-	// NIKI! PLEASE DON'T TOUCH THAT PORTION OF CODE, YOU ALREADY HAVE ENOUGH BUGS IN YOUR IRC SERVER !
-
 	// display the message
-	p = malloc(strlen(username)+strlen(message)+4); // "<> \0"
-	strcpy(p, "<"); strcat(p, username); strcat(p, "> "); strcat(p, message);
-	display_conversation(p);
-	free(p); p = NULL;
+	p = mconcat4("<", username, "> ", message);
+	if (p) {
+		display_conversation(p);
+		free(p); p = NULL; // mconcatN does malloc()
+	}
 
 	// and put it in the log file
 	put_timestamp(logfile); fprintf(logfile, "<%s> %s\r\n", username, message); fflush(logfile);
 
-	// gere si la user icon est sur le serveur (avec une adresse relative ./)
-	// (ne pas oublier d'alouer pour "http://", ":12345" et le \0 de fin de chaine)
-	if (usericonurl[0] == '.' && usericonurl[1] == '/') {
-		//p = malloc(strlen(host)+strlen(path)+strlen(usericonurl)+20);
-		//sprintf(p, "http://%s:%d%s%s", host, port, path, &usericonurl[2]);
-		//usericonurl = p;
-	}
-	//fprintf(stderr, "[icon url    = %s ]\n\n", usericonurl);
-	//fprintf(stderr, "[profile url = http://"HOST""PATH"%s ]\n", &userprofileurl[2]);
-	if(userprofileurl){} // dont show a warning message for unused variable...
-
-	if (p) { free(p); p = NULL; }
+	// update nicklist things...
+	nicklist_msg_update(username, userprofileurl, usericonurl);
 
 	// envoie le message vers le client IRC (s'il y en a un) via "mccirc".
 	mccirc_chatserver_message(irc, username, message);
@@ -246,6 +254,7 @@ int main(void) {
 
 	display_init();
 	install_sighandlers();
+	nicklist_init();
 	exit_requested = 0;
 
 	display_conversation(
@@ -377,8 +386,8 @@ int main(void) {
 				break;
 
 			case SUBMIT_AUTHENTIFICATION:
-				// on s'identifie sur cette mÍme page.
-				// gÈnÈration de ce que l'en va envoyer en POST pour se logger
+				// on s'identifie sur cette m√™me page.
+				// g√©n√©ration de ce que l'en va envoyer en POST pour se logger
 				{
 					char *req        = NULL;
 					char *postdata   = NULL;
@@ -429,7 +438,7 @@ int main(void) {
 				break;
 
 			case GET_THE_BACKLOG:
-				// Áa, c'est pour rÈcupÈrer le texte de la conversation dÈj‡ Ècrite comme le fait le navigateur
+				// √ßa, c'est pour r√©cup√©rer le texte de la conversation d√©j√† √©crite comme le fait le navigateur
 				{
 					char *req = mconcat2(path, MCHAT_PAGE);
 					char *referer = mconcat4("http://", host, path, LOGIN_PAGE);
@@ -458,8 +467,8 @@ int main(void) {
 				break;
 
 			case WATCHING_NEW_MESSAGES:
-				// ... et Áa, c'est pour rÈcupÈrer ce qui s'y passe !
-				// => donner l'id du dernier message reÁu
+				// ... et √ßa, c'est pour r√©cup√©rer ce qui s'y passe !
+				// => donner l'id du dernier message re√ßu
 				{
 					char *req = mconcat2(path, MCHAT_PAGE);
 					char *postdata = mconcat2("mode=read&message_last_id=", msg.msgid);
@@ -546,7 +555,7 @@ int main(void) {
 #define POSTDATARIGHT  "&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23"
 
 			case POSTING_A_MESSAGE:
-				// et enfin, Áa, c'est pour y poster quelque chose. faire gaffe de ne pas flooder sinon Timmy va se f‚cher.
+				// et enfin, √ßa, c'est pour y poster quelque chose. faire gaffe de ne pas flooder sinon Timmy va se f√¢cher.
 				if (!outgoingmsg){
 					display_debug("Error: doing a posting cycle but there is no outgoing message to send.", 0);
 					state = WATCHING_NEW_MESSAGES;
@@ -640,6 +649,7 @@ int main(void) {
 	parse_minichat_mess(NULL, 0, &msg, 1);
 	ws_cleanup();
 	mccirc_free(irc);
+	nicklist_destroy();
 	if (host)      { free(host);      host=NULL; }
 	if (path)      { free(path);      path=NULL; }
 	if (useragent) { free(useragent); useragent=NULL; }
