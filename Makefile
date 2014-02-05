@@ -102,10 +102,10 @@ love:
 ### Dependencies
 conf.o: conf.c conf.h display_interfaces.h
 parsehtml.o: parsehtml.c parsehtml.h main.h entities.h parser.h display_interfaces.h nicklist.h strfunctions.h
-nicklist.o: nicklist.c nicklist.h display_interfaces.h main.h mccirc.h strfunctions.h
+nicklist.o: nicklist.c nicklist.h display_interfaces.h main.h mccirc.h
 cookies.o: cookies.c cookies.h display_interfaces.h
 network.o: network.c display_interfaces.h
-main.o: main.c main.h conf.h network.h cookies.h parsehtml.h display_interfaces.h commons.h mccirc.h 
+main.o: main.c main.h conf.h network.h cookies.h parsehtml.h strfunctions.h display_interfaces.h commons.h mccirc.h
 gotcurses.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
 gottext.o: gottext.c display_interfaces.h commons.h
 gotnull.o: gotnull.c display_interfaces.h commons.h
