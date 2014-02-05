@@ -17,14 +17,12 @@
 		- un tag qui indique si la personne a été rajoutée à la nicklist sans qu'elle apparaisse dans la liste (ie: elle est invisible) ? En option, puisqu'il suffit de vérifier si le timestamp précédent est à 0 ou pas en fait...
 */
 
-#include <string.h>
 #include <time.h>
 
 #include "nicklist.h"
 #include "display_interfaces.h"
 #include "mccirc.h"
 #include "main.h" //malloc_globalise_url(), get_mccirc()
-#include "strfunctions.h"
 
 typedef struct {
 	char *username;
