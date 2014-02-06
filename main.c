@@ -172,15 +172,25 @@ int check_http_response(char *buf, ssize_t bytes){
 }
 
 int exit_requested;
+int poll_requested;
 #ifdef __linux__
 #include <signal.h>
 
 static void sigkilled(int sig){
 	switch(sig){
-		case SIGINT:
-			display_statusbar("Got SIGINT (^C), exiting...");
-			exit_requested = 1;
+		case SIGUSR1:
+			display_statusbar("Polling forced by SIGUSR1 signal...");
+			poll_requested = 1;
 			return;
+			break;
+
+		case SIGINT:
+			if (!exit_requested) {
+				display_statusbar("Got SIGINT (^C), exiting...");
+				exit_requested = 1;
+				return;
+			}
+			display_statusbar("Got SIGINT twice, dying now :(");
 			break;
 
 		case SIGTERM:
@@ -213,6 +223,7 @@ static void sigkilled(int sig){
 }
 
 int install_sighandlers(void){
+	signal(SIGUSR1, sigkilled);
 	signal(SIGTERM, sigkilled);
 	signal(SIGINT, sigkilled);
 	//signal(SIGSEGV, sigkilled); //segfault!
@@ -226,6 +237,10 @@ int install_sighandlers(){
 	return -1;
 }
 #endif
+
+void force_polling(void){
+	poll_requested=1;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// ENTRY POINT /////////////////////////////////
@@ -256,6 +271,7 @@ int main(void) {
 	install_sighandlers();
 	nicklist_init();
 	exit_requested = 0;
+	poll_requested = 0;
 
 	display_conversation(
 	  "********************************************\n"
@@ -460,7 +476,7 @@ int main(void) {
 					k=0;
 				}
 				futurestate = WATCHING_NEW_MESSAGES;
-				wait_time = 10; state = WAIT;
+				wait_time = 10*(1000/WAITING_TIME_GRANOLOSITY); state = WAIT;
 				if (response==403){
 					futurestate = LOADING_LOGIN_PAGE;
 				}
@@ -495,7 +511,7 @@ int main(void) {
 						k=0;
 					}
 					if (response==403){
-						wait_time = 10; state = WAIT;
+						wait_time = 10*(1000/WAITING_TIME_GRANOLOSITY); state = WAIT;
 						futurestate = LOADING_LOGIN_PAGE;
 						break;
 					}
@@ -525,7 +541,7 @@ int main(void) {
 				break;
 
 			case RETRIEVING_THE_LIST_OF_USERS:
-				// de temps en temps, on peut regarder qui est là.
+				// de temps en temps, on peut regarder qui est lÃ .
 				{
 					char *req = mconcat2(path, MCHAT_PAGE);
 					char *referer = mconcat4("http://", host, path, MCHAT_PAGE);
@@ -597,7 +613,7 @@ int main(void) {
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						check_http_response(buf, bytes);
+						response = check_http_response(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					k=0;
@@ -623,6 +639,12 @@ int main(void) {
 				else { // temps d'attente termine
 					display_debug("\b\b\b\b\b\b\b\b\b\b\b\b\b             \b\b\b\b\b\b\b\b\b\b\b\b\b", 1);
 					state = futurestate;
+				}
+
+				if (poll_requested){
+					poll_requested=0;
+					wait_time=7*(1000/WAITING_TIME_GRANOLOSITY);
+					state = RETRIEVING_THE_LIST_OF_USERS;
 				}
 
 				// the check for keyboard inputs (embedded) does the timebase
