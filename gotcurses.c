@@ -244,7 +244,7 @@ const char* display_driver(void){
 				else { nbrofbytes = 0; }
 				break;
 
-			case 0x0c: // ^L. wanna some refresh?
+			case 0x0c: // ^L. wanna some screen refresh?
 				clear();
 				touchwin(stdscr);
 				refresh();
@@ -264,6 +264,10 @@ const char* display_driver(void){
 				wrefresh(conversation.decoration);
 				if (debug_height)   wrefresh(debug.decoration);
 				if (nicklist_width) wrefresh(nicklist.decoration);
+				break;
+
+			case 18: // ^R
+				force_polling();
 				break;
 
 			default: // any other character?
