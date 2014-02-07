@@ -18,6 +18,7 @@
 */
 
 #include <time.h>
+#include <sys/queue.h>
 
 #include "nicklist.h"
 #include "display_interfaces.h"
@@ -31,41 +32,55 @@ typedef struct {
 	char *icon_url;
 	time_t added;
 	time_t lastmessage;
-} tlist;
+	LIST_ENTRY(t_entry) pointers;
+} t_entry;
 
+struct s_nicklist {
+	LIST_HEAD(nicklist_list, t_entry) head;
+} nicklist;
+
+// program starting
 void nicklist_init(void) {
+	LIST_INIT(&nicklist.head);
 }
 
+// when we close the program. bye!
 void nicklist_destroy(void) {
 }
 
+// "username" talked. and now we know his profile and icon URLs.
 void nicklist_msg_update(const char *username, const char *profil_url, const char *icon_url) {
 	char *profil_url2, *icon_url2;
 
 	icon_url2 = malloc_globalise_url(icon_url);
 	profil_url2 = malloc_globalise_url(profil_url);
 
-	display_debug(profil_url2, 0);
-	display_debug(icon_url2, 0);
+
+	display_debug(username, 0); display_debug(": ", 1); display_debug(profil_url2, 1);
+	display_debug(username, 0); display_debug(": ", 1); display_debug(icon_url2, 1);
 
 	free(profil_url2);
 	free(icon_url2);
 }
 
+// called when polling the list of people from the server
 void nicklist_recup_start(void) {
 	display_nicklist(NULL);
 	mccirc_nicks_start(get_mccirc());
 }
 
-void nicklist_recup_end(void) {
-	mccirc_nicks_stop(get_mccirc());
-}
-
+// called for each nickname found when polling the list from the server
 void nicklist_recup_name(const char* nickname) {
 	display_nicklist(nickname);
 	mccirc_nicks_add(get_mccirc(), nickname);
 }
 
+// called after we got the list from the server
+void nicklist_recup_end(void) {
+	mccirc_nicks_stop(get_mccirc());
+}
+
+// called when we get the topic from the server
 void nicklist_topic(const char *string){
 	display_statusbar(string);
 	mccirc_topic(get_mccirc(), string);
