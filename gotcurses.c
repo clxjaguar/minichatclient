@@ -22,6 +22,8 @@
 #include "commons.h"            // for nicklist struct and timming value
 #include "strfunctions.h"       // for eventuals transliterations
 #include "conf.h"               // for nicklist width and debug height
+#include "nicklist.h"           // for nicklist_showlist()
+#include "main.h"
 
 typedef enum {
 	NATIVE_UTF8 = 0,
@@ -268,6 +270,10 @@ const char* display_driver(void){
 
 			case 18: // ^R
 				force_polling();
+				break;
+				
+			case 14: // ^N
+				nicklist_showlist();
 				break;
 
 			default: // any other character?

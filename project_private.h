@@ -5,11 +5,11 @@
 #define PROJECT_PRIVATE_H
 
 /* VERSION DEFINITIONS */
-#define VER_STRING	"0.1.1.897"
+#define VER_STRING	"0.1.1.898"
 #define VER_MAJOR	0
 #define VER_MINOR	1
 #define VER_RELEASE	1
-#define VER_BUILD	897
+#define VER_BUILD	898
 #define COMPANY_NAME	"http://minichatclient.sourceforge.net/"
 #define FILE_VERSION	""
 #define FILE_DESCRIPTION	"A client for the phpbb's rmcgirr83.org minichat"
