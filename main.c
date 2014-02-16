@@ -123,7 +123,9 @@ void minichat_message(const char *username, const char *message, const char *use
 	put_timestamp(logfile); fprintf(logfile, "<%s> %s\r\n", username, message); fflush(logfile);
 
 	// update nicklist things...
-	nicklist_msg_update(username, userprofileurl, usericonurl);
+	if (state != GET_THE_BACKLOG){
+		nicklist_msg_update(username, userprofileurl, usericonurl);
+	}
 
 	// envoie le message vers le client IRC (s'il y en a un) via "mccirc".
 	mccirc_chatserver_message(irc, username, message);
@@ -665,13 +667,13 @@ int main(void) {
 	} // MAIN LOOP END
 
 	// end of program requested. closing everything now.
-	fclose(logfile);
-	freecookies(cookies);
 	parser_freerules();
 	parse_minichat_mess(NULL, 0, &msg, 1);
-	ws_cleanup();
-	mccirc_free(irc);
 	nicklist_destroy();
+	mccirc_free(irc);
+	freecookies(cookies);
+	fclose(logfile);
+	ws_cleanup();
 	if (host)      { free(host);      host=NULL; }
 	if (path)      { free(path);      path=NULL; }
 	if (useragent) { free(useragent); useragent=NULL; }

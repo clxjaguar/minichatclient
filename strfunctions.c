@@ -779,3 +779,17 @@ char *mconcat6(const char *str1, const char *str2, const char *str3, const char 
 	return dest;
 }
 
+int html_strip_tags(char *txt){
+	int intag=0; char *i, *o;
+	i=txt; o=txt;
+	while (*i){
+		if (*i == '<') { intag=1; }
+		else if (*i == '>') { intag=0; }
+		else if (!intag) {
+			*(o++)=*i;
+		}
+		i++;	
+	}
+	*o='\0';
+	return 0;
+}
