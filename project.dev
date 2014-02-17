@@ -1,7 +1,7 @@
 [Project]
 FileName=project.dev
 Name=rmcgirr83.org minichat client
-UnitCount=30
+UnitCount=31
 Type=1
 Ver=1
 ObjFiles=
@@ -33,7 +33,7 @@ CompilerSettings=0000000000000000000000
 Major=0
 Minor=1
 Release=1
-Build=897
+Build=898
 LanguageID=1033
 CharsetID=1252
 CompanyName=http://minichatclient.sourceforge.net/
@@ -288,7 +288,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit31]
-FileName=CUtils\ini.c
+FileName=nicklist.h
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
