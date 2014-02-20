@@ -260,8 +260,8 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 				break;
 
 			case LOOKING_FOR_STATS:
-				buffer[o++] = input[i]; 
-				
+				buffer[o++] = input[i];
+
 				// check for the end of the topic line, and start of the nicklist
 				if (watchfor("<br />", input[i], &l)){
 					buffer[o++] = '\0';
@@ -287,6 +287,7 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 				}
 
 				if (watchfor("</div>", input[i], &j)){
+					o-=(unsigned int)strlen("</div>");
 					buffer[o++] = 0;
 					tmp = malloc(o); o=0;
 					decode_html_entities_utf8(tmp, buffer);
