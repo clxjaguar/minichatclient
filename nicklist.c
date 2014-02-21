@@ -68,6 +68,7 @@ void nicklist_destroy(void) {
 void nicklist_msg_update(const char *nickname, const char *profile_url, const char *icon_url) {
 	t_nicklist *np;
 	time_t now = time(NULL);
+	char *p = NULL;
 
 	if (!nickname) { return; }
 	STAILQ_FOREACH(np, &head, next) {
@@ -117,6 +118,13 @@ void nicklist_msg_update(const char *nickname, const char *profile_url, const ch
 		np->profile_url = malloc(strlen(profile_url)+1);
 		strcpy(np->profile_url, profile_url);
 	}
+	
+	// extract a ident (mostly for IRC)
+	p = strstr(profile_url, "&u=")+3;
+	if (p) {
+		np->ident = malloc(strlen(p)+1);
+		strcpy(np->ident, p);
+	}
 
 	// copy icon URL
 	if (icon_url) {
@@ -124,6 +132,12 @@ void nicklist_msg_update(const char *nickname, const char *profile_url, const ch
 		strcpy(np->icon_url, icon_url);
 	}
 	STAILQ_INSERT_TAIL(&head, np, next);
+	
+	// refresh nicklist display
+	display_nicklist(NULL);
+	STAILQ_FOREACH(np, &head, next) {
+		display_nicklist(np->nickname);
+	}
 
 	//TODO: Niki: here you call your IRC to make the user join the channel
 }
@@ -138,7 +152,7 @@ void nicklist_recup_start(void) {
 void nicklist_recup_name(const char* nickname, const char* profile_url) {
 	t_nicklist *np;
 	time_t now = time(NULL);
-	//display_nicklist(nickname);
+	char *p=NULL;
 
 	if (!nickname) { return; }
 	STAILQ_FOREACH(np, &head, next) {
@@ -173,16 +187,17 @@ void nicklist_recup_name(const char* nickname, const char* profile_url) {
 		np->profile_url = malloc(strlen(profile_url)+1); 
 		strcpy(np->profile_url, profile_url);
 	}
+	
+	// extract a ident (mostly for IRC)
+	p = strstr(profile_url, "&u=")+3;
+	if (p) {
+		np->ident = malloc(strlen(p)+1);
+		strcpy(np->ident, p);
+	}
+	
 	STAILQ_INSERT_TAIL(&head, np, next);
 
-	// refresh nicklist display
-	display_nicklist(NULL);
-	STAILQ_FOREACH(np, &head, next) {
-		display_nicklist(np->nickname);
-	}
-
-	//TODO: Niki: here you call your IRC to make the user join the channel 
-	//        at the new fashion :P
+	//TODO: Niki: here you call your IRC to make the user join the channel but at the new fashion ;)
 	mccirc_nicks_add(get_mccirc(), nickname);
 }
 
@@ -224,7 +239,7 @@ void nicklist_showlist(void){
 
 	STAILQ_FOREACH(np, &head, next) {
 		tmp = malloc(1000);
-		snprintf(tmp, 1000, "* %s (%s)%s%s seen:%d talked:%d added:%d (secs ago)", np->nickname, np->ident?np->ident:"", np->invisible?" [INVISIBLE]":"", np->enterednow?" [NEW]":"", (int)(now-np->lastseen), (int)(now-np->lastmessage), (int)(now-np->added));
+		snprintf(tmp, 1000, "* %s (%s)%s%s seen:%ds talked:%d%s added:%ds", np->nickname, np->ident?np->ident:"", np->invisible?" [INVISIBLE]":"", np->enterednow?" [NEW]":"", (int)(now-np->lastseen), np->lastmessage?(int)(now-np->lastmessage):0, np->lastmessage?"s":"", (int)(now-np->added));
 		display_conversation(tmp);
 		free(tmp);
 		if (np->profile_url){
