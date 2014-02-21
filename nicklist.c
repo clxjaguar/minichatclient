@@ -48,7 +48,7 @@ void nicklist_init(void) {
 // when we close the program. bye!
 void nicklist_destroy(void) {
 	t_nicklist *np;
-	
+
 	// for each elements, delete the contents then the element itself
 	while (!STAILQ_EMPTY(&head)) {
 		np = STAILQ_FIRST(&head);
@@ -59,7 +59,7 @@ void nicklist_destroy(void) {
 		STAILQ_REMOVE_HEAD(&head, next);
 		free(np);
 	}
-	
+
 	// helps valgrind to be sad about the memory never freed ;)
 	head.stqh_first=NULL; *(head.stqh_last)=NULL;
 }
@@ -68,22 +68,22 @@ void nicklist_destroy(void) {
 void nicklist_msg_update(const char *nickname, const char *profile_url, const char *icon_url) {
 	t_nicklist *np;
 	time_t now = time(NULL);
-		
+
 	if (!nickname) { return; }
 	STAILQ_FOREACH(np, &head, next) {
 		if (!strcmp(nickname, np->nickname)) { // ok, found it
 			np->enterednow = 0;
 			np->lastseen = now;
 			np->lastmessage = now;
-			
+
 			// copy the profile URL is it wasn't already memorized
 			if (profile_url) {
 				if (!np->profile_url) {
-					np->profile_url = malloc(strlen(profile_url)+1); 
+					np->profile_url = malloc(strlen(profile_url)+1);
 					strcpy(np->profile_url, profile_url);
 				}
 			}
-			
+
 			// refresh icon URL
 			if (icon_url) {
 				if (np->icon_url){
@@ -92,13 +92,13 @@ void nicklist_msg_update(const char *nickname, const char *profile_url, const ch
 					}
 					free(np->icon_url);
 				}
-				np->icon_url = malloc(strlen(icon_url)+1); 
+				np->icon_url = malloc(strlen(icon_url)+1);
 				strcpy(np->icon_url, icon_url);
 			}
 			return;
 		}
 	}
-	
+
 	// ok, so it's a new entry !
 	np = malloc(sizeof(t_nicklist));
 	memset(np, 0, sizeof(t_nicklist));
@@ -107,24 +107,24 @@ void nicklist_msg_update(const char *nickname, const char *profile_url, const ch
 	np->added = now;
 	np->lastseen = now;
 	np->lastmessage = now;
-	
+
 	// copy nickname
-	np->nickname = malloc(strlen(nickname)+1); 
+	np->nickname = malloc(strlen(nickname)+1);
 	strcpy(np->nickname, nickname);
-	
+
 	// copy profile URL
 	if (profile_url) {
-		np->profile_url = malloc(strlen(profile_url)+1); 
+		np->profile_url = malloc(strlen(profile_url)+1);
 		strcpy(np->profile_url, profile_url);
 	}
-	
+
 	// copy icon URL
 	if (icon_url) {
-		np->icon_url = malloc(strlen(icon_url)+1); 
+		np->icon_url = malloc(strlen(icon_url)+1);
 		strcpy(np->icon_url, icon_url);
 	}
 	STAILQ_INSERT_TAIL(&head, np, next);
-	
+
 	//TODO: Niki: here you call your IRC to make the user join the channel
 }
 
@@ -139,7 +139,7 @@ void nicklist_recup_name(const char* nickname, const char* profile_url) {
 	t_nicklist *np;
 	time_t now = time(NULL);
 	//display_nicklist(nickname);
-	
+
 	if (!nickname) { return; }
 	STAILQ_FOREACH(np, &head, next) {
 		if (!strcmp(nickname, np->nickname)) { // ok, found it
@@ -149,13 +149,13 @@ void nicklist_recup_name(const char* nickname, const char* profile_url) {
 
 			// add profile URL ?
 			if (profile_url && !np->profile_url) {
-				np->profile_url = malloc(strlen(profile_url)+1); 
+				np->profile_url = malloc(strlen(profile_url)+1);
 				strcpy(np->profile_url, profile_url);
 			}
 			return;
 		}
 	}
-	
+
 	// ok, so it's a new entry !
 	np = malloc(sizeof(t_nicklist));
 	memset(np, 0, sizeof(t_nicklist));
@@ -163,21 +163,27 @@ void nicklist_recup_name(const char* nickname, const char* profile_url) {
 	np->invisible=0;
 	np->added = now;
 	np->lastseen = now;
-	
+
 	// copy nickname
-	np->nickname = malloc(strlen(nickname)+1); 
+	np->nickname = malloc(strlen(nickname)+1);
 	strcpy(np->nickname, nickname);
-	
+
 	// copy profile URL
 	if (profile_url) {
 		np->profile_url = malloc(strlen(profile_url)+1); 
 		strcpy(np->profile_url, profile_url);
 	}
 	STAILQ_INSERT_TAIL(&head, np, next);
-	
-	mccirc_nicks_add(get_mccirc(), nickname);
+
+	// refresh nicklist display
+	display_nicklist(NULL);
+	STAILQ_FOREACH(np, &head, next) {
+		display_nicklist(np->nickname);
+	}
+
 	//TODO: Niki: here you call your IRC to make the user join the channel 
 	//        at the new fashion :P
+	mccirc_nicks_add(get_mccirc(), nickname);
 }
 
 // called after we got the list from the server
@@ -185,9 +191,9 @@ void nicklist_recup_end(void) {
 	t_nicklist *np;
 	display_nicklist(NULL);
 	time_t now = time(NULL);
-	
+
 	STAILQ_FOREACH(np, &head, next) {
-		if ((np->invisible && now-np->lastseen > 20*60) 
+		if ((np->invisible && now-np->lastseen > 20*60)
 		 ||(!np->invisible && now-np->lastseen > 60)){
 			// remove nicklist element
 			if (np->nickname)    { free(np->nickname); }
@@ -215,18 +221,18 @@ void nicklist_showlist(void){
 	t_nicklist *np;
 	time_t now = time(NULL);
 	char *tmp;
-	
+
 	STAILQ_FOREACH(np, &head, next) {
 		tmp = malloc(1000);
 		snprintf(tmp, 1000, "* %s (%s)%s%s seen:%d talked:%d added:%d (secs ago)", np->nickname, np->ident?np->ident:"", np->invisible?" [INVISIBLE]":"", np->enterednow?" [NEW]":"", (int)(now-np->lastseen), (int)(now-np->lastmessage), (int)(now-np->added));
 		display_conversation(tmp);
 		free(tmp);
-		if (np->profile_url){ 
+		if (np->profile_url){
 			tmp = malloc_globalise_url(np->profile_url);
-			display_conversation(tmp); 
+			display_conversation(tmp);
 			free(tmp);
 		}
-		if (np->icon_url){ 
+		if (np->icon_url){
 			tmp = malloc_globalise_url(np->icon_url);
 			display_conversation(tmp); 
 			free(tmp);
