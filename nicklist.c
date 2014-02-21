@@ -203,11 +203,11 @@ void nicklist_recup_name(const char* nickname, const char* profile_url) {
 
 // called after we got the list from the server
 void nicklist_recup_end(void) {
-	t_nicklist *np;
+	t_nicklist *np, *np_temp;
 	display_nicklist(NULL);
 	time_t now = time(NULL);
 
-	STAILQ_FOREACH(np, &head, next) {
+	STAILQ_FOREACH_SAFE(np, &head, next, np_temp) {
 		if ((np->invisible && now-np->lastseen > 20*60)
 		 ||(!np->invisible && now-np->lastseen > 60)){
 			// remove nicklist element
