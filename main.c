@@ -675,6 +675,7 @@ int main(void) {
 	fclose(logfile);
 	ws_cleanup();
 	if (host)      { free(host);      host=NULL; }
+	if (port)      { free(port);      port=NULL; }
 	if (path)      { free(path);      path=NULL; }
 	if (useragent) { free(useragent); useragent=NULL; }
 	display_end();
