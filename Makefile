@@ -49,7 +49,7 @@ endif
 # Executable name, main source file, sources files
 EXECUTABLE=mchatclient
 MSOURCES=main.c
-SOURCES=conf.c parsehtml.c nicklist.c cookies.c entities.c network.c parser.c strfunctions.c CUtils/libcutils.c $(IFACE) $(CIrc)
+SOURCES=conf.c parsehtml.c nicklist.c cookies.c entities.c network.c parser.c strfunctions.c ircserver.c CUtils/libcutils.c $(IFACE) $(CIrc)
 TEST_SOURCES=cookies-test.c iface-test.c parser-test.c
 ###
 
@@ -105,12 +105,13 @@ parsehtml.o: parsehtml.c parsehtml.h main.h entities.h parser.h display_interfac
 nicklist.o: nicklist.c nicklist.h display_interfaces.h main.h mccirc.h
 cookies.o: cookies.c cookies.h display_interfaces.h
 network.o: network.c display_interfaces.h
-main.o: main.c main.h conf.h network.h cookies.h parsehtml.h strfunctions.h display_interfaces.h commons.h mccirc.h
+main.o: main.c main.h conf.h network.h cookies.h parsehtml.h strfunctions.h display_interfaces.h commons.h ircserver.h
 gotcurses.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
 gottext.o: gottext.c display_interfaces.h commons.h
 gotnull.o: gotnull.c display_interfaces.h commons.h
 mccirc.o: mccirc.c mccirc.h CUtils/libcutils.o CIrc/libcirc.o
 parser.o: parser.c parser.h parser_p.h CUtils/libcutils.o
+ircserver.o: ircserver.h display_interfaces.h
 CUtils/libcutils.o: CUtils/libcutils.c CUtils/libcutils.h CUtils/attribute.h CUtils/attribute.c CUtils/clist.h CUtils/clist.c CUtils/ini.h CUtils/ini.c CUtils/net.h CUtils/net.c CUtils/cstring.h CUtils/cstring.c
 CIrc/libcirc.o: CUtils/libcutils.o CIrc/libcirc.c CIrc/irc_chan.h CIrc/irc_client.h CIrc/irc_server.h CIrc/irc_user.h CIrc/irc_chan.c CIrc/irc_client.c CIrc/irc_server.c CIrc/irc_user.c
 

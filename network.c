@@ -14,8 +14,13 @@
 #include "network.h"
 
 #if defined (WIN32)
+    #ifndef _WIN32_WINNT
+        #define _WIN32_WINNT 0x501
+    #endif
 	#include <winsock2.h>
+	#include <ws2tcpip.h>
 	#define close(s) closesocket(s)
+	#define ioctl(a,b,c) ioctlsocket(a,b,c)
 #else
 	#include <unistd.h>
 	#include <arpa/inet.h>
@@ -37,8 +42,6 @@ void ws_cleanup(void){
 #endif
 }
 
-#if !(defined (WIN32))
-// linux/bsd/whatever version
 char *get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen);
 int maketcpconnexion(const char* hostname, const char *service){
 	char buf[200];
@@ -75,12 +78,31 @@ int maketcpconnexion(const char* hostname, const char *service){
 			continue;
 		}
 
-		display_debug("ok.", 1);
+		//display_debug("ok.", 1);
 		freeaddrinfo(res);
 		return sockfd6;
 	}
 	return 0;
 }
+
+#if defined (WIN32)
+// inet_ntop for windows systems previous vista or seven...
+// stolen from http://memset.wordpress.com/2010/10/09/inet_ntop-for-win32/
+const char* inet_ntop(int af, const void* src, char* dst, int cnt){
+	struct sockaddr_in srcaddr;
+	DWORD rv;
+	memset(&srcaddr, 0, sizeof(struct sockaddr_in));
+	memcpy(&(srcaddr.sin_addr), src, sizeof(srcaddr.sin_addr));
+	srcaddr.sin_family = af;
+	if (WSAAddressToString((struct sockaddr*) &srcaddr, sizeof(struct sockaddr_in), 0, dst, (LPDWORD) &cnt) != 0) {
+		rv = WSAGetLastError();
+		snprintf(dst, cnt, "[ERR %ld]", rv);
+		return NULL;
+	}
+	return dst;
+}
+#endif
+
 // code stolen from <http://owend.corp.he.net/ipv6/>
 char *get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen){
 	switch(sa->sa_family) {
@@ -98,58 +120,6 @@ char *get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen){
 	}
 	return s;
 }
-#else 
-// Windows version here (old code IPv4 compatible only)
-// http://mingw.5.n7.nabble.com/Undefined-reference-to-getaddrinfo-td5694.html
-int maketcpconnexion(const char* hostname, const char *service){
-	struct hostent *he;
-	struct sockaddr_in  server;
-	char buf[200];
-	int sockfd;
-
-	// gethostbyname is deprecated ! go see <http://owend.corp.he.net/ipv6/Porting/PortMeth.pdf> for documentation.
-	if ((he = (void *)gethostbyname(hostname)) == NULL) {
-		display_debug("Error resolving hostname.", 1);
-		return 0;
-	}
-
-	if (he->h_addrtype == AF_INET) {
-		// ok, it's IPv4, we're good for now.
-	}
-	else {
-		// we're in IPv6 troubles.
-		display_debug("Sorry, only linux version is IPv6 compatible.", 0);
-	}
-
-	// copy the network address part of the structure to the
-	// sockaddr_in structure which is passed to connect()
-
-	server.sin_family = AF_INET;
-	server.sin_port = htons(atoi(service));
-	server.sin_addr.s_addr = INADDR_ANY;
-
-	memcpy(&(server.sin_addr.s_addr), he->h_addr, (size_t)he->h_length);
-
-	// open socket
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		display_debug("Error: unable to open socket.", 0);
-		return 0;
-	}
-
-	// connect
-	if (connect(sockfd, (struct sockaddr *)&server, sizeof(server))) {
-		snprintf(buf, sizeof(buf), "Error connecting to %s:%d", he->h_name, atoi(service));
-		display_debug(buf, 0);
-		close(sockfd);
-		return 0;
-	}
-
-
-	snprintf(buf, sizeof(buf), "Connected to %s:%d", inet_ntoa(server.sin_addr), atoi(service));
-	display_debug(buf, 0);
-	return sockfd;
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -172,7 +142,8 @@ int sendline(int s, const char* buf){
 
 int http_get(int s, const char* req, const char* host, const char* referer, const char* cookies, const char* useragent, const char* mischeaders){
 	char buf[200];
-	snprintf(buf, 200, "GET http://%s%s%s", host, req[0]=='/'?"":"/", req);
+	//snprintf(buf, 200, "GET http://%s%s%s", host, req[0]=='/'?"":"/", req);
+	snprintf(buf, 200, "GET %s%s", req[0]=='/'?"":"/", req);
 	display_debug(buf, 0);
 
 	sendstr(s, "GET ");
@@ -187,6 +158,7 @@ int http_get(int s, const char* req, const char* host, const char* referer, cons
 		sendline(s, useragent);
 	}
 	sendline(s, "Connection: close");
+	//sendline(s, "Connection: Keep-Alive");
 	if (referer) {
 		sendstr(s, "Referer: ");
 		sendline(s, referer);
@@ -202,7 +174,8 @@ int http_get(int s, const char* req, const char* host, const char* referer, cons
 
 int http_post(int s, const char* req, const char* host, const char* datas, const char* referer, const char* cookies, const char* useragent, const char* mischeaders){
 	char buf[200];
-	snprintf(buf, 200, "POST http://%s%s%s|%s", host, req[0]=='/'?"":"/", req, datas);
+	//snprintf(buf, 200, "POST http://%s%s%s|%s", host, req[0]=='/'?"":"/", req, datas);
+	snprintf(buf, 200, "POST %s%s %s", req[0]=='/'?"":"/", req, datas);
 	display_debug(buf, 0);
 
 	sendstr(s, "POST ");
@@ -216,11 +189,8 @@ int http_post(int s, const char* req, const char* host, const char* datas, const
 		sendstr(s, "User-Agent: ");
 		sendline(s, useragent);
 	}
-	//sendline(s, "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-	//sendline(s, "Accept-Language: en,en-us;q=0.5");
-	//sendline(s, "Accept-Encoding: gzip, deflate");
-	//sendline(s, "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7");
 	sendline(s, "Connection: close");
+	//sendline(s, "Connection: Keep-Alive");
 	if (referer) {
 		sendstr(s, "Referer: ");
 		sendline(s, referer);

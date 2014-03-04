@@ -23,7 +23,8 @@
 #include "queue.h" //local copy as sys/queue.h isn't posix
 #include "nicklist.h"
 #include "display_interfaces.h" //display_debug()
-#include "mccirc.h" //mccirc_*() fonctions
+//#include "mccirc.h" //mccirc_*() fonctions
+#include "ircserver.h"
 #include "main.h" //malloc_globalise_url(), get_mccirc()
 
 typedef struct t_nicklist {
@@ -64,11 +65,25 @@ void nicklist_destroy(void) {
 	head.stqh_first=NULL; *(head.stqh_last)=NULL;
 }
 
+char* nicklist_alloc_ident(const char *profile_url){
+	// extract a ident (mostly for IRC)
+	char *p, *ident;
+	p = strstr(profile_url, "&u=")+3;
+	if (p) {
+		ident=malloc(strlen(p)+1);
+		strcpy(ident, p);
+	}
+	else {
+		ident=malloc(2);
+		strcpy(ident, "?");
+	}
+	return ident;
+}
+
 // 'nickname' talked. and now we know his profile and icon URLs.
 void nicklist_msg_update(const char *nickname, const char *profile_url, const char *icon_url) {
 	t_nicklist *np;
 	time_t now = time(NULL);
-	char *p = NULL;
 
 	if (!nickname) { return; }
 	STAILQ_FOREACH(np, &head, next) {
@@ -118,13 +133,13 @@ void nicklist_msg_update(const char *nickname, const char *profile_url, const ch
 		np->profile_url = malloc(strlen(profile_url)+1);
 		strcpy(np->profile_url, profile_url);
 	}
-	
-	// extract a ident (mostly for IRC)
-	p = strstr(profile_url, "&u=")+3;
-	if (p) {
-		np->ident = malloc(strlen(p)+1);
-		strcpy(np->ident, p);
-	}
+
+	// copy ident
+//	if (ident) {
+//		np->ident = malloc(strlen(ident)+1);
+//		strcpy(np->ident, ident);
+//	}
+	np->ident = nicklist_alloc_ident(profile_url);
 
 	// copy icon URL
 	if (icon_url) {
@@ -132,27 +147,26 @@ void nicklist_msg_update(const char *nickname, const char *profile_url, const ch
 		strcpy(np->icon_url, icon_url);
 	}
 	STAILQ_INSERT_TAIL(&head, np, next);
-	
-	// refresh nicklist display
-	display_nicklist(NULL);
-	STAILQ_FOREACH(np, &head, next) {
-		display_nicklist(np->nickname);
-	}
 
-	//TODO: Niki: here you call your IRC to make the user join the channel
+	// refresh nicklist display
+	//display_nicklist(NULL);
+	//STAILQ_FOREACH(np, &head, next) {
+		display_nicklist(np->nickname);
+	//}
+
+	irc_join(np->nickname, np->ident);
 }
 
 // called when polling the list of people from the server
 void nicklist_recup_start(void) {
 	//display_nicklist(NULL);
-	mccirc_nicks_start(get_mccirc());
+	//mccirc_nicks_start(get_mccirc());
 }
 
 // called for each nickname found when polling the list from the server
 void nicklist_recup_name(const char* nickname, const char* profile_url) {
 	t_nicklist *np;
 	time_t now = time(NULL);
-	char *p=NULL;
 
 	if (!nickname) { return; }
 	STAILQ_FOREACH(np, &head, next) {
@@ -187,18 +201,19 @@ void nicklist_recup_name(const char* nickname, const char* profile_url) {
 		np->profile_url = malloc(strlen(profile_url)+1); 
 		strcpy(np->profile_url, profile_url);
 	}
-	
+
 	// extract a ident (mostly for IRC)
-	p = strstr(profile_url, "&u=")+3;
-	if (p) {
-		np->ident = malloc(strlen(p)+1);
-		strcpy(np->ident, p);
-	}
-	
+	//p = strstr(profile_url, "&u=")+3;
+	//if (p) {
+	//	np->ident = malloc(strlen(p)+1);
+	//	strcpy(np->ident, p);
+	//}
+	np->ident = nicklist_alloc_ident(profile_url);
+
 	STAILQ_INSERT_TAIL(&head, np, next);
 
-	//TODO: Niki: here you call your IRC to make the user join the channel but at the new fashion ;)
-	mccirc_nicks_add(get_mccirc(), nickname);
+	//mccirc_nicks_add(get_mccirc(), nickname);
+	irc_join(np->nickname, np->ident);
 }
 
 // called after we got the list from the server
@@ -210,6 +225,7 @@ void nicklist_recup_end(void) {
 	STAILQ_FOREACH_SAFE(np, &head, next, np_temp) {
 		if ((np->invisible && now-np->lastseen > 20*60)
 		 ||(!np->invisible && now-np->lastseen > 60)){
+			irc_part(np->nickname, np->ident, np->invisible?"invisible and 20mn inactive":NULL);
 			// remove nicklist element
 			if (np->nickname)    { free(np->nickname); }
 			if (np->profile_url) { free(np->profile_url); }
@@ -223,13 +239,14 @@ void nicklist_recup_end(void) {
 			display_nicklist(np->nickname);
 		}
 	}
-	mccirc_nicks_stop(get_mccirc());
+	//mccirc_nicks_stop(get_mccirc());
 }
 
 // called when we get the topic from the server
 void nicklist_topic(const char *string){
 	display_statusbar(string);
-	mccirc_topic(get_mccirc(), string);
+	//mccirc_topic(get_mccirc(), string);
+	irc_topic(string);
 }
 
 void nicklist_showlist(void){
@@ -249,7 +266,7 @@ void nicklist_showlist(void){
 		}
 		if (np->icon_url){
 			tmp = malloc_globalise_url(np->icon_url);
-			display_conversation(tmp); 
+			display_conversation(tmp);
 			free(tmp);
 		}
 	}

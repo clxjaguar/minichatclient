@@ -31,13 +31,17 @@
 #include "commons.h"
 #include "display_interfaces.h"
 #include "strfunctions.h"
-#include "mccirc.h"
+//#include "mccirc.h"
+#include "ircserver.h"
 
 #define LOGIN_PAGE "ucp.php?mode=login"
 #define MCHAT_PAGE "mchat.php"
 
 // have to be large enough to contain the http headers
 #define BUFSIZE 800
+
+#define FREE(x) if (x) { free(x); x=NULL; }
+#define COPY(x, y) if (x) { free(x); } x = malloc(strlen(y)+1); if (x) { strcpy(x, y); }
 
 // hééééé oui, encore une machine à états ! ^^
 typedef enum {
@@ -57,11 +61,11 @@ char *host = NULL;
 char *port = NULL;
 char *path = NULL;
 
-mccirc *irc = NULL;
+//mccirc *irc = NULL;
 
-mccirc *get_mccirc(void){
-	return irc;
-}
+//mccirc *get_mccirc(void){
+//	return irc;
+//}
 
 void put_timestamp(FILE *f){
 	struct tm *ptm;
@@ -126,9 +130,11 @@ void minichat_message(const char *username, const char *message, const char *use
 	if (state != GET_THE_BACKLOG){
 		nicklist_msg_update(username, userprofileurl, usericonurl);
 	}
-
 	// envoie le message vers le client IRC (s'il y en a un) via "mccirc".
-	mccirc_chatserver_message(irc, username, message);
+	//mccirc_chatserver_message(irc, username, message);
+	p = nicklist_alloc_ident(userprofileurl);
+	irc_message(username, p, message);
+	if (p) { free(p); }
 }
 
 // the following routine is showing that "HTTP/1.1 200 OK" message
@@ -249,7 +255,7 @@ void force_polling(void){
 //////////////////////////////////////////////////////////////////////////////
 
 int main(void) {
-	int s; //socket descriptor
+	int s=0; //socket descriptor
 	char buf[BUFSIZE+1]; // rx buffer
 	ssize_t bytes;
 	int k, response; // flag for any use
@@ -324,22 +330,32 @@ int main(void) {
 
 	{ // initialize the mini IRC server
 		char *username     = read_conf_string("username", NULL, 0); // 0 means: do the malloc if found !
-		int irc_port       = read_conf_int   ("irc_port", 0); // default value : 0
-		char *channel_name = read_conf_string("channel_name", NULL, 0); // 0 means: do the malloc if found !
+		char *irc_port     = read_conf_string("irc_port", NULL, 0);
+		char *irc_host     = read_conf_string("irc_host", NULL, 0);
+		char *irc_fakehost = read_conf_string("irc_fakehost", NULL, 0);
+		char *channel_name = read_conf_string("channel_name", NULL, 0);
 		int irc_topic_mode = read_conf_int   ("irc_topic_mode", 1); // default value : 1 (send once at join, not at changes)
 
 		if (username) {
 			if (irc_port) {
 				display_debug("IRC: initialyzing, using channel name: ", 0);
-				display_debug(channel_name?channel_name:"#MiniChatDefaultName", 1);
-				irc = mccirc_new();
-				if (!irc) { display_debug("IRC: ERROR! mccirc_new() returned NULL. IRC support not compiled in ?", 0); }
-				mccirc_init(irc, username, "minichatclient.sourceforge.net", channel_name?channel_name:"#MiniChatDefaultName", NULL, irc_port);
-				mccirc_set_topic_mode(irc, irc_topic_mode);
+				display_debug(channel_name?channel_name:"#MCC", 1);
+				//irc = mccirc_new();
+				//if (!irc) { display_debug("IRC: ERROR! mccirc_new() returned NULL. IRC support not compiled in ?", 0); }
+				//mccirc_init(irc, username, "minichatclient.sourceforge.net", channel_name?channel_name:"#MCC", NULL, irc_port);
+				//mccirc_set_topic_mode(irc, irc_topic_mode);
+
+				if (!irc_init(irc_host?irc_host:"127.0.0.1", irc_port, irc_fakehost?irc_fakehost:"MCC", channel_name?channel_name:"#MCC", username)){
+					display_debug("Warning: irc_init() failed !", 0);
+				}
+				irc_set_topic_mode(irc_topic_mode);
 			}
-			free(username); username = NULL;
+			FREE(username);
 		}
-		if (channel_name) { free(channel_name); channel_name = NULL; }
+		FREE(irc_port);
+		FREE(irc_host);
+		FREE(irc_fakehost);
+		FREE(channel_name);
 	}
 
 	{ // do a little pause
@@ -353,13 +369,13 @@ int main(void) {
 		if (state != WAIT) {
 			// on se connecte sur le serveur pour tout les cas sauf attentes
 			s = maketcpconnexion(host, port);
-			if (!s) { //
+			if (!s) {
 				nberr++;
 				if (nberr == 5) {
 					put_timestamp(logfile);
 					fprintf(logfile, "Unable to connect to the server anymore !\r\n");
 					fflush(logfile);
-					mccirc_chatserver_error(irc);
+					//mccirc_chatserver_error(irc);
 				}
 				wait_time = 10 * (1000/WAITING_TIME_GRANOLOSITY);
 				futurestate = state;
@@ -370,7 +386,7 @@ int main(void) {
 					put_timestamp(logfile);
 					fprintf(logfile, "The server seems to be back now !\r\n");
 					fflush(logfile);
-					mccirc_chatserver_resume(irc);
+					//mccirc_chatserver_resume(irc);
 					if (nberr >= 30) { // 5' ? reconnect from beginning.
 						state = LOADING_LOGIN_PAGE;
 					}
@@ -383,8 +399,8 @@ int main(void) {
 		switch(state){
 			default:
 			case LOADING_LOGIN_PAGE:
-				// premi�re �tape, on se connecte sur la page de login pour aller chercher un sid
-				// (attention, il ne va fonctionner qu'avec l'user-agent sp�cifi�, faut plus le changer !)
+				// première étape, on se connecte sur la page de login pour aller chercher un sid
+				// (attention, il ne va fonctionner qu'avec l'user-agent spécifié, faut plus le changer !)
 				{
 					char *req = mconcat2(path, LOGIN_PAGE);
 					http_get(s, req, host, NULL, NULL, useragent, NULL);
@@ -654,7 +670,8 @@ int main(void) {
 				outgoingmsg = display_driver();
 
 				// and now we check for a new message in the IRC interface
-				if (!outgoingmsg) { outgoingmsg = mccirc_check_message(irc); }
+				//if (!outgoingmsg) { outgoingmsg = mccirc_check_message(irc); }
+				if (!outgoingmsg) { outgoingmsg = irc_driver(); }
 
 				// if we have something to send, we change the state of the state machine.
 				if (outgoingmsg) { state = POSTING_A_MESSAGE; }
@@ -670,7 +687,8 @@ int main(void) {
 	parser_freerules();
 	parse_minichat_mess(NULL, 0, &msg, 1);
 	nicklist_destroy();
-	mccirc_free(irc);
+	//mccirc_free(irc);
+	irc_destroy();
 	freecookies(cookies);
 	fclose(logfile);
 	ws_cleanup();

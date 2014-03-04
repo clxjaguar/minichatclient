@@ -5,8 +5,8 @@ CPP  = g++.exe
 CC   = gcc.exe
 WINDRES = windres.exe
 RES  = project_private.res
-OBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o main.o mccirc.o strfunctions.o CIrc/irc_user.o CIrc/irc_chan.o CIrc/irc_client.o CIrc/irc_server.o CUtils/net.o CUtils/attribute.o CUtils/clist.o CUtils/cstring.o CUtils/ini.o gotcurses.o nicklist.o $(RES)
-LINKOBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o main.o mccirc.o strfunctions.o CIrc/irc_user.o CIrc/irc_chan.o CIrc/irc_client.o CIrc/irc_server.o CUtils/net.o CUtils/attribute.o CUtils/clist.o CUtils/cstring.o CUtils/ini.o gotcurses.o nicklist.o $(RES)
+OBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o main.o strfunctions.o CUtils/net.o CUtils/attribute.o CUtils/clist.o CUtils/cstring.o CUtils/ini.o gotcurses.o nicklist.o ircserver.o $(RES)
+LINKOBJ  = cookies.o network.o parsehtml.o entities.o conf.o parser.o main.o strfunctions.o CUtils/net.o CUtils/attribute.o CUtils/clist.o CUtils/cstring.o CUtils/ini.o gotcurses.o nicklist.o ircserver.o $(RES)
 LIBS =  -L"C:/Dev-Cpp/lib" -lws2_32 "c:/Dev-Cpp/lib/libcurses.a  
 INCS =  -I"C:/Dev-Cpp/include" 
 CXXINCS =  -I"C:/Dev-Cpp/lib/gcc/mingw32/3.4.2/include"  -I"C:/Dev-Cpp/include/c++/3.4.2/backward"  -I"C:/Dev-Cpp/include/c++/3.4.2/mingw32"  -I"C:/Dev-Cpp/include/c++/3.4.2"  -I"C:/Dev-Cpp/include" 
@@ -47,23 +47,8 @@ parser.o: parser.c
 main.o: main.c
 	$(CC) -c main.c -o main.o $(CFLAGS)
 
-mccirc.o: mccirc.c
-	$(CC) -c mccirc.c -o mccirc.o $(CFLAGS)
-
 strfunctions.o: strfunctions.c
 	$(CC) -c strfunctions.c -o strfunctions.o $(CFLAGS)
-
-CIrc/irc_user.o: CIrc/irc_user.c
-	$(CC) -c CIrc/irc_user.c -o CIrc/irc_user.o $(CFLAGS)
-
-CIrc/irc_chan.o: CIrc/irc_chan.c
-	$(CC) -c CIrc/irc_chan.c -o CIrc/irc_chan.o $(CFLAGS)
-
-CIrc/irc_client.o: CIrc/irc_client.c
-	$(CC) -c CIrc/irc_client.c -o CIrc/irc_client.o $(CFLAGS)
-
-CIrc/irc_server.o: CIrc/irc_server.c
-	$(CC) -c CIrc/irc_server.c -o CIrc/irc_server.o $(CFLAGS)
 
 CUtils/net.o: CUtils/net.c
 	$(CC) -c CUtils/net.c -o CUtils/net.o $(CFLAGS)
@@ -85,6 +70,9 @@ gotcurses.o: gotcurses.c
 
 nicklist.o: nicklist.c
 	$(CC) -c nicklist.c -o nicklist.o $(CFLAGS)
+
+ircserver.o: ircserver.c
+	$(CC) -c ircserver.c -o ircserver.o $(CFLAGS)
 
 project_private.res: project_private.rc 
 	$(WINDRES) -i project_private.rc --input-format=rc -o project_private.res -O coff 
