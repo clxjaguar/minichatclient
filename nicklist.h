@@ -1,3 +1,4 @@
+char* nicklist_alloc_ident(const char *profile_url);
 void nicklist_init(void);
 void nicklist_destroy(void);
 void nicklist_msg_update(const char *username, const char *profil_url, const char *icon_url);
