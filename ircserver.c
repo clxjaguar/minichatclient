@@ -148,6 +148,26 @@ size_t irc_len(const char *string){
 	return cnt;
 }
 
+const char* irc_trim(const char* in){
+	static char *tmp = NULL;
+	unsigned int n=0;
+
+	if (tmp) { free(tmp); tmp=NULL; }
+	if (!in) return NULL;
+	for(;in[n];n++){
+		if (!in[n]) { return in; }
+		if (in[n]==' '){ break; }
+	}
+	tmp = malloc(strlen(in)+1);
+	if (!tmp) { return in; }
+	strcpy(tmp, in);
+	while(tmp[n]){
+		if (tmp[n] == ' '){ tmp[n] = '_'; }
+		n++;
+	}
+	return tmp;
+}
+
 void irc_sendtoclient(const char *prefix, const char *ident, const char *host, unsigned int lastarg, const char *arg1, const char *arg2, const char *arg3, const char *arg4){
 	char *string, *p;
 	p = string = malloc(1+irc_len(prefix)+1+irc_len(ident)+1+irc_len(host)+2+irc_len(arg1)+1+irc_len(arg2)+1+irc_len(arg3)+1+irc_len(arg4)+3);
@@ -375,6 +395,7 @@ int irc_init(const char *host, const char *port, const char *fakehost, const cha
 }
 
 int irc_destroy(void){
+	irc_trim(NULL);
 	if (irc.clientstate >= CONNECTED){
 		irc_sendtoclient(NO_PREFIX, 2, "ERROR", "Closing Link: MiniChatClient is exiting, bye bye !", NULL, NULL);
 	}
@@ -406,7 +427,7 @@ void irc_join(const char *nickname, const char *ident){
 		return;
 	}
 	if (irc.clientstate == INCHANNEL){
-		irc_sendtoclient(nickname, ident, irc.fakehost, 2, "JOIN", irc.channel_name, NULL, NULL);
+		irc_sendtoclient(irc_trim(nickname), ident, irc.fakehost, 2, "JOIN", irc.channel_name, NULL, NULL);
 	}
 }
 
@@ -416,7 +437,7 @@ void irc_part(const char *nickname, const char *ident, const char *partmsg){
 		return;
 	}
 	if (irc.clientstate == INCHANNEL){
-		irc_sendtoclient(nickname, ident, irc.fakehost, 3, "PART", irc.channel_name, partmsg, NULL);
+		irc_sendtoclient(irc_trim(nickname), ident, irc.fakehost, 3, "PART", irc.channel_name, partmsg, NULL);
 	}
 }
 
@@ -429,7 +450,7 @@ void irc_message(const char *nickname, const char *ident, const char *message){
 	}
 
 	if (irc.clientstate == INCHANNEL){
-		irc_sendtoclient(nickname, ident, irc.fakehost, 3, "PRIVMSG", irc.channel_name, message, NULL);
+		irc_sendtoclient(irc_trim(nickname), ident, irc.fakehost, 3, "PRIVMSG", irc.channel_name, message, NULL);
 	}
 }
 
