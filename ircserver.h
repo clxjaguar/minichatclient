@@ -6,4 +6,4 @@ void irc_part(const char *nickname, const char *ident, const char *partmsg);
 void irc_message(const char *nickname, const char *ident, const char *message);
 void irc_topic(const char *topic);
 void irc_set_topic_mode(int mode);
-
+void irc_topic_mode3_showtime(void);

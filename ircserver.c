@@ -130,6 +130,7 @@ typedef struct {
 	char *client_nickname;
 	char *client_ident;
 	char *last_topic_know;
+	char *last_thing_i_said;
 	int topic_reporting_mode;
 	time_t autorejoin;
 	tclientstate clientstate;
@@ -277,11 +278,11 @@ const char* parse_buffer(char *string){
 			}
 		}
 	}
-/*
-	else if (!strcmp(arg[0], "ISON")) {
-		irc_sendtoclient(SERVER_PREFIX, 3, "TODO", irc.client_nickname, "Not yet implemented!", NULL);
-	}
-*/
+
+	//else if (!strcmp(arg[0], "ISON")) {
+	//	irc_sendtoclient(SERVER_PREFIX, 3, "TODO", irc.client_nickname, "Not yet implemented!", NULL);
+	//}
+
 	else if (!strcmp(arg[0], "PING")) {
 		irc_sendtoclient(NO_PREFIX, 2, "PONG", arg[1], NULL, NULL);
 	}
@@ -303,20 +304,15 @@ const char* parse_buffer(char *string){
 			irc_sendtoclient(SERVER_PREFIX, 4, "332", irc.client_nickname, irc.channel_name, irc.last_topic_know);
 		}
 	}
-/*
-	else if (!strcmp(arg[0], "WHO")) {
-		irc_sendtoclient(SERVER_PREFIX, 3, "TODO", irc.client_nickname, "Not yet implemented!", NULL);
+	else if (!strcmp(arg[0], "WHO")) { //TODO
 	}
-	else if (!strcmp(arg[0], "USERHOST")) {
-		irc_sendtoclient(SERVER_PREFIX, 3, "TODO", irc.client_nickname, "Not yet implemented!", NULL);
+	else if (!strcmp(arg[0], "USERHOST")) { //TODO
 	}
-	else if (!strcmp(arg[0], "MODE")) {
-		irc_sendtoclient(SERVER_PREFIX, 3, "TODO", irc.client_nickname, "Not yet implemented!", NULL);
+	else if (!strcmp(arg[0], "MODE")) { //TODO ?
 	}
-	else if (!strcmp(arg[0], "NAMES")) {
-		irc_sendtoclient(SERVER_PREFIX, 3, "TODO", irc.client_nickname, "Not yet implemented!", NULL);
+	else if (!strcmp(arg[0], "NAMES")) { //TODO
 	}
-*/
+
 	else if (!strcmp(arg[0], "PART")) {
 		if (!arg[1]) { return NULL; }
 		if (!irc.channel_name) { return NULL; }
@@ -425,15 +421,24 @@ void irc_part(const char *nickname, const char *ident, const char *partmsg){
 }
 
 void irc_message(const char *nickname, const char *ident, const char *message){
+	if (irc.forum_username && nickname && !strcmp(nickname, irc.forum_username)){
+		if (irc.last_thing_i_said && message && !strcmp(message, irc.last_thing_i_said)){
+			free(irc.last_thing_i_said); irc.last_thing_i_said=NULL;
+			return;
+		}
+	}
+
 	if (irc.clientstate == INCHANNEL){
 		irc_sendtoclient(nickname, ident, irc.fakehost, 3, "PRIVMSG", irc.channel_name, message, NULL);
 	}
 }
 
+char topic_changed = 0;
 void irc_topic(const char *topic){
 	// si c'est pareil on fait rien du tout.
 	if (irc.last_topic_know) {
 		if (!strcmp(topic, irc.last_topic_know)){
+			topic_changed=0;
 			return;
 		}
 	}
@@ -443,14 +448,21 @@ void irc_topic(const char *topic){
 		if (irc.topic_reporting_mode == 2){
 			irc_sendtoclient(irc.fakehost, NULL, NULL, 3, "TOPIC", irc.channel_name, topic, NULL);
 		}
-		else if (irc.topic_reporting_mode == 3){
-			irc_sendtoclient(SERVER_PREFIX, 4, "332", irc.client_nickname, irc.channel_name, irc.last_topic_know);
-
-		}
 	}
 
 	// dans tous les cas on memorise.
 	COPY(irc.last_topic_know, topic);
+	topic_changed=1;
+}
+
+void irc_topic_mode3_showtime(void){
+	// le "mode 3", pour un compromis sur le topic, et affiché en dernier
+	if (topic_changed && irc.clientstate == INCHANNEL){
+		if (irc.topic_reporting_mode == 3){
+			irc_sendtoclient(SERVER_PREFIX, 4, "332", irc.client_nickname, irc.channel_name, irc.last_topic_know);
+		}
+	}
+	topic_changed=0;
 }
 
 void irc_set_topic_mode(int mode){
@@ -499,6 +511,9 @@ const char* irc_driver(void){
 			if (inputbuf[i] == '\n') {
 				linebuffer[o] = '\0'; o=0;
 				ret = parse_buffer(linebuffer);
+				if (ret){
+					COPY(irc.last_thing_i_said, ret);
+				}
 			}
 			else {
                 if (o < sizeof(linebuffer)){ linebuffer[o++] = inputbuf[i]; }

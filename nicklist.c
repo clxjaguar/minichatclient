@@ -240,13 +240,14 @@ void nicklist_recup_end(void) {
 		}
 	}
 	//mccirc_nicks_stop(get_mccirc());
+	irc_topic_mode3_showtime();
 }
 
 // called when we get the topic from the server
 void nicklist_topic(const char *string){
+	irc_topic(string);
 	display_statusbar(string);
 	//mccirc_topic(get_mccirc(), string);
-	irc_topic(string);
 }
 
 void nicklist_showlist(void){
