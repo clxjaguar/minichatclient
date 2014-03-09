@@ -291,7 +291,7 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 					buffer[o++] = 0;
 					tmp = malloc(o); o=0;
 					decode_html_entities_utf8(tmp, buffer);
-					display_statusbar(tmp);
+					nicklist_topic(tmp);
 					free(tmp);
 
 					// ok, if we don't do that the nicklist will never be showed empty when is no more users in the chat
