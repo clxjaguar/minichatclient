@@ -23,9 +23,8 @@
 #include "queue.h" //local copy as sys/queue.h isn't posix
 #include "nicklist.h"
 #include "display_interfaces.h" //display_debug()
-//#include "mccirc.h" //mccirc_*() fonctions
 #include "ircserver.h"
-#include "main.h" //malloc_globalise_url(), get_mccirc()
+#include "main.h" //malloc_globalise_url()
 
 typedef struct t_nicklist {
 	char *nickname;
@@ -135,10 +134,6 @@ void nicklist_msg_update(const char *nickname, const char *profile_url, const ch
 	}
 
 	// copy ident
-//	if (ident) {
-//		np->ident = malloc(strlen(ident)+1);
-//		strcpy(np->ident, ident);
-//	}
 	np->ident = nicklist_alloc_ident(profile_url);
 
 	// copy icon URL
@@ -202,17 +197,8 @@ void nicklist_recup_name(const char* nickname, const char* profile_url) {
 		strcpy(np->profile_url, profile_url);
 	}
 
-	// extract a ident (mostly for IRC)
-	//p = strstr(profile_url, "&u=")+3;
-	//if (p) {
-	//	np->ident = malloc(strlen(p)+1);
-	//	strcpy(np->ident, p);
-	//}
 	np->ident = nicklist_alloc_ident(profile_url);
-
 	STAILQ_INSERT_TAIL(&head, np, next);
-
-	//mccirc_nicks_add(get_mccirc(), nickname);
 	irc_join(np->nickname, np->ident);
 }
 
@@ -239,7 +225,6 @@ void nicklist_recup_end(void) {
 			display_nicklist(np->nickname);
 		}
 	}
-	//mccirc_nicks_stop(get_mccirc());
 	irc_topic_mode3_showtime();
 }
 
@@ -247,7 +232,6 @@ void nicklist_recup_end(void) {
 void nicklist_topic(const char *string){
 	irc_topic(string);
 	display_statusbar(string);
-	//mccirc_topic(get_mccirc(), string);
 }
 
 void nicklist_showlist(void){
