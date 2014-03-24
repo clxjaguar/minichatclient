@@ -4,10 +4,6 @@
 ### If CROSS is x86, we will cross-compile to target x86 (from AMD64)
 ### I.E.: "make all CROSS=x86"
 ### 
-### If IRC is 1, we will allow the creation of an IRC server if defined in
-### the configuration file
-### I.E.: "make all IRC=1"
-### 
 ### If OUT is curses,  we will use curses (ISO transliteration only)
 ### If OUT is cursesw, we will use cursesw (widechar support, able to support UTF-8 terminals). this is default.
 ### If OUT is text,    we will use pure text mode -- stdin/stdout/stderr
@@ -19,14 +15,6 @@
 ifeq ($(CRASH_NO_NICK), 1)
 	CFLAGS += -DCRASH_NO_NICK
 endif
-
-### Special code for enabling/disabling IRC server builtin support
-ifeq ($(IRC), 1)
-	CIrc=mccirc.c CIrc/libcirc.c
-else
-	CIrc=mccirc_fake.c
-endif
-###
 
 ### Special code for interface mode (ncurses(w) or pure text)
 ifeq ($(OUT), curses)
@@ -49,7 +37,7 @@ endif
 # Executable name, main source file, sources files
 EXECUTABLE=mchatclient
 MSOURCES=main.c
-SOURCES=conf.c parsehtml.c nicklist.c cookies.c entities.c network.c parser.c strfunctions.c ircserver.c CUtils/libcutils.c $(IFACE) $(CIrc)
+SOURCES=conf.c parsehtml.c nicklist.c cookies.c entities.c network.c parser.c strfunctions.c ircserver.c CUtils/libcutils.c $(IFACE)
 TEST_SOURCES=cookies-test.c iface-test.c parser-test.c
 ###
 
@@ -102,18 +90,16 @@ love:
 ### Dependencies
 conf.o: conf.c conf.h display_interfaces.h
 parsehtml.o: parsehtml.c parsehtml.h main.h entities.h parser.h display_interfaces.h nicklist.h strfunctions.h
-nicklist.o: nicklist.c nicklist.h display_interfaces.h main.h mccirc.h
+nicklist.o: nicklist.c nicklist.h display_interfaces.h main.h ircserver.h strfunctions.h
 cookies.o: cookies.c cookies.h display_interfaces.h
 network.o: network.c display_interfaces.h
-main.o: main.c main.h conf.h network.h cookies.h parsehtml.h strfunctions.h display_interfaces.h commons.h ircserver.h
+main.o: main.c main.h conf.h network.h cookies.h parsehtml.h strfunctions.h display_interfaces.h commons.h ircserver.h nicklist.h
 gotcurses.o: gotcurses.c display_interfaces.h commons.h strfunctions.h
 gottext.o: gottext.c display_interfaces.h commons.h
 gotnull.o: gotnull.c display_interfaces.h commons.h
-mccirc.o: mccirc.c mccirc.h CUtils/libcutils.o CIrc/libcirc.o
 parser.o: parser.c parser.h parser_p.h CUtils/libcutils.o
-ircserver.o: ircserver.h display_interfaces.h
+ircserver.o: ircserver.c ircserver.h display_interfaces.h nicklist.h strfunctions.h
 CUtils/libcutils.o: CUtils/libcutils.c CUtils/libcutils.h CUtils/attribute.h CUtils/attribute.c CUtils/clist.h CUtils/clist.c CUtils/ini.h CUtils/ini.c CUtils/net.h CUtils/net.c CUtils/cstring.h CUtils/cstring.c
-CIrc/libcirc.o: CUtils/libcutils.o CIrc/libcirc.c CIrc/irc_chan.h CIrc/irc_client.h CIrc/irc_server.h CIrc/irc_user.h CIrc/irc_chan.c CIrc/irc_client.c CIrc/irc_server.c CIrc/irc_user.c
 
 %.o: %.c
 	@echo --- Compiling $@

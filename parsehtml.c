@@ -263,8 +263,8 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 				buffer[o++] = input[i];
 
 				// check for the end of the topic line, and start of the nicklist
-				if (watchfor("<br />", input[i], &l)){
-					buffer[o++] = '\0';
+				if (watchfor("<br />", input[i], &l)){ // there will be somebody
+					buffer[o++] = '\0'; 
 					html_strip_tags(buffer);
 					tmp = malloc(o);
 					decode_html_entities_utf8(tmp, buffer);
@@ -286,17 +286,29 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 					state = LOOKING_FOR_USERS;
 				}
 
-				if (watchfor("</div>", input[i], &j)){
+				if (watchfor("</div>", input[i], &j)){ // nobody's here.
 					o-=(unsigned int)strlen("</div>");
-					buffer[o++] = 0;
-					tmp = malloc(o); o=0;
+					buffer[o++] = '\0'; 
+					html_strip_tags(buffer);
+					tmp = malloc(o);
 					decode_html_entities_utf8(tmp, buffer);
+
+					// sanitize topic a little bit...
+					strrep(NULL, &tmp, "  ", " ");
+					strrep(NULL, &tmp, "( ", "(");
+					strrep(NULL, &tmp, " )", ")");
+					strrep(NULL, &tmp, "  ", " ");
+					strrep(NULL, &tmp, "  ", " ");
+
+					// and display/memorize it.
 					nicklist_topic(tmp);
 					free(tmp);
 
-					// ok, if we don't do that the nicklist will never be showed empty when is no more users in the chat
+					// ok, if we don't do that the nicklist will never be showed 
+					// empty when is no more users in the chat
 					nicklist_recup_start();
 					nicklist_recup_end();
+					o=0;
 					state = READY;
 				}
 				break;
