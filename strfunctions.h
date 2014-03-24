@@ -15,3 +15,7 @@ char *mconcat5(const char *str1, const char *str2, const char *str3, const char 
 char *mconcat6(const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, const char *str6);
 
 int html_strip_tags(char *txt);
+
+#if defined (WIN32) 
+char *stpcpy(char *d, const char *s);
+#endif

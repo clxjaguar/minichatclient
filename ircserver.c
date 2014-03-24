@@ -16,7 +16,9 @@
 #include <time.h>
 
 #include "ircserver.h"
+#include "nicklist.h"
 #include "display_interfaces.h"
+#include "strfunctions.h"
 
 #ifdef WIN32
 	#ifndef _WIN32_WINNT
@@ -168,9 +170,9 @@ const char* irc_trim(const char* in){
 	return tmp;
 }
 
-void irc_sendtoclient(const char *prefix, const char *ident, const char *host, unsigned int lastarg, const char *arg1, const char *arg2, const char *arg3, const char *arg4){
+void irc_sendtoclient(const char *prefix, const char *ident, const char *host, unsigned int lastarg, const char *arg1, const char *arg2, const char *arg3, const char *arg4, const char *arg5){
 	char *string, *p;
-	p = string = malloc(1+irc_len(prefix)+1+irc_len(ident)+1+irc_len(host)+2+irc_len(arg1)+1+irc_len(arg2)+1+irc_len(arg3)+1+irc_len(arg4)+3);
+	p = string = malloc(1+irc_len(prefix)+1+irc_len(ident)+1+irc_len(host)+2+irc_len(arg1)+1+irc_len(arg2)+1+irc_len(arg3)+1+irc_len(arg4)+1+irc_len(arg5)+3);
 	if (!string) { return; }
 	if (prefix){
 		p = stpcpy(p, ":");
@@ -202,19 +204,24 @@ void irc_sendtoclient(const char *prefix, const char *ident, const char *host, u
 		if (lastarg == 4) { p = stpcpy(p, ":"); }
 		p = stpcpy(p, arg4);
 	}
+	if (arg5) {
+		p = stpcpy(p, " ");
+		if (lastarg == 5) { p = stpcpy(p, ":"); }
+		p = stpcpy(p, arg5);
+	}
 	p = stpcpy(p, "\r\n");
 	send(irc.cfd, string, strlen(string), 0);
 	free(string);
 }
 
 void irc_send_conn_response_ok(void){
-	irc_sendtoclient(SERVER_PREFIX, 3, "001", irc.client_nickname, "Welcome on the IRC side of MiniChatClient", NULL);
-	irc_sendtoclient(SERVER_PREFIX, 3, "002", irc.client_nickname, "Your host is ... you!", NULL);
-	irc_sendtoclient(SERVER_PREFIX, 3, "003", irc.client_nickname, "This server was compiled on ", __DATE__", "__TIME__);
-	irc_sendtoclient(SERVER_PREFIX, 0, "004", irc.client_nickname, "minichatclient.sourceforge.net", NULL);
-	irc_sendtoclient(SERVER_PREFIX, 3, "375", irc.client_nickname, "Message of the Day", NULL);
-	irc_sendtoclient(SERVER_PREFIX, 3, "372", irc.client_nickname, "Less code, less bugs !", NULL);
-	irc_sendtoclient(SERVER_PREFIX, 3, "376", irc.client_nickname, "End of MOTD", NULL);
+	irc_sendtoclient(SERVER_PREFIX, 3, "001", irc.client_nickname, "Welcome on the IRC side of MiniChatClient", NULL, NULL);
+	irc_sendtoclient(SERVER_PREFIX, 3, "002", irc.client_nickname, "Your host is ... you!", NULL, NULL);
+	irc_sendtoclient(SERVER_PREFIX, 3, "003", irc.client_nickname, "This server was compiled on ", __DATE__", "__TIME__, NULL);
+	irc_sendtoclient(SERVER_PREFIX, 0, "004", irc.client_nickname, "minichatclient.sourceforge.net", NULL, NULL);
+	irc_sendtoclient(SERVER_PREFIX, 3, "375", irc.client_nickname, "Message of the Day", NULL, NULL);
+	irc_sendtoclient(SERVER_PREFIX, 3, "372", irc.client_nickname, "Less code, less bugs !", NULL, NULL);
+	irc_sendtoclient(SERVER_PREFIX, 3, "376", irc.client_nickname, "End of MOTD", NULL, NULL);
 }
 
 const char* parse_buffer(char *string){
@@ -241,7 +248,9 @@ const char* parse_buffer(char *string){
 				if (nextarg>=MAXARGS){ break; }
 			}
 			if (nextarg==1){
-				if (string[n] >= 'a' && string[n]<='z') { string[n]-=(char)('a'-'A'); }
+				if (string[n] >= 'a' && string[n]<='z') {
+					string[n]-=(char)('a'-'A');
+				}
 			}
 		}
 		n++;
@@ -251,7 +260,7 @@ const char* parse_buffer(char *string){
 	if (!arg[0]) { return NULL; }
 	if (!strcmp(arg[0], "USER")) {
 		if (!arg[1]) {
-			irc_sendtoclient(SERVER_PREFIX, 3, "461", irc.client_nickname, "Not enough parameters", NULL);
+			irc_sendtoclient(SERVER_PREFIX, 3, "461", irc.client_nickname, "Not enough parameters", NULL, NULL);
 		}
 		else if (irc.clientstate == CONNECTED){
 			COPY(irc.client_ident, arg[1]);
@@ -262,13 +271,13 @@ const char* parse_buffer(char *string){
 			}
 		}
 		else {
-			irc_sendtoclient(SERVER_PREFIX, 3, "462", irc.client_nickname, "You may not reregister", NULL);
+			irc_sendtoclient(SERVER_PREFIX, 3, "462", irc.client_nickname, "You may not reregister", NULL, NULL);
 		}
 		return NULL;
 	}
 	else if (!strcmp(arg[0], "NICK")) {
 		if (!arg[1]) {
-			irc_sendtoclient(SERVER_PREFIX, 3, "431", irc.client_nickname, "No nickname given", NULL);
+			irc_sendtoclient(SERVER_PREFIX, 3, "431", irc.client_nickname, "No nickname given", NULL, NULL);
 			return NULL;
 		}
 		if (irc.clientstate == CONNECTED){
@@ -280,90 +289,137 @@ const char* parse_buffer(char *string){
 			}
 		}
 		else {
-			irc_sendtoclient(CLIENT_PREFIX, 2, "NICK", arg[1], NULL, NULL);
+			irc_sendtoclient(CLIENT_PREFIX, 2, "NICK", arg[1], NULL, NULL, NULL);
 			COPY(irc.client_nickname, arg[1]);
 		}
 		return NULL;
 	}
 
 	if (irc.clientstate < IDENTIFIED){
-		irc_sendtoclient(SERVER_PREFIX, 3, "451", arg[0], "You have not registered", NULL);
+		irc_sendtoclient(SERVER_PREFIX, 3, "451", arg[0], "You have not registered", NULL, NULL);
 	}
 	else if (!strcmp(arg[0], "PRIVMSG")) {
-		if (!arg[1]) { return NULL; }
+		if (!arg[1] || !arg[2]) { return NULL; }
 		if (!irc.channel_name) { return NULL; }
 		if (!strcmp(arg[1], irc.channel_name)){
 			if (irc.clientstate == INCHANNEL){
+				if (arg[2][0]==0x01) { // ctcp to channel ?
+					if (!strncmp(arg[2]+1, "ACTION", 6)){
+						arg[2][7] = '*';
+						arg[2][strlen(arg[2])-1] = '*';
+						return &arg[2][7];
+					}
+				}
 				return arg[2];
 			}
 		}
 	}
 
-	//else if (!strcmp(arg[0], "ISON")) {
-	//	irc_sendtoclient(SERVER_PREFIX, 3, "TODO", irc.client_nickname, "Not yet implemented!", NULL);
-	//}
+	else if (!strcmp(arg[0], "ISON")) {{
+		// okay, normally we have to use the people in argument.. i'll not
+		// check two lists, i'm giving them all, the irc client will sort'em.
+		char *tmp;
+		tmp = nicklist_list_nicknames();
+		if (tmp){
+			irc_sendtoclient(SERVER_PREFIX, 3, "303", irc.client_nickname, tmp, NULL, NULL);
+			free(tmp);
+		}
+	}}
 
 	else if (!strcmp(arg[0], "PING")) {
-		irc_sendtoclient(NO_PREFIX, 2, "PONG", arg[1], NULL, NULL);
+		irc_sendtoclient(NO_PREFIX, 2, "PONG", arg[1], NULL, NULL, NULL);
 	}
 	else if (!strcmp(arg[0], "JOIN")) {
 		if (!arg[1]) { return NULL; }
 		if (!irc.channel_name) { return NULL; }
 		if (!strcmp(arg[1], irc.channel_name)){
-			if (irc.clientstate == IDENTIFIED) {
-				irc_sendtoclient(CLIENT_PREFIX, 2, "JOIN", irc.channel_name, NULL, NULL);
+			if (irc.clientstate == IDENTIFIED) {{
+				char *tmp;
+				irc_sendtoclient(CLIENT_PREFIX, 2, "JOIN", irc.channel_name, NULL, NULL, NULL);
 				irc.clientstate = INCHANNEL;
-				if (irc.last_topic_know && irc.topic_reporting_mode){
-					irc_sendtoclient(SERVER_PREFIX, 4, "332", irc.client_nickname, irc.channel_name, irc.last_topic_know);
+				tmp = nicklist_list_nicknames();
+				if (tmp){
+					irc_sendtoclient(SERVER_PREFIX, 5, "353", irc.client_nickname, "=", irc.channel_name, tmp);
+					irc_sendtoclient(SERVER_PREFIX, 4, "366", irc.client_nickname, irc.channel_name, "End of /NAMES list", NULL);
+					free(tmp);
 				}
-			}
+				if (irc.last_topic_know && irc.topic_reporting_mode){
+					irc_sendtoclient(SERVER_PREFIX, 4, "332", irc.client_nickname, irc.channel_name, irc.last_topic_know, NULL);
+				}
+			}}
 		}
 	}
 	else if (!strcmp(arg[0], "TOPIC")) {
 		if (irc.last_topic_know){
-			irc_sendtoclient(SERVER_PREFIX, 4, "332", irc.client_nickname, irc.channel_name, irc.last_topic_know);
+			irc_sendtoclient(SERVER_PREFIX, 4, "332", irc.client_nickname, irc.channel_name, irc.last_topic_know, NULL);
 		}
 	}
-	else if (!strcmp(arg[0], "WHO")) { //TODO
-	}
-	else if (!strcmp(arg[0], "USERHOST")) { //TODO
+	else if (!strcmp(arg[0], "WHOIS")) {{
+		char *target;
+		char *identinfos=NULL, *realname=NULL, *servinfos=NULL, *urls=NULL, *timesinfos=NULL; // <- will need to be freed later
+		if (!arg[1]) {
+			irc_sendtoclient(SERVER_PREFIX, 3, "431", irc.client_nickname, "No nickname given", NULL, NULL);
+			return NULL;
+		}
+		if (arg[2]) { target = arg[2]; }
+		else { target = arg[1]; }
+
+		//:panther.furnet.org 311 moi cLx ~kou clx.shacknet.nu * :Panthera Onca
+		//:panther.furnet.org 312 moi cLx panther.furnet.org :FurNet in Frankfurt, Germany
+		//:panther.furnet.org 317 moi cLx 3009 1395564105 :seconds idle, signon time
+		if (nicklist_get_infos_for_whois(target, irc.fakehost, &identinfos, &realname, &servinfos, &urls, &timesinfos)){
+			irc_sendtoclient(SERVER_PREFIX, 4, "311", irc.client_nickname, identinfos, realname, NULL);
+			irc_sendtoclient(SERVER_PREFIX, 4, "312", irc.client_nickname, servinfos, urls, NULL);
+			irc_sendtoclient(SERVER_PREFIX, 4, "317", irc.client_nickname, timesinfos, "seconds idle, signon time", NULL);
+			FREE(identinfos); FREE(realname); FREE(servinfos); FREE(urls); FREE(timesinfos);
+		}
+		else {
+			irc_sendtoclient(SERVER_PREFIX, 4, "401", irc.client_nickname, target, "No such nick/channel", NULL);
+		}
+		irc_sendtoclient(SERVER_PREFIX, 4, "318", irc.client_nickname, target, "End of /WHOIS list.", NULL);
+	}}
+	else if (!strcmp(arg[0], "WHO")) {{
+		// TODO
+	}}
+	else if (!strcmp(arg[0], "USERHOST")) { //QUIET PLZ
 	}
 	else if (!strcmp(arg[0], "MODE")) { //TODO ?
 	}
-	else if (!strcmp(arg[0], "NAMES")) { //TODO
-	}
+	else if (!strcmp(arg[0], "NAMES")) {{
+		char *tmp = nicklist_list_nicknames();
+		if (tmp){
+			irc_sendtoclient(SERVER_PREFIX, 4, "353", irc.client_nickname, irc.channel_name, tmp, NULL);
+			free(tmp);
+		}
+		irc_sendtoclient(SERVER_PREFIX, 4, "366", irc.client_nickname, irc.channel_name, "End of /NAMES list", NULL);
+	}}
 
 	else if (!strcmp(arg[0], "PART")) {
 		if (!arg[1]) { return NULL; }
 		if (!irc.channel_name) { return NULL; }
 		if (!strcmp(arg[1], irc.channel_name)){
 			if (irc.clientstate == INCHANNEL) {
-				irc_sendtoclient(CLIENT_PREFIX, 2, "PART", irc.channel_name, NULL, NULL);
+				irc_sendtoclient(CLIENT_PREFIX, 2, "PART", irc.channel_name, NULL, NULL, NULL);
 				irc.clientstate = IDENTIFIED;
 			}
 		}
 	}
 	else if (!strcmp(arg[0], "AWAY")) {
 		if (arg[1]){
-			irc_sendtoclient(SERVER_PREFIX, 3, "306", irc.client_nickname, "You have been marked as being away", NULL);
+			irc_sendtoclient(SERVER_PREFIX, 3, "306", irc.client_nickname, "You have been marked as being away", NULL, NULL);
 		}
 		else {
-			irc_sendtoclient(SERVER_PREFIX, 3, "305", irc.client_nickname, "You are no longer marked as being away", NULL);
+			irc_sendtoclient(SERVER_PREFIX, 3, "305", irc.client_nickname, "You are no longer marked as being away", NULL, NULL);
 		}
 	}
 	else if (!strcmp(arg[0], "QUIT")) {
-		irc_sendtoclient(NO_PREFIX, 2, "ERROR", "Closing Link: (Quit:)", NULL, NULL);
+		irc_sendtoclient(NO_PREFIX, 2, "ERROR", "Closing Link: (Quit:)", NULL, NULL, NULL);
 		close(irc.cfd); irc.cfd=0;
 		irc.clientstate = DISCONNECTED;
 	}
 	else {
-		irc_sendtoclient(SERVER_PREFIX, 4, "421", irc.client_nickname, arg[0], "Unknown command");
+		irc_sendtoclient(SERVER_PREFIX, 4, "421", irc.client_nickname, arg[0], "Unknown command", NULL);
 	}
-
-	// for the debug's sake
-	//for (n=0; arg[n] && n < MAXARGS; n++){
-	//	printf("%d = '%s'\n", n, arg[n]);
-	//}
 	return NULL;
 }
 
@@ -397,7 +453,7 @@ int irc_init(const char *host, const char *port, const char *fakehost, const cha
 int irc_destroy(void){
 	irc_trim(NULL);
 	if (irc.clientstate >= CONNECTED){
-		irc_sendtoclient(NO_PREFIX, 2, "ERROR", "Closing Link: MiniChatClient is exiting, bye bye !", NULL, NULL);
+		irc_sendtoclient(NO_PREFIX, 2, "ERROR", "Closing Link: MiniChatClient is exiting, bye bye !", NULL, NULL, NULL);
 	}
 	if (irc.cfd){ close(irc.cfd); irc.cfd=0; }
 	if (irc.sfd){ close(irc.sfd); irc.sfd=0; }
@@ -423,21 +479,21 @@ WHO :#test
 
 void irc_join(const char *nickname, const char *ident){
 	if (irc.forum_username && !strcmp(nickname, irc.forum_username)){
-		irc_sendtoclient(SERVER_PREFIX, 3, "305", irc.client_nickname, "You are no longer marked as being away", NULL);
+		irc_sendtoclient(SERVER_PREFIX, 3, "305", irc.client_nickname, "You are no longer marked as being away", NULL, NULL);
 		return;
 	}
 	if (irc.clientstate == INCHANNEL){
-		irc_sendtoclient(irc_trim(nickname), ident, irc.fakehost, 2, "JOIN", irc.channel_name, NULL, NULL);
+		irc_sendtoclient(irc_trim(nickname), ident, irc.fakehost, 2, "JOIN", irc.channel_name, NULL, NULL, NULL);
 	}
 }
 
 void irc_part(const char *nickname, const char *ident, const char *partmsg){
 	if (irc.forum_username && !strcmp(nickname, irc.forum_username)){
-		irc_sendtoclient(SERVER_PREFIX, 3, "306", irc.client_nickname, "You have been marked as being away", NULL);
+		irc_sendtoclient(SERVER_PREFIX, 3, "306", irc.client_nickname, "You have been marked as being away", NULL, NULL);
 		return;
 	}
 	if (irc.clientstate == INCHANNEL){
-		irc_sendtoclient(irc_trim(nickname), ident, irc.fakehost, 3, "PART", irc.channel_name, partmsg, NULL);
+		irc_sendtoclient(irc_trim(nickname), ident, irc.fakehost, 3, "PART", irc.channel_name, partmsg, NULL, NULL);
 	}
 }
 
@@ -450,7 +506,7 @@ void irc_message(const char *nickname, const char *ident, const char *message){
 	}
 
 	if (irc.clientstate == INCHANNEL){
-		irc_sendtoclient(irc_trim(nickname), ident, irc.fakehost, 3, "PRIVMSG", irc.channel_name, message, NULL);
+		irc_sendtoclient(irc_trim(nickname), ident, irc.fakehost, 3, "PRIVMSG", irc.channel_name, message, NULL, NULL);
 	}
 }
 
@@ -467,7 +523,7 @@ void irc_topic(const char *topic){
 	// pour les tordus qui activent cet insupportable "mode 2"
 	if (irc.clientstate == INCHANNEL){
 		if (irc.topic_reporting_mode == 2){
-			irc_sendtoclient(irc.fakehost, NULL, NULL, 3, "TOPIC", irc.channel_name, topic, NULL);
+			irc_sendtoclient(irc.fakehost, NULL, NULL, 3, "TOPIC", irc.channel_name, topic, NULL, NULL);
 		}
 	}
 
@@ -480,7 +536,7 @@ void irc_topic_mode3_showtime(void){
 	// le "mode 3", pour un compromis sur le topic, et affiché en dernier
 	if (topic_changed && irc.clientstate == INCHANNEL){
 		if (irc.topic_reporting_mode == 3){
-			irc_sendtoclient(SERVER_PREFIX, 4, "332", irc.client_nickname, irc.channel_name, irc.last_topic_know);
+			irc_sendtoclient(SERVER_PREFIX, 4, "332", irc.client_nickname, irc.channel_name, irc.last_topic_know, NULL);
 		}
 	}
 	topic_changed=0;
@@ -506,7 +562,7 @@ const char* irc_driver(void){
 	if (newcfd != -1) {
 		display_debug("Got new client connection to the IRC miniserver !", 0);
 		if (irc.cfd){
-			irc_sendtoclient(NO_PREFIX, 2, "ERROR", "Closing Link: Another incomming connection, ghosting that one...", NULL, NULL);
+			irc_sendtoclient(NO_PREFIX, 2, "ERROR", "Closing Link: Another incomming connection, ghosting that one...", NULL, NULL, NULL);
 			close(irc.cfd); irc.cfd=0;
 			irc.clientstate = DISCONNECTED;
 		}
@@ -543,13 +599,20 @@ const char* irc_driver(void){
 	}
 	if (irc.autorejoin != 0) {
 		if (time(NULL) >= irc.autorejoin) {
-			if (irc.clientstate == IDENTIFIED && irc.channel_name) {
-				irc_sendtoclient(CLIENT_PREFIX, 2, "JOIN", irc.channel_name, NULL, NULL);
+			if (irc.clientstate == IDENTIFIED && irc.channel_name) {{
+				char *tmp;
+				irc_sendtoclient(CLIENT_PREFIX, 2, "JOIN", irc.channel_name, NULL, NULL, NULL);
 				irc.clientstate = INCHANNEL;
-				if (irc.last_topic_know && irc.topic_reporting_mode){
-					irc_sendtoclient(SERVER_PREFIX, 4, "332", irc.client_nickname, irc.channel_name, irc.last_topic_know);
+				tmp = nicklist_list_nicknames();
+				if (tmp){
+					irc_sendtoclient(SERVER_PREFIX, 5, "353", irc.client_nickname, "=", irc.channel_name, tmp);
+					irc_sendtoclient(SERVER_PREFIX, 4, "366", irc.client_nickname, irc.channel_name, "End of /NAMES list", NULL);
+					free(tmp);
 				}
-			}
+				if (irc.last_topic_know && irc.topic_reporting_mode){
+					irc_sendtoclient(SERVER_PREFIX, 4, "332", irc.client_nickname, irc.channel_name, irc.last_topic_know, NULL);
+				}
+			}}
 			irc.autorejoin = 0;
 		}
 	}

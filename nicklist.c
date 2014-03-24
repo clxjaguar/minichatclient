@@ -19,12 +19,14 @@
 
 #include <time.h>
 #include <string.h>
+#include <stdio.h>
 //#include <sys/queue.h>
 #include "queue.h" //local copy as sys/queue.h isn't posix
 #include "nicklist.h"
 #include "display_interfaces.h" //display_debug()
 #include "ircserver.h"
 #include "main.h" //malloc_globalise_url()
+#include "strfunctions.h"
 
 typedef struct t_nicklist {
 	char *nickname;
@@ -62,6 +64,91 @@ void nicklist_destroy(void) {
 
 	// helps valgrind to be sad about the memory never freed ;)
 	head.stqh_first=NULL; *(head.stqh_last)=NULL;
+}
+
+int nicklist_get_infos_for_whois(const char *target, const char *fakehost, char **identinfos, char **realname, char **servinfos, char **urls, char **timesinfos){
+	//:panther.furnet.org 311 moi cLx ~kou clx.shacknet.nu * :Panthera Onca
+	//:panther.furnet.org 312 moi cLx panther.furnet.org :FurNet in Frankfurt, Germany
+	//:panther.furnet.org 317 moi cLx 3009 1395564105 :seconds idle, signon time
+
+	//irc_sendtoclient(SERVER_PREFIX, 4, "311", irc.client_nickname, identinfos, realname);
+	//irc_sendtoclient(SERVER_PREFIX, 4, "312", irc.client_nickname, servinfos, urls);
+	//irc_sendtoclient(SERVER_PREFIX, 4, "317", irc.client_nickname, timesinfos, "seconds idle, signon time");
+
+	//identinfos = "cLx ~kou clx.shacknet.nu *"
+	//servinfos  = "cLx panther.furnet.org";
+	//timesinfos = "cLx 3009 1395564105"
+
+	t_nicklist *np;
+	unsigned int u;
+	char *nick = NULL, *tmp=NULL;
+	time_t now = time(NULL);
+
+	// search for the right element.
+	STAILQ_FOREACH(np, &head, next) {
+		if (np->nickname && !strcasecmp(target, np->nickname)){
+			// found. replaces the username's spaces with underscores
+			nick = malloc(strlen(np->nickname)+1);
+			strcpy(nick, np->nickname);
+			u=0;
+			while(np->nickname[u]){
+				if (np->nickname[u]==' ') { nick[u]='_'; }
+				u++;
+			}
+
+			if (np->profile_url) { *realname = malloc_globalise_url(np->profile_url); }
+			else { *realname = malloc(2); strcpy(*realname, "?"); }
+			if (np->icon_url) { tmp = malloc_globalise_url(np->icon_url); }
+
+			*identinfos = mconcat6(nick, " ", np->ident?np->ident:"?", " ", fakehost, " *");
+			*servinfos = mconcat2(nick, " minichatclient.sourceforge.net");
+			*urls = mconcat4(np->nickname, np->enterednow?" [NEW]":" ", np->invisible?"[INVISIBLE] ":" ", tmp?tmp:"");
+			if (tmp) { free(tmp); tmp=NULL; }
+
+			// "cLx 3009 1395564105"
+			{
+				char s1[101];
+				snprintf(s1, 100, "%ld %ld", np->lastmessage?now-np->lastmessage:now-np->added, np->added);
+				*timesinfos = mconcat3(nick, " ", s1);
+			}
+			free(nick);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+char *nicklist_list_nicknames(void){
+	t_nicklist *np;
+	char *dest = NULL, *p, *tmp;
+	unsigned int u;
+	size_t len = 0;
+
+	STAILQ_FOREACH(np, &head, next) {
+		if (np->nickname){
+			len+=strlen(np->nickname)+1;
+		}
+	}
+
+	dest = malloc(len+1);
+	if (!dest) { return NULL; }
+	dest[0] = '\0';
+	p = dest;
+	STAILQ_FOREACH(np, &head, next) {
+		if (np->nickname){
+			tmp = malloc(strlen(np->nickname)+1);
+			strcpy(tmp, np->nickname);
+			u=0;
+			while(np->nickname[u]){
+				if (np->nickname[u]==' ') { tmp[u]='_'; }
+				u++;
+			}
+			p = stpcpy(p, tmp);
+			p = stpcpy(p, " ");
+			free(tmp);
+		}
+	}
+	return dest;
 }
 
 char* nicklist_alloc_ident(const char *profile_url){
@@ -143,19 +230,15 @@ void nicklist_msg_update(const char *nickname, const char *profile_url, const ch
 	}
 	STAILQ_INSERT_TAIL(&head, np, next);
 
-	// refresh nicklist display
-	//display_nicklist(NULL);
-	//STAILQ_FOREACH(np, &head, next) {
-		display_nicklist(np->nickname);
-	//}
-
+	// update nicklists display (IRC and output plugin)
+	display_nicklist(np->nickname);
 	irc_join(np->nickname, np->ident);
 }
 
 // called when polling the list of people from the server
 void nicklist_recup_start(void) {
-	//display_nicklist(NULL);
-	//mccirc_nicks_start(get_mccirc());
+	// some time ago we were clearing the display now
+	// with a call of"display_nicklist(NULL);"
 }
 
 // called for each nickname found when polling the list from the server
@@ -193,7 +276,7 @@ void nicklist_recup_name(const char* nickname, const char* profile_url) {
 
 	// copy profile URL
 	if (profile_url) {
-		np->profile_url = malloc(strlen(profile_url)+1); 
+		np->profile_url = malloc(strlen(profile_url)+1);
 		strcpy(np->profile_url, profile_url);
 	}
 
@@ -239,6 +322,7 @@ void nicklist_showlist(void){
 	time_t now = time(NULL);
 	char *tmp;
 
+	display_conversation("");
 	STAILQ_FOREACH(np, &head, next) {
 		tmp = malloc(1000);
 		snprintf(tmp, 1000, "* %s (%s)%s%s seen:%ds talked:%d%s added:%ds", np->nickname, np->ident?np->ident:"", np->invisible?" [INVISIBLE]":"", np->enterednow?" [NEW]":"", (int)(now-np->lastseen), np->lastmessage?(int)(now-np->lastmessage):0, np->lastmessage?"s":"", (int)(now-np->added));
