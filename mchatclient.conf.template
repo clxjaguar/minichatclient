@@ -37,6 +37,7 @@ nicklist_width  20
 irc_port        6667
 irc_host        127.0.0.1
 channel_name	#minichatdefaultname
+irc_fakehost    minichatclient.sourceforge.net
 
 # Topic mode : 0 = don't send topics to the IRC client,
 #              1 = sent it once at the join of the IRC client (latest version know)
