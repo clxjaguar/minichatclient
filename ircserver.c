@@ -301,7 +301,7 @@ const char* parse_buffer(char *string){
 	else if (!strcmp(arg[0], "PRIVMSG")) {
 		if (!arg[1] || !arg[2]) { return NULL; }
 		if (!irc.channel_name) { return NULL; }
-		if (!strcmp(arg[1], irc.channel_name)){
+		if (!strcasecmp(arg[1], irc.channel_name)){
 			if (irc.clientstate == INCHANNEL){
 				if (arg[2][0]==0x01) { // ctcp to channel ?
 					if (!strncmp(arg[2]+1, "ACTION", 6)){
@@ -332,7 +332,7 @@ const char* parse_buffer(char *string){
 	else if (!strcmp(arg[0], "JOIN")) {
 		if (!arg[1]) { return NULL; }
 		if (!irc.channel_name) { return NULL; }
-		if (!strcmp(arg[1], irc.channel_name)){
+		if (!strcasecmp(arg[1], irc.channel_name)){
 			if (irc.clientstate == IDENTIFIED) {{
 				char *tmp;
 				irc_sendtoclient(CLIENT_PREFIX, 2, "JOIN", irc.channel_name, NULL, NULL, NULL);
@@ -397,7 +397,7 @@ const char* parse_buffer(char *string){
 	else if (!strcmp(arg[0], "PART")) {
 		if (!arg[1]) { return NULL; }
 		if (!irc.channel_name) { return NULL; }
-		if (!strcmp(arg[1], irc.channel_name)){
+		if (!strcasecmp(arg[1], irc.channel_name)){
 			if (irc.clientstate == INCHANNEL) {
 				irc_sendtoclient(CLIENT_PREFIX, 2, "PART", irc.channel_name, NULL, NULL, NULL);
 				irc.clientstate = IDENTIFIED;
@@ -478,7 +478,7 @@ WHO :#test
 */
 
 void irc_join(const char *nickname, const char *ident){
-	if (irc.forum_username && !strcmp(nickname, irc.forum_username)){
+	if (irc.forum_username && !strcasecmp(nickname, irc.forum_username)){
 		irc_sendtoclient(SERVER_PREFIX, 3, "305", irc.client_nickname, "You are no longer marked as being away", NULL, NULL);
 		return;
 	}
@@ -488,7 +488,7 @@ void irc_join(const char *nickname, const char *ident){
 }
 
 void irc_part(const char *nickname, const char *ident, const char *partmsg){
-	if (irc.forum_username && !strcmp(nickname, irc.forum_username)){
+	if (irc.forum_username && !strcasecmp(nickname, irc.forum_username)){
 		irc_sendtoclient(SERVER_PREFIX, 3, "306", irc.client_nickname, "You have been marked as being away", NULL, NULL);
 		return;
 	}
@@ -498,8 +498,8 @@ void irc_part(const char *nickname, const char *ident, const char *partmsg){
 }
 
 void irc_message(const char *nickname, const char *ident, const char *message){
-	if (irc.forum_username && nickname && !strcmp(nickname, irc.forum_username)){
-		if (irc.last_thing_i_said && message && !strcmp(message, irc.last_thing_i_said)){
+	if (irc.forum_username && nickname && !strcasecmp(nickname, irc.forum_username)){
+		if (irc.last_thing_i_said && message && !strcasecmp(message, irc.last_thing_i_said)){
 			free(irc.last_thing_i_said); irc.last_thing_i_said=NULL;
 			return;
 		}
@@ -514,7 +514,7 @@ char topic_changed = 0;
 void irc_topic(const char *topic){
 	// si c'est pareil on fait rien du tout.
 	if (irc.last_topic_know) {
-		if (!strcmp(topic, irc.last_topic_know)){
+		if (!strcasecmp(topic, irc.last_topic_know)){
 			topic_changed=0;
 			return;
 		}
