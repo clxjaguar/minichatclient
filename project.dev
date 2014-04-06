@@ -1,7 +1,7 @@
 [Project]
 FileName=project.dev
 Name=rmcgirr83.org minichat client
-UnitCount=28
+UnitCount=29
 Type=1
 Ver=1
 ObjFiles=
@@ -349,6 +349,16 @@ BuildCmd=
 
 [Unit20]
 FileName=CUtils\clist.c
+CompileCpp=0
+Folder=rmcgirr83.org minichat client
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit29]
+FileName=ircserver.h
 CompileCpp=0
 Folder=rmcgirr83.org minichat client
 Compile=1
