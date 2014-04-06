@@ -134,6 +134,7 @@ typedef struct {
 	char *last_topic_know;
 	char *last_thing_i_said;
 	int topic_reporting_mode;
+	int report_away_to_client;
 	time_t autorejoin;
 	tclientstate clientstate;
 } t_irc;
@@ -470,16 +471,15 @@ int irc_destroy(void){
 	return 0;
 }
 
-/*
-WHO :#test
-:panther.furnet.org 352 cLx_ #test ~kou clx.shacknet.nu panther.furnet.org cLx Hr :0 Panthera Onca
-:panther.furnet.org 352 cLx_ #test ~kou clx.shacknet.nu panther.furnet.org cLx_ H@ :0 Panthera Onca
-:panther.furnet.org 315 cLx_ #test :End of /WHO list.
-*/
+void irc_set_report_away(int value){
+	irc.report_away_to_client = value;
+}
 
 void irc_join(const char *nickname, const char *ident){
 	if (irc.forum_username && !strcasecmp(nickname, irc.forum_username)){
-		irc_sendtoclient(SERVER_PREFIX, 3, "305", irc.client_nickname, "You are no longer marked as being away", NULL, NULL);
+		if (irc.report_away_to_client) {
+			irc_sendtoclient(SERVER_PREFIX, 3, "305", irc.client_nickname, "You are no longer marked as being away", NULL, NULL);
+		}
 		return;
 	}
 	if (irc.clientstate == INCHANNEL){
@@ -489,7 +489,9 @@ void irc_join(const char *nickname, const char *ident){
 
 void irc_part(const char *nickname, const char *ident, const char *partmsg){
 	if (irc.forum_username && !strcasecmp(nickname, irc.forum_username)){
-		irc_sendtoclient(SERVER_PREFIX, 3, "306", irc.client_nickname, "You have been marked as being away", NULL, NULL);
+		if (irc.report_away_to_client) {
+			irc_sendtoclient(SERVER_PREFIX, 3, "306", irc.client_nickname, "You have been marked as being away", NULL, NULL);
+		}
 		return;
 	}
 	if (irc.clientstate == INCHANNEL){

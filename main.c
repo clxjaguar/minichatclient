@@ -31,7 +31,6 @@
 #include "commons.h"
 #include "display_interfaces.h"
 #include "strfunctions.h"
-//#include "mccirc.h"
 #include "ircserver.h"
 
 #define LOGIN_PAGE "ucp.php?mode=login"
@@ -60,12 +59,6 @@ FILE *logfile;
 char *host = NULL;
 char *port = NULL;
 char *path = NULL;
-
-//mccirc *irc = NULL;
-
-//mccirc *get_mccirc(void){
-//	return irc;
-//}
 
 void put_timestamp(FILE *f){
 	struct tm *ptm;
@@ -130,8 +123,7 @@ void minichat_message(const char *username, const char *message, const char *use
 	if (state != GET_THE_BACKLOG){
 		nicklist_msg_update(username, userprofileurl, usericonurl);
 	}
-	// envoie le message vers le client IRC (s'il y en a un) via "mccirc".
-	//mccirc_chatserver_message(irc, username, message);
+	// envoie le message vers l'eventuel client IRC connecté
 	p = nicklist_alloc_ident(userprofileurl);
 	irc_message(username, p, message);
 	if (p) { free(p); }
@@ -329,12 +321,13 @@ int main(void) {
 	}
 
 	{ // initialize the mini IRC server
-		char *username     = read_conf_string("username", NULL, 0); // 0 means: do the malloc if found !
-		char *irc_port     = read_conf_string("irc_port", NULL, 0);
-		char *irc_host     = read_conf_string("irc_host", NULL, 0);
-		char *irc_fakehost = read_conf_string("irc_fakehost", NULL, 0);
-		char *channel_name = read_conf_string("channel_name", NULL, 0);
-		int irc_topic_mode = read_conf_int   ("irc_topic_mode", 1); // default value : 1 (send once at join, not at changes)
+		char *username        = read_conf_string("username", NULL, 0); // 0 means: do the malloc if found !
+		char *irc_port        = read_conf_string("irc_port", NULL, 0);
+		char *irc_host        = read_conf_string("irc_host", NULL, 0);
+		char *irc_fakehost    = read_conf_string("irc_fakehost", NULL, 0);
+		char *channel_name    = read_conf_string("channel_name", NULL, 0);
+		int irc_topic_mode    = read_conf_int   ("irc_topic_mode", 1); // default value : 1 (send once at join, not at changes)
+		int irc_report_away   = read_conf_int   ("irc_report_away", 0); //inform the client that we're not active (away)
 
 		if (username) {
 			if (irc_port) {
@@ -348,7 +341,10 @@ int main(void) {
 				if (!irc_init(irc_host?irc_host:"127.0.0.1", irc_port, irc_fakehost?irc_fakehost:"MCC", channel_name?channel_name:"#MCC", username)){
 					display_debug("Warning: irc_init() failed !", 0);
 				}
-				irc_set_topic_mode(irc_topic_mode);
+				else {
+					irc_set_report_away(irc_report_away);
+					irc_set_topic_mode(irc_topic_mode);
+				}
 			}
 			FREE(username);
 		}

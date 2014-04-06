@@ -16,14 +16,14 @@ username
 password	
 
 # Misc. parameters
-useragent	MiniChatClient
+useragent       MiniChatClient
 
 # Waiting time for pooling the server (in seconds)
 # idling => max ; in a conversation => min ; when you're active => awake.
 # The polling time will be adjusted between theses values depending of the situation.
 # If you do not understand, please don't touch theses values.
-wait_time_maxi	30
-wait_time_mini	4
+wait_time_maxi  30
+wait_time_mini  4
 wait_time_awake	2
 
 # Activate the niki's html parser or not ?
@@ -36,11 +36,19 @@ nicklist_width  20
 # embedded mini-IRC server's port (0 disable it)
 irc_port        6667
 irc_host        127.0.0.1
-channel_name	#minichatdefaultname
+channel_name    #minichatdefaultname
 irc_fakehost    minichatclient.sourceforge.net
 
 # Topic mode : 0 = don't send topics to the IRC client,
 #              1 = sent it once at the join of the IRC client (latest version know)
 #              2 = sent it at the join and at each topic change (may generate noise)
 #              3 = sent it at the join and at each topic change (variation)
-irc_topic_mode	1
+irc_topic_mode  1
+
+# IRC Away reporting : inform the IRC client that the minichat server isn't considering
+# the user active anymore
+#
+#	0 = disabled (default)
+#   1 = enabled
+
+irc_report_away  0
