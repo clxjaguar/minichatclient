@@ -365,9 +365,6 @@ const char* parse_buffer(char *string){
 		if (arg[2]) { target = arg[2]; }
 		else { target = arg[1]; }
 
-		//:panther.furnet.org 311 moi cLx ~kou clx.shacknet.nu * :Panthera Onca
-		//:panther.furnet.org 312 moi cLx panther.furnet.org :FurNet in Frankfurt, Germany
-		//:panther.furnet.org 317 moi cLx 3009 1395564105 :seconds idle, signon time
 		if (nicklist_get_infos_for_whois(target, irc.fakehost, &identinfos, &realname, &servinfos, &urls, &timesinfos)){
 			irc_sendtoclient(SERVER_PREFIX, 4, "311", irc.client_nickname, identinfos, realname, NULL);
 			irc_sendtoclient(SERVER_PREFIX, 4, "312", irc.client_nickname, servinfos, urls, NULL);
@@ -501,10 +498,17 @@ void irc_part(const char *nickname, const char *ident, const char *partmsg){
 
 void irc_message(const char *nickname, const char *ident, const char *message){
 	if (irc.forum_username && nickname && !strcasecmp(nickname, irc.forum_username)){
-		if (irc.last_thing_i_said && message && !strcasecmp(message, irc.last_thing_i_said)){
-			free(irc.last_thing_i_said); irc.last_thing_i_said=NULL;
-			return;
-		}
+		if (irc.last_thing_i_said && message){{
+			char *str1=NULL, *str2=NULL;
+			strrep(message, &str1, " ", "");
+			strrep(irc.last_thing_i_said, &str2, " ", "");
+			if (!strcasecmp(str1, str2)){
+				FREE(str1); FREE(str2);
+				FREE(irc.last_thing_i_said);
+				return;
+			}
+			FREE(str1); FREE(str2);
+		}}
 	}
 
 	if (irc.clientstate == INCHANNEL){

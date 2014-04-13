@@ -20,6 +20,7 @@
 #include <time.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 //#include <sys/queue.h>
 #include "queue.h" //local copy as sys/queue.h isn't posix
 #include "nicklist.h"
