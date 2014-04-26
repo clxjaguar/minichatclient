@@ -17,6 +17,9 @@
 #endif
 #include <stdlib.h>
 #include <string.h>
+#ifndef WIN32
+	#include <signal.h>
+#endif
 
 #include "display_interfaces.h" // prototypes of theses display_* fonctions
 #include "commons.h"            // for nicklist struct and timming value
@@ -76,6 +79,7 @@ const char* transliterate_from_utf8(const char* in){
 
 #define maxrows LINES
 #define maxcols COLS
+int ncurses_initialyzed=0;
 
 void destroy_win(WINDOW *lwin){
 	wborder(lwin, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
@@ -107,6 +111,7 @@ void destrow_dwin(dwin *w){
 
 int debug_height   = 7;
 int nicklist_width = 15;
+int resize_needed  = 0;
 
 void display_statusbar(const char *text){
 	if (text && text[0]) {
@@ -117,7 +122,7 @@ void display_statusbar(const char *text){
 	else {
 		wmove(stdscr, maxrows-1, 0);
 	}
-	clrtoeol();	
+	clrtoeol();
 	wrefresh(stdscr);
 }
 
@@ -130,7 +135,7 @@ char display_waitforchar(const char *msg){
 }
 
 void display_debug(const char *text, int nonewline){
-	if (!COLS) {
+	if (!ncurses_initialyzed) {
 		if (!nonewline) { printf("\n"); }
 		printf("%s", transliterate_from_utf8(text));
 		return;
@@ -157,6 +162,7 @@ void display_debug(const char *text, int nonewline){
 }
 
 void display_conversation(const char *text){
+	if (!ncurses_initialyzed) { return; }
 	wprintw(conversation.content, "\n%s", transliterate_from_utf8(text));
 	wrefresh(conversation.content);
 }
@@ -165,9 +171,10 @@ void display_nicklist(const char *text){
 	static signed int i=0;
 	char *p = NULL;
 	if (!nicklist_width) return;
+	if (!ncurses_initialyzed) { return; }
 
 	if (!text) { //reset !
-		// il ne faut pas utiliser wclear(nicklist.content) car ça redraw le terminal entier
+		// il ne faut pas utiliser wclear(nicklist.content) car Ã§a redraw le terminal entier
 		p = malloc((size_t)(nicklist_width-4+1));
 		memset(p, ' ', (size_t)(nicklist_width-4));
 		p[nicklist_width-4]='\0';
@@ -186,6 +193,93 @@ void display_nicklist(const char *text){
 	wrefresh(nicklist.content);
 }
 
+static void disp_resized(int sig){
+	switch(sig){
+		case SIGWINCH:
+			resize_needed++;
+			break;
+	}
+}
+
+void display_init(void){
+	char *p = NULL;
+#ifdef _X_OPEN_SOURCE_EXTENDED
+	display_debug("Initialyzing curses (widechar support)...", 0);
+	p = setlocale(LC_ALL, "");
+	transliterating = ISO8859_1;
+	if (p){
+		if (strstr(p, "UTF-8") || strstr(p, "UTF8") || strstr(p, "utf-8") || strstr(p, "utf8")){
+			transliterating = NATIVE_UTF8;
+		}
+	}
+#else
+	transliterating = ISO8859_1;
+#ifdef WIN32
+	display_debug("Initialyzing curses (windows mode)...", 0);
+	transliterating = CP850;
+#else
+	display_debug("Initialyzing curses (legacy)...", 0);
+#endif
+#endif
+	debug_height   = read_conf_int("debug_height",   debug_height);
+	nicklist_width = read_conf_int("nicklist_width", nicklist_width);
+
+	display_debug("", 0);
+	initscr(); // start curses mode, LINES and ROWS not valids before
+
+	if (debug_height < 3) { debug_height = 0; } // pour niki :P
+	if (debug_height > maxrows-8) { debug_height = maxrows-8; }
+
+	if (nicklist_width < 5) { nicklist_width = 0; }
+	if (nicklist_width > maxcols-5) { nicklist_width = maxcols-5; }
+
+	cbreak();  // line input buffering disabled ("raw" mode)
+	//nocbreak(); // ("cooked" mode)
+	keypad(stdscr, TRUE); // I need that nifty F1 ?
+	//intrflush(stdscr, FALSE);
+	noecho();  // curses call set to no echoing
+	refresh(); // m'a pas mal fait chier quand il Ã©tait pas lÃ , celui lÃ .
+	//getmaxyx(stdscr, maxrows, maxcols); // macro returning terminal's size
+	create_dwin(&conversation, maxrows-debug_height-4-1, maxcols-nicklist_width, debug_height, 0, "chat log");
+	scrollok(conversation.content, TRUE);
+	if (nicklist_width){
+		create_dwin(&nicklist, maxrows-debug_height-4-1, nicklist_width, debug_height, maxcols-nicklist_width, "nicklist");
+	}
+	create_dwin(&typing_area, 4, maxcols, maxrows-5, 0, "typing area");
+	if (debug_height) {
+		create_dwin(&debug, debug_height, maxcols, 0, 0, "minichatclient internals");
+		scrollok(debug.content, TRUE);
+	}
+	meta(typing_area.content, TRUE);
+	ncurses_initialyzed = 1;
+	wtimeout(typing_area.content, WAITING_TIME_GRANOLOSITY);
+	if (p){
+		display_debug("Curses interface initialyzed with locale: ", 0);
+		display_debug(p, 1);
+	}
+	display_debug("Recognized mode: ", 0);
+	switch (transliterating) {
+		case NATIVE_UTF8:
+			display_debug("Native UTF-8 (best)", 1);
+			break;
+
+		case ISO8859_1:
+			display_debug("ISO-8859-1 transliteration", 1);
+			break;
+
+		case CP850:
+			display_debug("CP850 (Windows console)", 1);
+			break;
+
+		default:
+			display_debug("???", 1);
+	}
+#ifndef WIN32
+	signal(SIGWINCH, disp_resized);
+	resize_needed=0;
+#endif
+}
+
 void display_end(void){
 	destrow_dwin(&typing_area);
 	if (nicklist_width) { destrow_dwin(&nicklist); }
@@ -194,6 +288,29 @@ void display_end(void){
 	clear();
 	refresh();
 	endwin(); // end curses mode
+	ncurses_initialyzed = 0;
+}
+
+void display_softrefresh(unsigned int nbrofbytes, char *buf){
+	clear();
+	touchwin(stdscr);
+	refresh();
+
+	wclear(typing_area.content);
+	if (buf){
+		buf[nbrofbytes] = '\0';
+		wprintw(typing_area.content, "%s", transliterate_from_utf8(buf));
+	}
+
+	touchwin(typing_area.decoration);
+	if (debug_height) touchwin(debug.decoration);
+	touchwin(conversation.decoration);
+	if (nicklist_width) touchwin(nicklist.decoration);
+
+	wrefresh(typing_area.decoration);
+	wrefresh(conversation.decoration);
+	if (debug_height)   wrefresh(debug.decoration);
+	if (nicklist_width) wrefresh(nicklist.decoration);
 }
 
 const char* display_driver(void){
@@ -202,6 +319,17 @@ const char* display_driver(void){
 	static unsigned int nbrofbytes=0;
 	static char *buf = NULL;
 	static int dbgchrs[4];
+
+	if (resize_needed){
+		display_end();
+		resizeterm(LINES, COLS);
+		display_init();
+		wprintw(conversation.content, "*** window resized ***");
+		force_polling();
+		display_softrefresh(nbrofbytes, buf);
+		display_statusbar("Terminal resized, refreshing...");
+		resize_needed=0;
+	}
 
 	if (!nbrofbytes && buf) { free(buf); buf=NULL; display_statusbar("Typing buffer freed after sent"); }
 
@@ -214,7 +342,7 @@ const char* display_driver(void){
 					buf[nbrofbytes] = '\0';
 					nbrofbytes = 0;
 					// on n'utilise pas wclear() parce que lui en fait
-					// il fait redessiner la fenêtre entière!
+					// il fait redessiner la fenÃªtre entiÃ¨re!
 					wmove(typing_area.content, 0, 0);
 					wclrtobot(typing_area.content);
 					//wmove(typing_area.content, 0, 0);  clrtoeol();
@@ -246,32 +374,17 @@ const char* display_driver(void){
 				else { nbrofbytes = 0; }
 				break;
 
+			case KEY_RESIZE:
+				break;
+
 			case 0x0c: // ^L. wanna some screen refresh?
-				clear();
-				touchwin(stdscr);
-				refresh();
-
-				wclear(typing_area.content);
-				if (buf){
-					buf[nbrofbytes] = '\0';
-					wprintw(typing_area.content, "%s", transliterate_from_utf8(buf));
-				}
-
-				touchwin(typing_area.decoration);
-				if (debug_height) touchwin(debug.decoration);
-				touchwin(conversation.decoration);
-				if (nicklist_width) touchwin(nicklist.decoration);
-
-				wrefresh(typing_area.decoration);
-				wrefresh(conversation.decoration);
-				if (debug_height)   wrefresh(debug.decoration);
-				if (nicklist_width) wrefresh(nicklist.decoration);
+				display_softrefresh(nbrofbytes, buf);
 				break;
 
 			case 18: // ^R
 				force_polling();
 				break;
-				
+
 			case 14: // ^N
 				nicklist_showlist();
 				break;
@@ -322,7 +435,7 @@ const char* display_driver(void){
 				wprintw(typing_area.content, "%c", ch);
 				break;
 		}
-		//mvwprintw(debug.content, 0, 0, "%u: %s  ", nbrofcars, NULL); 
+		//mvwprintw(debug.content, 0, 0, "%u: %s  ", nbrofcars, NULL);
 		//wprintw(debug.content, "%d ", ch);
 		//wrefresh(debug.content);
 		wtimeout(typing_area.content, 10);
@@ -330,82 +443,7 @@ const char* display_driver(void){
 	wtimeout(typing_area.content, WAITING_TIME_GRANOLOSITY);
 
 	if (j) {
-		wrefresh(typing_area.content); 
+		wrefresh(typing_area.content);
 	}
 	return NULL;
-}
-
-
-void display_init(void){
-	char *p = NULL;
-#ifdef _X_OPEN_SOURCE_EXTENDED
-	display_debug("Initialyzing curses (widechar support)...", 0);
-	p = setlocale(LC_ALL, "");
-	transliterating = ISO8859_1;
-	if (p){
-		if (strstr(p, "UTF-8") || strstr(p, "UTF8") || strstr(p, "utf-8") || strstr(p, "utf8")){
-			transliterating = NATIVE_UTF8;
-		}
-	}
-#else
-	transliterating = ISO8859_1;
-#ifdef WIN32
-	display_debug("Initialyzing curses (windows mode)...", 0);
-	transliterating = CP850;
-#else
-	display_debug("Initialyzing curses (legacy)...", 0);
-#endif
-#endif
-	debug_height   = read_conf_int("debug_height",   debug_height);
-	nicklist_width = read_conf_int("nicklist_width", nicklist_width);
-
-	display_debug("", 0);
-	initscr(); // start curses mode, LINES and ROWS not valids before
-
-	if (debug_height < 3) { debug_height = 0; } // pour niki :P
-	if (debug_height > maxrows-8) { debug_height = maxrows-8; }
-
-	if (nicklist_width < 5) { nicklist_width = 0; }
-	if (nicklist_width > maxcols-5) { nicklist_width = maxcols-5; }
-
-	cbreak();  // line input buffering disabled ("raw" mode)
-	//nocbreak(); // ("cooked" mode)
-	keypad(stdscr, TRUE); // I need that nifty F1 ?
-	//intrflush(stdscr, FALSE);
-	noecho();  // curses call set to no echoing
-	refresh(); // m'a pas mal fait chier quand il était pas là, celui là.
-	//getmaxyx(stdscr, maxrows, maxcols); // macro returning terminal's size
-	create_dwin(&conversation, maxrows-debug_height-4-1, maxcols-nicklist_width, debug_height, 0, "chat log");
-	scrollok(conversation.content, TRUE);
-	if (nicklist_width){
-		create_dwin(&nicklist, maxrows-debug_height-4-1, nicklist_width, debug_height, maxcols-nicklist_width, "nicklist");
-	}
-	create_dwin(&typing_area, 4, maxcols, maxrows-5, 0, "typing area");
-	if (debug_height) {
-		create_dwin(&debug, debug_height, maxcols, 0, 0, "minichatclient internals");
-		scrollok(debug.content, TRUE);
-	}
-	meta(typing_area.content, TRUE);
-	wtimeout(typing_area.content, WAITING_TIME_GRANOLOSITY);
-	if (p){
-		display_debug("Curses interface initialyzed with locale: ", 0);
-		display_debug(p, 1);
-	}
-	display_debug("Recognized mode: ", 0);
-	switch (transliterating) {
-		case NATIVE_UTF8:
-			display_debug("Native UTF-8 (best)", 1);
-			break;
-
-		case ISO8859_1:
-			display_debug("ISO-8859-1 transliteration", 1);
-			break;
-
-		case CP850:
-			display_debug("CP850 (Windows console)", 1);
-			break;
-
-		default:
-			display_debug("???", 1);
-	}
 }

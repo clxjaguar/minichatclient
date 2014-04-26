@@ -173,7 +173,7 @@ int check_http_response(char *buf, ssize_t bytes){
 
 int exit_requested;
 int poll_requested;
-#ifdef __linux__
+#ifndef WIN32
 #include <signal.h>
 
 static void sigkilled(int sig){
@@ -333,10 +333,6 @@ int main(void) {
 			if (irc_port) {
 				display_debug("IRC: initialyzing, using channel name: ", 0);
 				display_debug(channel_name?channel_name:"#MCC", 1);
-				//irc = mccirc_new();
-				//if (!irc) { display_debug("IRC: ERROR! mccirc_new() returned NULL. IRC support not compiled in ?", 0); }
-				//mccirc_init(irc, username, "minichatclient.sourceforge.net", channel_name?channel_name:"#MCC", NULL, irc_port);
-				//mccirc_set_topic_mode(irc, irc_topic_mode);
 
 				if (!irc_init(irc_host?irc_host:"127.0.0.1", irc_port, irc_fakehost?irc_fakehost:"MCC", channel_name?channel_name:"#MCC", username)){
 					display_debug("Warning: irc_init() failed !", 0);
@@ -371,7 +367,6 @@ int main(void) {
 					put_timestamp(logfile);
 					fprintf(logfile, "Unable to connect to the server anymore !\r\n");
 					fflush(logfile);
-					//mccirc_chatserver_error(irc);
 				}
 				wait_time = 10 * (1000/WAITING_TIME_GRANOLOSITY);
 				futurestate = state;
@@ -382,7 +377,6 @@ int main(void) {
 					put_timestamp(logfile);
 					fprintf(logfile, "The server seems to be back now !\r\n");
 					fflush(logfile);
-					//mccirc_chatserver_resume(irc);
 					if (nberr >= 30) { // 5' ? reconnect from beginning.
 						state = LOADING_LOGIN_PAGE;
 					}
