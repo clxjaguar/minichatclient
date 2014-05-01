@@ -66,22 +66,21 @@ int maketcpconnexion(const char* hostname, const char *service){
 		sockfd6 = socket(r->ai_family, r->ai_socktype, r->ai_protocol);
 		if (sockfd6==-1){ continue; }
 
-		display_debug("connecting to ", 1);
+		display_debug("Connecting to ", 1);
 		display_debug(get_ip_str((struct sockaddr *)r->ai_addr, buf, sizeof(buf)), 1);
 		display_debug(":", 1);
 		display_debug(service, 1);
 		display_debug("... ", 1);
 
 		if (connect(sockfd6, r->ai_addr, r->ai_addrlen) < 0) {
-			display_debug("failed.", 1);
+			display_debug("failed. ", 1);
 			close(sockfd6);
 			continue;
 		}
-
-		//display_debug("ok.", 1);
 		freeaddrinfo(res);
 		return sockfd6;
 	}
+	freeaddrinfo(res);
 	return 0;
 }
 
