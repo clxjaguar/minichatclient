@@ -89,7 +89,7 @@ love:
 
 ### Dependencies
 conf.o: conf.c conf.h display_interfaces.h
-parsehtml.o: parsehtml.c parsehtml.h main.h entities.h parser.h display_interfaces.h nicklist.h strfunctions.h
+parsehtml.o: parsehtml.c parsehtml.h main.h entities.h parser.h display_interfaces.h nicklist.h strfunctions.h cookies.h
 nicklist.o: nicklist.c nicklist.h display_interfaces.h main.h ircserver.h strfunctions.h
 cookies.o: cookies.c cookies.h display_interfaces.h
 network.o: network.c display_interfaces.h

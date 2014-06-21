@@ -18,11 +18,14 @@
 #include "nicklist.h"
 #include "parser.h"
 #include "display_interfaces.h"
+#include "cookies.h"
 #include "main.h"
 #include "strfunctions.h"
 
 typedef enum {
 	READY=0,
+	IN_CREATION_TIME,
+	IN_FORM_TOKEN,
 	IN_MSG_ID,
 	LOOKING_FOR_PROFILE_URL,
 	IN_PROFILE_URL,
@@ -87,7 +90,7 @@ int watchfor2(const char *str1, const char *str2, const char c, unsigned int *co
 
 unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg, int reset){
 	unsigned int i = 0;
-	static unsigned int j, l;
+	static unsigned int j, l, m, n;
 	static tstate state;
 	static unsigned int nbmessages = 0;
 	static unsigned int o = 0;
@@ -141,6 +144,30 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 				if (watchfor2("<div id=\"mChatStats\" class=\"mChatStats\">", "<div class=\"mChatStats\" id=\"mChatStats\">", input[i], &l)){
 					o=0;
 					state = LOOKING_FOR_STATS;
+				}
+				
+				// looking for that %@!# hidden values to keep to be able to post...
+				if (watchfor("<input type=\"hidden\" name=\"creation_time\" value=\"", input[i], &m)){
+					o=0;
+					state = IN_CREATION_TIME;
+				}
+
+				if (watchfor("<input type=\"hidden\" name=\"form_token\" value=\"", input[i], &n)){
+					o=0;
+					state = IN_FORM_TOKEN;
+				}
+				break;
+			
+			case IN_CREATION_TIME:
+			case IN_FORM_TOKEN:
+				if (input[i] == '\"') {
+					buffer[o] = '\0';
+					if (state==IN_CREATION_TIME){ set_creation_time(buffer); }
+					if (state==IN_FORM_TOKEN)   { set_form_token(buffer); }
+					state = READY; 
+				}
+				else {
+					buffer[o++] = input[i];
 				}
 				break;
 
