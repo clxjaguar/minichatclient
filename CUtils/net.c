@@ -92,7 +92,7 @@ int net_set_blocking(int fd, int block) {
 	}
 #else
 	flags = block?0:1;
-	return ioctl(fd, FIONBIO, (int)(&flags));
+	return ioctl(fd, FIONBIO, (void*)(&flags));
 #endif
 }
 

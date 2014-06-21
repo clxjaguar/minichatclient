@@ -193,6 +193,7 @@ void display_nicklist(const char *text){
 	wrefresh(nicklist.content);
 }
 
+#ifndef WIN32
 static void disp_resized(int sig){
 	switch(sig){
 		case SIGWINCH:
@@ -200,6 +201,7 @@ static void disp_resized(int sig){
 			break;
 	}
 }
+#endif
 
 void display_init(void){
 	char *p = NULL;
@@ -215,6 +217,7 @@ void display_init(void){
 #else
 	transliterating = ISO8859_1;
 #ifdef WIN32
+	system("mode CON COLS=130 LINES=50");
 	display_debug("Initialyzing curses (windows mode)...", 0);
 	transliterating = CP850;
 #else
@@ -320,6 +323,7 @@ const char* display_driver(void){
 	static char *buf = NULL;
 	static int dbgchrs[4];
 
+#ifndef WIN32
 	if (resize_needed){
 		display_end();
 		resizeterm(LINES, COLS);
@@ -330,6 +334,7 @@ const char* display_driver(void){
 		display_statusbar("Terminal resized, refreshing...");
 		resize_needed=0;
 	}
+#endif
 
 	if (!nbrofbytes && buf) { free(buf); buf=NULL; display_statusbar("Typing buffer freed after sent"); }
 
