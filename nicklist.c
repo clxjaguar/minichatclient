@@ -68,18 +68,6 @@ void nicklist_destroy(void) {
 }
 
 int nicklist_get_infos_for_whois(const char *target, const char *fakehost, char **identinfos, char **realname, char **servinfos, char **urls, char **timesinfos){
-	//:panther.furnet.org 311 moi cLx ~kou clx.shacknet.nu * :Panthera Onca
-	//:panther.furnet.org 312 moi cLx panther.furnet.org :FurNet in Frankfurt, Germany
-	//:panther.furnet.org 317 moi cLx 3009 1395564105 :seconds idle, signon time
-
-	//irc_sendtoclient(SERVER_PREFIX, 4, "311", irc.client_nickname, identinfos, realname);
-	//irc_sendtoclient(SERVER_PREFIX, 4, "312", irc.client_nickname, servinfos, urls);
-	//irc_sendtoclient(SERVER_PREFIX, 4, "317", irc.client_nickname, timesinfos, "seconds idle, signon time");
-
-	//identinfos = "cLx ~kou clx.shacknet.nu *"
-	//servinfos  = "cLx panther.furnet.org";
-	//timesinfos = "cLx 3009 1395564105"
-
 	t_nicklist *np;
 	unsigned int u;
 	char *nick = NULL, *tmp=NULL;

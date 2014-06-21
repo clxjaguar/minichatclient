@@ -14,6 +14,9 @@
 #include "cookies.h"
 #include "display_interfaces.h"
 
+#define FREE(x) if (x) { free(x); x=NULL; }
+#define COPY(x, y) if (x) { free(x); } x = malloc(strlen(y)+1); if (x) { strcpy(x, y); }
+
 int debug_cookie = 0;
 
 int storecookie(cookie_t *cookies, const char *name, const char *value){
@@ -243,11 +246,33 @@ int parsehttpheadersforgettingcookies(cookie_t *cookies, const char *string, ssi
 	return 0;
 }
 
+char *creation_time=NULL;
+char *form_token=NULL;
+
 int freecookies(cookie_t *cookies){
 	int i;
 	for (i=0; i<MAXCOOKIES; i++){
 		if(cookies[i].name)  { free(cookies[i].name);  cookies[0].name  = NULL; }
 		if(cookies[i].value) { free(cookies[i].value); cookies[0].value = NULL; }
 	}
+	FREE(creation_time);
+	FREE(form_token);
 	return 0;
+}
+
+// 2014 update : now we have also some tokens in the form to memorize.
+// set* are called from parsehtml.c, get* are called from network.c
+void set_creation_time(char *string){
+	COPY(creation_time, string);
+}
+char *get_creation_time(void){
+	if (!creation_time) { COPY(creation_time, ""); }
+	return creation_time;
+}
+void set_form_token(char *string){
+	COPY(form_token, string);
+}
+char *get_form_token(void){
+	if (!form_token) { COPY(form_token, ""); }
+	return form_token;
 }

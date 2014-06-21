@@ -600,10 +600,12 @@ int main(void) {
 					strrep(NULL,        &tmp, "=", "%3D");
 					strrep(NULL,        &tmp, " ", "+");
 
-					// mode=add&message=TESTMSG&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23
+					// mode=add&message=MSG&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23
+					// edit: changed to:
+					// mode=add&message=MSG&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23&creation_time=1403343659&form_token=6b47dbcb2931a7b070f7a55ba7479fbd66faf1cb
 
 					req = mconcat2(path, MCHAT_PAGE);
-					postdata = mconcat3(POSTDATALEFT, tmp, POSTDATARIGHT);
+					postdata = mconcat6("mode=add&message=", tmp, "&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23&creation_time=", get_creation_time(), "&form_token=", get_form_token());
 					referer = mconcat4("http://", host, path, MCHAT_PAGE);
 					storecookie(cookies, "mChatShowUserList", "yes");
 					cookiesstr = generate_cookies_string(cookies, NULL, 0);
@@ -622,6 +624,7 @@ int main(void) {
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
 						response = check_http_response(buf, bytes);
+						if (response) { irc_message("ERROR", "ERROR", buf); }
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					k=0;
