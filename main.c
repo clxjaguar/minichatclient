@@ -1,4 +1,4 @@
-// Ce truc est une sorte de client http afin de servir depasserelle vers le minichat rmcgirr83.org pour phpbb.
+// Ce truc est une sorte de client http afin de servir de passerelle vers le minichat rmcgirr83.org pour phpbb.
 // Rha, Mais pourquoi toujours utiliser les trucs les moins compatibles possibles ? Parce que c'est 'web'.
 //
 // Avec gcc sous windows, il faut passer -lws2_32 et "c:\Dev-Cpp\lib\libcurses.a" au
@@ -44,13 +44,18 @@
 
 // hééééé oui, encore une machine à états ! ^^
 typedef enum {
-	LOADING_LOGIN_PAGE = 0,
-	SUBMIT_AUTHENTIFICATION,
-	GET_THE_BACKLOG,
-	WATCHING_NEW_MESSAGES,
-	RETRIEVING_THE_LIST_OF_USERS,
-	POSTING_A_MESSAGE,
-	WAIT
+	WAIT_LOADING_LOGIN_PAGE = 0,
+	     LOADING_LOGIN_PAGE,
+	WAIT_SUBMIT_AUTHENTIFICATION,
+	     SUBMIT_AUTHENTIFICATION,
+	WAIT_GET_THE_BACKLOG,
+	     GET_THE_BACKLOG,
+	WAIT_WATCHING_NEW_MESSAGES,
+	     WATCHING_NEW_MESSAGES,
+	WAIT_RETRIEVING_THE_LIST_OF_USERS,
+	     RETRIEVING_THE_LIST_OF_USERS,
+	WAIT_POSTING_A_MESSAGE,
+	     POSTING_A_MESSAGE
 } tstate;
 
 // quelques variables globales
@@ -111,10 +116,8 @@ void minichat_message(const char *username, const char *message, const char *use
 
 	// display the message
 	p = mconcat4("<", username, "> ", message);
-	if (p) {
-		display_conversation(p);
-		free(p); p = NULL; // mconcatN does malloc()
-	}
+	display_conversation(p);
+	FREE(p); // mconcatN does malloc()
 
 	// and put it in the log file
 	put_timestamp(logfile); fprintf(logfile, "<%s> %s\r\n", username, message); fflush(logfile);
@@ -123,10 +126,10 @@ void minichat_message(const char *username, const char *message, const char *use
 	if (state != GET_THE_BACKLOG){
 		nicklist_msg_update(username, userprofileurl, usericonurl);
 	}
-	// envoie le message vers l'eventuel client IRC connect�
+	// envoie le message vers l'eventuel client IRC connecté
 	p = nicklist_alloc_ident(userprofileurl);
 	irc_message(username, p, message);
-	if (p) { free(p); }
+	FREE(p);
 }
 
 // the following routine is showing that "HTTP/1.1 200 OK" message
@@ -154,7 +157,6 @@ int check_http_response(char *buf, ssize_t bytes){
 	}
 	switch(response){
 		case 200:
-			display_debug("", 1);
 			return 0; // no error
 
 		case 403:
@@ -166,13 +168,13 @@ int check_http_response(char *buf, ssize_t bytes){
 			return 404;
 
 		default:
-			display_debug(" [error] ", 1);
-			return -2;
+			display_debug(" [Error] ", 1);
+			return response;
 	}
 }
 
-int exit_requested;
-int poll_requested;
+int exit_requested=0;
+int poll_requested=0;
 #ifndef WIN32
 #include <signal.h>
 
@@ -252,16 +254,17 @@ int main(void) {
 	ssize_t bytes;
 	int k, response; // flag for any use
 	const char *outgoingmsg = NULL;
+	unsigned int outgoingmsgretry=0;
 
 	unsigned int t; // timeslots remaining before next polling
 	unsigned int nberr = 0;
 	unsigned int wait_time = 40; // 10s
 	unsigned int wait_time_maxi, wait_time_mini, wait_time_awake;
 
-	tstate oldstate=LOADING_LOGIN_PAGE, futurestate=WAIT;
+	tstate oldstate=-1;
 	char *useragent = NULL;
 
-	cookie_t cookies[MAXCOOKIES]; // se configure dans cookies.h
+	cookie_t cookies[MAXCOOKIES]; // MAXCOOKIES is defined in cookies.h
 	message_t msg;
 
 	memset(&cookies[0], 0, sizeof(cookies));
@@ -270,8 +273,8 @@ int main(void) {
 	display_init();
 	install_sighandlers();
 	nicklist_init();
-	exit_requested = 0;
-	poll_requested = 0;
+	//exit_requested = 0;
+	//poll_requested = 0;
 
 	display_conversation(
 	  "********************************************\n"
@@ -350,16 +353,25 @@ int main(void) {
 		FREE(channel_name);
 	}
 
-	{ // do a little pause
-		unsigned int i;
-		for (i=0; i<1200; i+=WAITING_TIME_GRANOLOSITY){ display_driver(); }
-	}
+	//{ // do a little pause
+	//	unsigned int i;
+	//	for (i=0; i<1200; i+=WAITING_TIME_GRANOLOSITY){ display_driver(); }
+	//}
 
 
-	state = LOADING_LOGIN_PAGE;
+	wait_time = 2500/WAITING_TIME_GRANOLOSITY;
+	state = WAIT_LOADING_LOGIN_PAGE;
+
+	// MAIN LOOP START HERE //
 	while(!exit_requested){
-		if (state != WAIT) {
-			// on se connecte sur le serveur pour tout les cas sauf attentes
+		// on se connecte sur le serveur dans tous les cas, sauf quand on doit juste attendre
+		if ((state != WAIT_LOADING_LOGIN_PAGE) &&
+		    (state != WAIT_SUBMIT_AUTHENTIFICATION) &&
+		    (state != WAIT_GET_THE_BACKLOG) &&
+		    (state != WAIT_WATCHING_NEW_MESSAGES) &&
+		    (state != WAIT_RETRIEVING_THE_LIST_OF_USERS) &&
+		    (state != WAIT_POSTING_A_MESSAGE)) {
+
 			s = maketcpconnexion(host, port);
 			if (!s) {
 				nberr++;
@@ -369,8 +381,7 @@ int main(void) {
 					fflush(logfile);
 				}
 				wait_time = 10 * (1000/WAITING_TIME_GRANOLOSITY);
-				futurestate = state;
-				state = WAIT;
+				state--; // but waiting a bit before to retry in the same state.
 			}
 			else {
 				if (nberr >= 5) {
@@ -394,7 +405,7 @@ int main(void) {
 				{
 					char *req = mconcat2(path, LOGIN_PAGE);
 					http_get(s, req, host, NULL, NULL, useragent, NULL);
-					free(req); req=NULL;
+					FREE(req);
 				}
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
@@ -404,9 +415,8 @@ int main(void) {
 					}
 					k=0;
 				}
-				state = WAIT;
-				wait_time = 1;
-				futurestate = SUBMIT_AUTHENTIFICATION;
+				wait_time = 500/WAITING_TIME_GRANOLOSITY;
+				state = WAIT_SUBMIT_AUTHENTIFICATION;
 				break;
 
 			case SUBMIT_AUTHENTIFICATION:
@@ -422,11 +432,10 @@ int main(void) {
 					close_conf_file();
 
 					if (!username || !password) {
-						if (username) { free(username); username=NULL; }
 						if (password) {
 							memset(password, 0, strlen(password)); // overwrite password stored in RAM for security reasons.
-							free(password); password=NULL;
 						}
+						FREE(username); FREE(password);
 						display_debug("Username/password informations missing or incomplete, skipping authentification. Tying to switch to the reading states though.", 0);
 						state = GET_THE_BACKLOG;
 						break;
@@ -435,18 +444,13 @@ int main(void) {
 					req = mconcat2(path, LOGIN_PAGE);
 					postdata = mconcat5("username=", username, "&password=", password, "&redirect=index.php&login=Connexion");
 					memset(password, 0, strlen(password)); // overwrite password stored in RAM for security reasons.
-					free(username); username=NULL;
-					free(password); password=NULL;
+					FREE(username); FREE(password);
 
 					referer = mconcat4("http://", host, path, LOGIN_PAGE);
 					cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
 					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
-
-					free(req);        req=NULL;
-					free(postdata);   postdata=NULL;
-					free(referer);    referer=NULL;
-					free(cookiesstr); cookiesstr=NULL;
+					FREE(req); FREE(postdata); FREE(referer); FREE(cookiesstr);
 				}
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
@@ -456,23 +460,20 @@ int main(void) {
 					}
 					k=0;
 				}
-				state = WAIT;
-				wait_time = 1;
-				futurestate = GET_THE_BACKLOG;
+				wait_time = 1000/WAITING_TIME_GRANOLOSITY;
+				state = WAIT_GET_THE_BACKLOG;
 				break;
 
 			case GET_THE_BACKLOG:
-				// ça, c'est pour récupérer le texte de la conversation déjà écrite comme le fait le navigateur
+				// ça, c'est pour récupérer le texte de la conversation déjà écrite comme le fait le navigateur,
+				// mais c'est aussi très important pour récupérer les éléments de formulaire 'creation_time' et 'form_token'.
 				{
 					char *req = mconcat2(path, MCHAT_PAGE);
 					char *referer = mconcat4("http://", host, path, LOGIN_PAGE);
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0); // does the malloc
 
 					http_get(s, req, host, referer, cookiesstr, useragent, NULL);
-
-					free(req);        req=NULL;
-					free(referer);    referer=NULL;
-					free(cookiesstr); cookiesstr=NULL;
+					FREE(req); FREE(referer); FREE(cookiesstr);
 				}
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
@@ -483,10 +484,19 @@ int main(void) {
 					parse_minichat_mess(buf, bytes, &msg, k);
 					k=0;
 				}
-				futurestate = WATCHING_NEW_MESSAGES;
-				wait_time = 10*(1000/WAITING_TIME_GRANOLOSITY); state = WAIT;
-				if (response==403){
-					futurestate = LOADING_LOGIN_PAGE;
+				if (response == 403){ // error ? retry.
+					wait_time = 5000/WAITING_TIME_GRANOLOSITY;
+					state = WAIT_LOADING_LOGIN_PAGE;
+				}
+				else {
+					if (outgoingmsg){ // were we trying to send a message ?
+						wait_time = 500/WAITING_TIME_GRANOLOSITY;
+						state = WAIT_POSTING_A_MESSAGE;
+					}
+					else { // or just normal, successful login ?
+						wait_time = 10*(1000/WAITING_TIME_GRANOLOSITY);
+						state = WAIT_WATCHING_NEW_MESSAGES;
+					}
 				}
 				break;
 
@@ -500,11 +510,7 @@ int main(void) {
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
 					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
-
-					free(req);        req=NULL;
-					free(postdata);   postdata=NULL;
-					free(referer);    referer=NULL;
-					free(cookiesstr); cookiesstr=NULL;
+					FREE(req); FREE(postdata); FREE(referer); FREE(cookiesstr);
 				}
 				{
 					unsigned int nbmessages = 0, old_wait_time;
@@ -519,8 +525,8 @@ int main(void) {
 						k=0;
 					}
 					if (response==403){
-						wait_time = 10*(1000/WAITING_TIME_GRANOLOSITY); state = WAIT;
-						futurestate = LOADING_LOGIN_PAGE;
+						wait_time = 10*(1000/WAITING_TIME_GRANOLOSITY);
+						state = WAIT_LOADING_LOGIN_PAGE;
 						break;
 					}
 
@@ -537,13 +543,14 @@ int main(void) {
 						}
 					}
 				}
-				futurestate = WATCHING_NEW_MESSAGES;
-				state = WAIT;
 				{
 					static int u = 0;
 					if (u++ > 4) {
 						u=0;
-						futurestate = RETRIEVING_THE_LIST_OF_USERS;
+						state = WAIT_RETRIEVING_THE_LIST_OF_USERS;
+					}
+					else {
+						state = WAIT_WATCHING_NEW_MESSAGES;
 					}
 				}
 				break;
@@ -556,10 +563,7 @@ int main(void) {
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
 					http_post(s, req, host, "mode=stats", referer, cookiesstr, useragent, NULL);
-
-					free(req);        req=NULL;
-					free(referer);    referer=NULL;
-					free(cookiesstr); cookiesstr=NULL;
+					FREE(req); FREE(referer); FREE(cookiesstr);
 				}
 				k=1;
 				{
@@ -574,9 +578,6 @@ int main(void) {
 				}
 				state = WATCHING_NEW_MESSAGES;
 				break;
-
-#define POSTDATALEFT   "mode=add&message="
-#define POSTDATARIGHT  "&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23"
 
 			case POSTING_A_MESSAGE:
 				// et enfin, ça, c'est pour y poster quelque chose. faire gaffe de ne pas flooder sinon Timmy va se fâcher.
@@ -611,29 +612,61 @@ int main(void) {
 					cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
 					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
-
-					outgoingmsg = NULL; // don't be afraid, a copy of this buffer is keep internally in the function providing it
-
-					free(req);        req=NULL;
-					free(referer);    referer=NULL;
-					free(postdata);	  postdata=NULL;
-					free(cookiesstr); cookiesstr=NULL;
-					free(tmp);        tmp=NULL;
+					FREE(req); FREE(referer); FREE(postdata); FREE(cookiesstr); FREE(tmp);
 				}
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
 						response = check_http_response(buf, bytes);
-						if (response) { irc_message("ERROR", "ERROR", buf); }
+						//   0 : OK (was 200 in fact)
+						// 400 : Posted another line too fast, wait a bit.
+						// 403 : Happen when i'm logged in for too long...
+						// 501 : When sending strange characters like ISO-8859-1 accents and not UTF-8!
+
+						if (response) { // got error?
+							if (outgoingmsgretry++<2){ // retrying...
+								if (response == 400) {
+									irc_message("RETRYING_TO_SEND", "minichatclient.sourceforge.net", buf);
+									wait_time = 3000/WAITING_TIME_GRANOLOSITY;
+									state = WAIT_POSTING_A_MESSAGE;
+								}
+								else if (response == 403) {
+									irc_message("RETRYING_RELOG", "minichatclient.sourceforge.net", buf);
+									wait_time = 500/WAITING_TIME_GRANOLOSITY;
+									state = LOADING_LOGIN_PAGE;
+								}
+								else {
+									irc_message("ERROR", "minichatclient.sourceforge.net", buf);
+									outgoingmsg = NULL;
+									state = WATCHING_NEW_MESSAGES;
+								}
+							}
+							else { // laissertombering...
+								outgoingmsg = NULL;
+								outgoingmsgretry=0;
+								irc_message("TOO_MUCH_RETRY", "minichatclient.sourceforge.net", buf);
+								wait_time = 3000/WAITING_TIME_GRANOLOSITY;
+								state = WAIT_WATCHING_NEW_MESSAGES;
+							}
+						}
+						else { // ok!
+							outgoingmsg = NULL; // don't be afraid, a copy of this buffer is keep internally in the function providing it
+							outgoingmsgretry=0;
+							wait_time = wait_time_awake;
+							state = WATCHING_NEW_MESSAGES; // le changement d'etat est important ;)
+						}
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					k=0;
 				}
-				wait_time = wait_time_awake;
-				state = WATCHING_NEW_MESSAGES; // le changement d'etat est important ;)
 				break;
 
-			case WAIT:
+			case WAIT_LOADING_LOGIN_PAGE:
+			case WAIT_SUBMIT_AUTHENTIFICATION:
+			case WAIT_GET_THE_BACKLOG:
+			case WAIT_WATCHING_NEW_MESSAGES:
+			case WAIT_RETRIEVING_THE_LIST_OF_USERS:
+			case WAIT_POSTING_A_MESSAGE:
 				// on attends un peu entre chaque refresh pour ne pas saturer le serveur
 				if (state != oldstate) { // timer init.
 					t = wait_time;
@@ -649,7 +682,7 @@ int main(void) {
 				}}
 				else { // temps d'attente termine
 					display_debug("\b\b\b\b\b\b\b\b\b\b\b\b\b             \b\b\b\b\b\b\b\b\b\b\b\b\b", 1);
-					state = futurestate;
+					state++; // FINISHED TO WAIT NOW, NEXT STATE !
 				}
 
 				if (poll_requested){
@@ -660,14 +693,16 @@ int main(void) {
 
 				// the check for keyboard inputs (embedded) does the timebase
 				// eg. like "Sleep(WAITING_TIME_GRANOLOSITY)")
-				outgoingmsg = display_driver();
+				if (!outgoingmsg) { outgoingmsg = display_driver(); }
+				else { Sleep(250); }
 
 				// and now we check for a new message in the IRC interface
-				//if (!outgoingmsg) { outgoingmsg = mccirc_check_message(irc); }
 				if (!outgoingmsg) { outgoingmsg = irc_driver(); }
 
 				// if we have something to send, we change the state of the state machine.
-				if (outgoingmsg) { state = POSTING_A_MESSAGE; }
+				if (outgoingmsg && state>=WAIT_WATCHING_NEW_MESSAGES && state!=WAIT_POSTING_A_MESSAGE) { 
+					state = POSTING_A_MESSAGE;
+				}
 				oldstate = state; // this is important to know when reset the waiting time.
 				break;
 		}
@@ -680,15 +715,11 @@ int main(void) {
 	parser_freerules();
 	parse_minichat_mess(NULL, 0, &msg, 1);
 	nicklist_destroy();
-	//mccirc_free(irc);
 	irc_destroy();
 	freecookies(cookies);
 	fclose(logfile);
 	ws_cleanup();
-	if (host)      { free(host);      host=NULL; }
-	if (port)      { free(port);      port=NULL; }
-	if (path)      { free(path);      path=NULL; }
-	if (useragent) { free(useragent); useragent=NULL; }
+	FREE(host); FREE(port); FREE(path); FREE(useragent);
 	display_end();
 	return 0;
 }
