@@ -196,9 +196,13 @@ void display_nicklist(const char *text){
 #ifndef WIN32
 static void disp_resized(int sig){
 	switch(sig){
+		default:
+			break;
+
 		case SIGWINCH:
 			resize_needed++;
 			break;
+
 	}
 }
 #endif

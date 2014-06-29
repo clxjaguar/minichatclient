@@ -455,12 +455,13 @@ int irc_destroy(void){
 	}
 	if (irc.cfd){ close(irc.cfd); irc.cfd=0; }
 	if (irc.sfd){ close(irc.sfd); irc.sfd=0; }
+	FREE(irc.fakehost);
 	FREE(irc.channel_name);
+	FREE(irc.forum_username);
 	FREE(irc.client_nickname);
 	FREE(irc.client_ident);
-	FREE(irc.forum_username);
 	FREE(irc.last_topic_know);
-	FREE(irc.fakehost);
+	FREE(irc.last_thing_i_said);
 #if defined (WIN32)
     WSACleanup();
 #endif
