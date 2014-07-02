@@ -4,6 +4,7 @@ int irc_destroy(void);
 void irc_set_report_away(int value);
 void irc_join(const char *nickname, const char *ident);
 void irc_part(const char *nickname, const char *ident, const char *partmsg);
+void irc_will_reprint_my_message(void);
 void irc_message(const char *nickname, const char *ident, const char *message);
 void irc_topic(const char *topic);
 void irc_set_topic_mode(int mode);

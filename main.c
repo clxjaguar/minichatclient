@@ -134,7 +134,7 @@ void minichat_message(const char *username, const char *message, const char *use
 
 // the following routine is showing that "HTTP/1.1 200 OK" message
 int check_http_response(char *buf, ssize_t bytes){
-	unsigned int i; int response=0; char tmp, *p=NULL;
+	unsigned int i; int response=-1; char tmp, *p=NULL;
 
 	if (bytes <= 0) {
 		display_debug("No data ?", 0);
@@ -156,6 +156,9 @@ int check_http_response(char *buf, ssize_t bytes){
 		}
 	}
 	switch(response){
+		case 0:
+			return -1;
+
 		case 200:
 			return 0; // no error
 
@@ -617,11 +620,12 @@ int main(void) {
 				k=1;
 				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						response = check_http_response(buf, bytes);
+						response = check_http_response(buf, bytes); // TODO: buf should be zero terminated!
 						//   0 : OK (was 200 in fact)
 						// 400 : Posted another line too fast, wait a bit.
 						// 403 : Happen when i'm logged in for too long...
 						// 501 : When sending strange characters like ISO-8859-1 accents and not UTF-8!
+						//  -1 : No error code. Do not try to read the first line of buf.
 
 						if (response) { // got error?
 							if (outgoingmsgretry++<2){ // retrying...
@@ -636,7 +640,12 @@ int main(void) {
 									state = LOADING_LOGIN_PAGE;
 								}
 								else {
-									irc_message("ERROR", "minichatclient.sourceforge.net", buf);
+									if (response != -1) {
+										irc_message("ERROR", "minichatclient.sourceforge.net", buf);
+									}
+									else {
+										irc_message("ERROR", "minichatclient.sourceforge.net", "UNKNOW ERROR");
+									}
 									outgoingmsg = NULL;
 									state = WATCHING_NEW_MESSAGES;
 								}
@@ -651,7 +660,10 @@ int main(void) {
 						}
 						else { // ok!
 							outgoingmsg = NULL; // don't be afraid, a copy of this buffer is keep internally in the function providing it
-							outgoingmsgretry=0;
+							if (outgoingmsgretry) {
+								outgoingmsgretry=0;
+								irc_will_reprint_my_message();
+							}
 							wait_time = wait_time_awake;
 							state = WATCHING_NEW_MESSAGES; // le changement d'etat est important ;)
 						}
