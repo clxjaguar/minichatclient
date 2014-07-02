@@ -171,6 +171,9 @@ const char* irc_trim(const char* in){
 	return tmp;
 }
 
+#define ARGCONCAT(arg) while(*arg!='\0' && *arg!='\r' && *arg!='\n'){ *p++=*arg++; } *p='\0';
+
+
 void irc_sendtoclient(const char *prefix, const char *ident, const char *host, unsigned int lastarg, const char *arg1, const char *arg2, const char *arg3, const char *arg4, const char *arg5){
 	char *string, *p;
 	p = string = malloc(1+irc_len(prefix)+1+irc_len(ident)+1+irc_len(host)+2+irc_len(arg1)+1+irc_len(arg2)+1+irc_len(arg3)+1+irc_len(arg4)+1+irc_len(arg5)+3);
@@ -188,27 +191,27 @@ void irc_sendtoclient(const char *prefix, const char *ident, const char *host, u
 	}
 	if (arg1) {
 		if (lastarg == 1) { p = stpcpy(p, ":"); }
-		p = stpcpy(p, arg1);
+		ARGCONCAT(arg1);
 	}
 	if (arg2) {
 		p = stpcpy(p, " ");
 		if (lastarg == 2) { p = stpcpy(p, ":"); }
-		p = stpcpy(p, arg2);
+		ARGCONCAT(arg2);
 	}
 	if (arg3) {
 		p = stpcpy(p, " ");
 		if (lastarg == 3) { p = stpcpy(p, ":"); }
-		p = stpcpy(p, arg3);
+		ARGCONCAT(arg3);
 	}
 	if (arg4) {
 		p = stpcpy(p, " ");
 		if (lastarg == 4) { p = stpcpy(p, ":"); }
-		p = stpcpy(p, arg4);
+		ARGCONCAT(arg4);
 	}
 	if (arg5) {
 		p = stpcpy(p, " ");
 		if (lastarg == 5) { p = stpcpy(p, ":"); }
-		p = stpcpy(p, arg5);
+		ARGCONCAT(arg5);
 	}
 	p = stpcpy(p, "\r\n");
 	send(irc.cfd, string, strlen(string), 0);
@@ -250,7 +253,8 @@ const char* parse_buffer(char *string){
 			}
 			if (nextarg==1){
 				if (string[n] >= 'a' && string[n]<='z') {
-					string[n]-=(char)('a'-'A');
+					//string[n]-=((char)'a'-(char)'A');
+					string[n]&=(char)0xDF; // capitalyze without -Wconversion warning !
 				}
 			}
 		}
@@ -495,6 +499,10 @@ void irc_part(const char *nickname, const char *ident, const char *partmsg){
 	if (irc.clientstate == INCHANNEL){
 		irc_sendtoclient(irc_trim(nickname), ident, irc.fakehost, 3, "PART", irc.channel_name, partmsg, NULL, NULL);
 	}
+}
+
+void irc_will_reprint_my_message(void){
+	FREE(irc.last_thing_i_said);
 }
 
 void irc_message(const char *nickname, const char *ident, const char *message){
