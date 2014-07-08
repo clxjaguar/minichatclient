@@ -128,7 +128,7 @@ void display_statusbar(const char *text){
 
 char display_waitforchar(const char *msg){
 	char rep;
-	display_statusbar(transliterate_from_utf8(msg));
+	display_statusbar(msg);
 	rep = (char)getch();
 	display_statusbar(NULL);
 	return rep;
