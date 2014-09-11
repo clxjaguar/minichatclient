@@ -1,10 +1,4 @@
-typedef struct {
-	char *username;
-	char *message;
-	char *usericonurl;
-	char *userprofileurl;
-	char msgid[30];
-} message_t;
+#include "commons.h"
 
 int parser_freerules(void);
 int parser_loadrules(void);

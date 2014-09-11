@@ -145,7 +145,7 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 					o=0;
 					state = LOOKING_FOR_STATS;
 				}
-				
+
 				// looking for that %@!# hidden values to keep to be able to post...
 				if (watchfor("<input type=\"hidden\" name=\"creation_time\" value=\"", input[i], &m)){
 					o=0;
@@ -157,14 +157,14 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 					state = IN_FORM_TOKEN;
 				}
 				break;
-			
+
 			case IN_CREATION_TIME:
 			case IN_FORM_TOKEN:
 				if (input[i] == '\"') {
 					buffer[o] = '\0';
 					if (state==IN_CREATION_TIME){ set_creation_time(buffer); }
 					if (state==IN_FORM_TOKEN)   { set_form_token(buffer); }
-					state = READY; 
+					state = READY;
 				}
 				else {
 					buffer[o++] = input[i];
@@ -277,7 +277,7 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 						decode_html_entities_utf8(msg->message, buffer); // strcpy-like
 					}
 
-					minichat_message(msg->username, msg->message, msg->usericonurl, msg->userprofileurl);
+					minichat_message(msg);
 					state = READY;
 				}
 
@@ -291,7 +291,7 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 
 				// check for the end of the topic line, and start of the nicklist
 				if (watchfor("<br />", input[i], &l)){ // there will be somebody
-					buffer[o++] = '\0'; 
+					buffer[o++] = '\0';
 					html_strip_tags(buffer);
 					tmp = malloc(o);
 					decode_html_entities_utf8(tmp, buffer);
@@ -315,7 +315,7 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 
 				if (watchfor("</div>", input[i], &j)){ // nobody's here.
 					o-=(unsigned int)strlen("</div>");
-					buffer[o++] = '\0'; 
+					buffer[o++] = '\0';
 					html_strip_tags(buffer);
 					tmp = malloc(o);
 					decode_html_entities_utf8(tmp, buffer);
@@ -353,7 +353,7 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 				break;
 
 			case LOOKING_FOR_USERS_IN_A:
-				if (input[i] == '>') { 
+				if (input[i] == '>') {
 					o=0;
 					state = LOOKING_FOR_USERS_IN_USERNAME;
 				}

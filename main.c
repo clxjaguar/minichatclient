@@ -111,25 +111,42 @@ char *malloc_globalise_url(const char *url){
 	}
 }
 
-void minichat_message(const char *username, const char *message, const char *usericonurl, const char *userprofileurl) {
+void minichat_message(const message_t *msg) {
 	char *p = NULL;
+	static char *know_msgid = NULL;
+
+	// compare msgid to the latest we knew
+	if (know_msgid && msg->msgid) {
+		if (strncmp(msg->msgid, know_msgid, 29) > 0) {
+			free(know_msgid);
+			know_msgid = NULL;
+		}
+	}
 
 	// display the message
-	p = mconcat4("<", username, "> ", message);
+	p = mconcat4("<", msg->username, "> ", msg->message);
 	display_conversation(p);
 	FREE(p); // mconcatN does malloc()
 
 	// and put it in the log file
-	put_timestamp(logfile); fprintf(logfile, "<%s> %s\r\n", username, message); fflush(logfile);
+	if (!(state == GET_THE_BACKLOG && know_msgid)) {
+		put_timestamp(logfile); fprintf(logfile, "<%s> %s\r\n", msg->username, msg->message); fflush(logfile);
+	}
 
 	// update nicklist things...
 	if (state != GET_THE_BACKLOG){
-		nicklist_msg_update(username, userprofileurl, usericonurl);
+		nicklist_msg_update(msg->username, msg->userprofileurl, msg->usericonurl);
 	}
 	// envoie le message vers l'eventuel client IRC connecté
-	p = nicklist_alloc_ident(userprofileurl);
-	irc_message(username, p, message);
-	FREE(p);
+	if (!(state == GET_THE_BACKLOG && know_msgid)) {
+		p = nicklist_alloc_ident(msg->userprofileurl);
+		irc_message(msg->username, p, msg->message);
+		FREE(p);
+	}
+
+	if (!know_msgid && msg->msgid) {
+		COPY(know_msgid, msg->msgid);
+	}
 }
 
 // the following routine is showing that "HTTP/1.1 200 OK" message
