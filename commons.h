@@ -11,6 +11,13 @@ typedef struct {
 	char *profileurl;
 } tnick;
 
+typedef struct {
+	char *username;
+	char *message;
+	char *usericonurl;
+	char *userprofileurl;
+	char msgid[30];
+} message_t;
 
 #define COMMONS_H
 #endif
