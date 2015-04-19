@@ -29,6 +29,9 @@
 #include "main.h" //malloc_globalise_url()
 #include "strfunctions.h"
 
+#define FREE(t);     if(t) { free(t); t=NULL; }
+#define COPY(d, s);  if(s) { FREE(d); d=malloc(strlen(s)+1); strcpy(d, s); }
+
 typedef struct t_nicklist {
 	char *nickname;
 	char *ident;
@@ -55,10 +58,10 @@ void nicklist_destroy(void) {
 	// for each elements, delete the contents then the element itself
 	while (!STAILQ_EMPTY(&head)) {
 		np = STAILQ_FIRST(&head);
-		if (np->nickname)    { free(np->nickname); }
-		if (np->profile_url) { free(np->profile_url); }
-		if (np->icon_url)    { free(np->icon_url); }
-		if (np->ident)       { free(np->ident); }
+		FREE(np->nickname);
+		FREE(np->profile_url);
+		FREE(np->icon_url);
+		FREE(np->ident);
 		STAILQ_REMOVE_HEAD(&head, next);
 		free(np);
 	}
@@ -89,18 +92,18 @@ int nicklist_get_infos_for_whois(const char *target, const char *fakehost, char 
 			else { *realname = malloc(2); strcpy(*realname, "?"); }
 			if (np->icon_url) { tmp = malloc_globalise_url(np->icon_url); }
 
-			*identinfos = mconcat6(nick, " ", np->ident?np->ident:"?", " ", fakehost, " *");
-			*servinfos = mconcat2(nick, " minichatclient.sourceforge.net");
-			*urls = mconcat4(np->nickname, np->enterednow?" [NEW]":" ", np->invisible?"[INVISIBLE] ":" ", tmp?tmp:"");
-			if (tmp) { free(tmp); tmp=NULL; }
+			*identinfos = mconcat(6, nick, " ", np->ident?np->ident:"?", " ", fakehost, " *");
+			*servinfos = mconcat(2, nick, " minichatclient.sourceforge.net");
+			*urls = mconcat(4, np->nickname, np->enterednow?" [NEW]":" ", np->invisible?"[INVISIBLE] ":" ", tmp?tmp:"");
+			FREE(tmp);
 
 			// "cLx 3009 1395564105"
 			{
 				char s1[101];
 				snprintf(s1, 100, "%ld %ld", np->lastmessage?now-np->lastmessage:now-np->added, np->added);
-				*timesinfos = mconcat3(nick, " ", s1);
+				*timesinfos = mconcat(3, nick, " ", s1);
 			}
-			free(nick);
+			FREE(nick);
 			return 1;
 		}
 	}
@@ -285,10 +288,10 @@ void nicklist_recup_end(void) {
 		 ||(!np->invisible && now-np->lastseen > 60)){
 			irc_part(np->nickname, np->ident, np->invisible?"invisible and 20mn inactive":NULL);
 			// remove nicklist element
-			if (np->nickname)    { free(np->nickname); }
-			if (np->profile_url) { free(np->profile_url); }
-			if (np->icon_url)    { free(np->icon_url); }
-			if (np->ident)       { free(np->ident); }
+			FREE(np->nickname);
+			FREE(np->profile_url);
+			FREE(np->icon_url);
+			FREE(np->ident);
 			STAILQ_REMOVE(&head, np, t_nicklist, next);
 			free(np);
 		}

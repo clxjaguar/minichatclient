@@ -717,65 +717,27 @@ char *stpcpy(char *d, const char *s) {
 }
 #endif
 
-char *mconcat2(const char *str1, const char *str2){
+#include <stdarg.h>
+char *mconcat(unsigned int strings_nbr, ...){
 	char *dest, *p;
-	dest = malloc(strlen(str1)+strlen(str2)+1);
-	if (dest) {
-		p = dest;
-		p = stpcpy(p, str1);
-		p = stpcpy(p, str2);
-	}
-	return dest;
-}
-char *mconcat3(const char *str1, const char *str2, const char *str3){
-	char *dest, *p;
-	dest = malloc(strlen(str1)+strlen(str2)+strlen(str3)+1);
-	if (dest) {
-		p = dest;
-		p = stpcpy(p, str1);
-		p = stpcpy(p, str2);
-		p = stpcpy(p, str3);
-
-	}
-	return dest;
-}
-char *mconcat4(const char *str1, const char *str2, const char *str3, const char *str4){
-	char *dest, *p;
-	dest = malloc(strlen(str1)+strlen(str2)+strlen(str3)+strlen(str4)+1);
-	if (dest) {
-		p = dest;
-		p = stpcpy(p, str1);
-		p = stpcpy(p, str2);
-		p = stpcpy(p, str3);
-		p = stpcpy(p, str4);
-	}
-	return dest;
-}
-char *mconcat5(const char *str1, const char *str2, const char *str3, const char *str4, const char *str5){
-	char *dest, *p;
-	dest = malloc(strlen(str1)+strlen(str2)+strlen(str3)+strlen(str4)+strlen(str5)+1);
-	if (dest) {
-		p = dest;
-		p = stpcpy(p, str1);
-		p = stpcpy(p, str2);
-		p = stpcpy(p, str3);
-		p = stpcpy(p, str4);
-		p = stpcpy(p, str5);
-	}
-	return dest;
-}
-char *mconcat6(const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, const char *str6){
-	char *dest, *p;
-	dest = malloc(strlen(str1)+strlen(str2)+strlen(str3)+strlen(str4)+strlen(str5)+strlen(str6)+1);
-	if (dest) {
-		p = dest;
-		p = stpcpy(p, str1);
-		p = stpcpy(p, str2);
-		p = stpcpy(p, str3);
-		p = stpcpy(p, str4);
-		p = stpcpy(p, str5);
-		p = stpcpy(p, str6);
-	}
+	unsigned int i;
+	va_list argp;
+	
+	// determine the cumulated length of the strings 
+	// (starting from one for the 'end of string')
+	size_t bytes = 1;
+	va_start(argp, strings_nbr);	
+	for(i=0; i<strings_nbr; i++){ bytes+=strlen(va_arg(argp, char *)); }
+	va_end(argp);
+	
+	// allocating a memory block of that size (so don't forget to free!)
+	dest = malloc(bytes);
+	if (!dest){ return NULL; }
+	
+	// now concatenating all the strings into one and we're done!
+	va_start(argp, strings_nbr); p = dest;
+	for(i=0; i<strings_nbr; i++){ p = stpcpy(p, va_arg(argp, char *)); }
+	va_end(argp);
 	return dest;
 }
 

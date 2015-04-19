@@ -98,10 +98,10 @@ char *malloc_globalise_url(const char *url){
 	if (!url) { return NULL; }
 	if (url[0] == '.' && url[1] == '/' && host && path) {
 		if (port && port[0] && strcmp(port, "80")) {
-			return mconcat6("http://", host, ":", port, path, &url[2]);
+			return mconcat(6, "http://", host, ":", port, path, &url[2]);
 		}
 		else {
-			return mconcat4("http://", host, path, &url[2]);
+			return mconcat(4, "http://", host, path, &url[2]);
 		}
 	}
 	else {
@@ -124,7 +124,7 @@ void minichat_message(const message_t *msg) {
 	}
 
 	// display the message
-	p = mconcat4("<", msg->username, "> ", msg->message);
+	p = mconcat(4, "<", msg->username, "> ", msg->message);
 	display_conversation(p);
 	FREE(p); // mconcatN does malloc()
 
@@ -423,7 +423,7 @@ int main(void) {
 				// première étape, on se connecte sur la page de login pour aller chercher un sid
 				// (attention, il ne va fonctionner qu'avec l'user-agent spécifié, faut plus le changer !)
 				{
-					char *req = mconcat2(path, LOGIN_PAGE);
+					char *req = mconcat(2, path, LOGIN_PAGE);
 					http_get(s, req, host, NULL, NULL, useragent, NULL);
 					FREE(req);
 				}
@@ -461,12 +461,12 @@ int main(void) {
 						break;
 					}
 
-					req = mconcat2(path, LOGIN_PAGE);
-					postdata = mconcat5("username=", username, "&password=", password, "&redirect=index.php&login=Connexion");
+					req = mconcat(2, path, LOGIN_PAGE);
+					postdata = mconcat(5, "username=", username, "&password=", password, "&redirect=index.php&login=Connexion");
 					memset(password, 0, strlen(password)); // overwrite password stored in RAM for security reasons.
 					FREE(username); FREE(password);
 
-					referer = mconcat4("http://", host, path, LOGIN_PAGE);
+					referer = mconcat(4, "http://", host, path, LOGIN_PAGE);
 					cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
 					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
@@ -488,8 +488,8 @@ int main(void) {
 				// ça, c'est pour récupérer le texte de la conversation déjà écrite comme le fait le navigateur,
 				// mais c'est aussi très important pour récupérer les éléments de formulaire 'creation_time' et 'form_token'.
 				{
-					char *req = mconcat2(path, MCHAT_PAGE);
-					char *referer = mconcat4("http://", host, path, LOGIN_PAGE);
+					char *req = mconcat(2, path, MCHAT_PAGE);
+					char *referer = mconcat(4, "http://", host, path, LOGIN_PAGE);
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0); // does the malloc
 
 					http_get(s, req, host, referer, cookiesstr, useragent, NULL);
@@ -524,9 +524,9 @@ int main(void) {
 				// ... et ça, c'est pour récupérer ce qui s'y passe !
 				// => donner l'id du dernier message reçu
 				{
-					char *req = mconcat2(path, MCHAT_PAGE);
-					char *postdata = mconcat2("mode=read&message_last_id=", msg.msgid);
-					char *referer = mconcat4("http://", host, path, MCHAT_PAGE);
+					char *req = mconcat(2, path, MCHAT_PAGE);
+					char *postdata = mconcat(2, "mode=read&message_last_id=", msg.msgid);
+					char *referer = mconcat(4, "http://", host, path, MCHAT_PAGE);
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
 					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
@@ -578,8 +578,8 @@ int main(void) {
 			case RETRIEVING_THE_LIST_OF_USERS:
 				// de temps en temps, on peut regarder qui est là.
 				{
-					char *req = mconcat2(path, MCHAT_PAGE);
-					char *referer = mconcat4("http://", host, path, MCHAT_PAGE);
+					char *req = mconcat(2, path, MCHAT_PAGE);
+					char *referer = mconcat(4, "http://", host, path, MCHAT_PAGE);
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
 					http_post(s, req, host, "mode=stats", referer, cookiesstr, useragent, NULL);
@@ -625,9 +625,9 @@ int main(void) {
 					// edit: changed to:
 					// mode=add&message=MSG&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23&creation_time=1403343659&form_token=6b47dbcb2931a7b070f7a55ba7479fbd66faf1cb
 
-					req = mconcat2(path, MCHAT_PAGE);
-					postdata = mconcat6("mode=add&message=", tmp, "&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23&creation_time=", get_creation_time(), "&form_token=", get_form_token());
-					referer = mconcat4("http://", host, path, MCHAT_PAGE);
+					req = mconcat(2, path, MCHAT_PAGE);
+					postdata = mconcat(6, "mode=add&message=", tmp, "&helpbox=Tip%3A+Styles+can+be+applied+quickly+to+selected+text.&addbbcode20=100&addbbcode_custom=%23&creation_time=", get_creation_time(), "&form_token=", get_form_token());
+					referer = mconcat(4, "http://", host, path, MCHAT_PAGE);
 					storecookie(cookies, "mChatShowUserList", "yes");
 					cookiesstr = generate_cookies_string(cookies, NULL, 0);
 

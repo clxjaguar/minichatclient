@@ -26,52 +26,52 @@ clean: clean-custom
 $(BIN): $(OBJ)
 	$(CC) $(LINKOBJ) -o "mchatclient.exe" $(LIBS)
 
-cookies.o: cookies.c
+cookies.o: cookies.c C:/Dev-Cpp/include/stdio.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdarg.h C:/Dev-Cpp/include/sys/types.h   C:/Dev-Cpp/include/stdlib.h C:/Dev-Cpp/include/string.h cookies.h   display_interfaces.h
 	$(CC) -c cookies.c -o cookies.o $(CFLAGS)
 
-network.o: network.c
+network.o: network.c C:/Dev-Cpp/include/stdio.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdarg.h C:/Dev-Cpp/include/sys/types.h   C:/Dev-Cpp/include/stdlib.h C:/Dev-Cpp/include/string.h   display_interfaces.h network.h C:/Dev-Cpp/include/winsock2.h   C:/Dev-Cpp/include/ws2tcpip.h
 	$(CC) -c network.c -o network.o $(CFLAGS)
 
-parsehtml.o: parsehtml.c
+parsehtml.o: parsehtml.c C:/Dev-Cpp/include/stdio.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdarg.h C:/Dev-Cpp/include/sys/types.h   C:/Dev-Cpp/include/stdlib.h C:/Dev-Cpp/include/string.h entities.h   parsehtml.h commons.h nicklist.h parser.h CUtils/clist.h   display_interfaces.h cookies.h main.h strfunctions.h
 	$(CC) -c parsehtml.c -o parsehtml.o $(CFLAGS)
 
-entities.o: entities.c
+entities.o: entities.c entities.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/errno.h C:/Dev-Cpp/include/_mingw.h   C:/Dev-Cpp/include/string.h C:/Dev-Cpp/include/stdlib.h
 	$(CC) -c entities.c -o entities.o $(CFLAGS)
 
-conf.o: conf.c
+conf.o: conf.c C:/Dev-Cpp/include/stdlib.h C:/Dev-Cpp/include/_mingw.h   C:/Dev-Cpp/include/stddef.h C:/Dev-Cpp/include/stdio.h   C:/Dev-Cpp/include/stdarg.h C:/Dev-Cpp/include/sys/types.h   C:/Dev-Cpp/include/string.h display_interfaces.h
 	$(CC) -c conf.c -o conf.o $(CFLAGS)
 
-parser.o: parser.c
+parser.o: parser.c C:/Dev-Cpp/include/stdlib.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdio.h C:/Dev-Cpp/include/stdarg.h   C:/Dev-Cpp/include/sys/types.h C:/Dev-Cpp/include/string.h   CUtils/cstring.h CUtils/clist.h CUtils/clist.h parser.h CUtils/ini.h   CUtils/attribute.h
 	$(CC) -c parser.c -o parser.o $(CFLAGS)
 
-main.o: main.c
+main.o: main.c C:/Dev-Cpp/include/stdio.h C:/Dev-Cpp/include/_mingw.h   C:/Dev-Cpp/include/stddef.h C:/Dev-Cpp/include/stdarg.h   C:/Dev-Cpp/include/sys/types.h C:/Dev-Cpp/include/stdlib.h   C:/Dev-Cpp/include/unistd.h C:/Dev-Cpp/include/io.h   C:/Dev-Cpp/include/stdint.h C:/Dev-Cpp/include/process.h   C:/Dev-Cpp/include/getopt.h C:/Dev-Cpp/include/string.h   C:/Dev-Cpp/include/time.h C:/Dev-Cpp/include/winsock2.h main.h   commons.h entities.h cookies.h network.h parsehtml.h conf.h nicklist.h   display_interfaces.h strfunctions.h ircserver.h
 	$(CC) -c main.c -o main.o $(CFLAGS)
 
-strfunctions.o: strfunctions.c
+strfunctions.o: strfunctions.c strfunctions.h C:/Dev-Cpp/include/stdio.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdarg.h C:/Dev-Cpp/include/sys/types.h   C:/Dev-Cpp/include/stdlib.h C:/Dev-Cpp/include/string.h
 	$(CC) -c strfunctions.c -o strfunctions.o $(CFLAGS)
 
-CUtils/net.o: CUtils/net.c
+CUtils/net.o: CUtils/net.c C:/Dev-Cpp/include/stdio.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdarg.h C:/Dev-Cpp/include/sys/types.h   C:/Dev-Cpp/include/stdlib.h C:/Dev-Cpp/include/unistd.h   C:/Dev-Cpp/include/io.h C:/Dev-Cpp/include/stdint.h   C:/Dev-Cpp/include/process.h C:/Dev-Cpp/include/getopt.h   C:/Dev-Cpp/include/errno.h C:/Dev-Cpp/include/string.h   C:/Dev-Cpp/include/signal.h C:/Dev-Cpp/include/fcntl.h   C:/Dev-Cpp/include/winsock2.h C:/Dev-Cpp/include/ws2tcpip.h   CUtils/net.h CUtils/cstring.h CUtils/clist.h
 	$(CC) -c CUtils/net.c -o CUtils/net.o $(CFLAGS)
 
-CUtils/attribute.o: CUtils/attribute.c
+CUtils/attribute.o: CUtils/attribute.c C:/Dev-Cpp/include/stdlib.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdio.h C:/Dev-Cpp/include/stdarg.h   C:/Dev-Cpp/include/sys/types.h C:/Dev-Cpp/include/string.h   CUtils/clist.h CUtils/attribute.h
 	$(CC) -c CUtils/attribute.c -o CUtils/attribute.o $(CFLAGS)
 
-CUtils/clist.o: CUtils/clist.c
+CUtils/clist.o: CUtils/clist.c C:/Dev-Cpp/include/stdlib.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdio.h C:/Dev-Cpp/include/stdarg.h   C:/Dev-Cpp/include/sys/types.h C:/Dev-Cpp/include/string.h   CUtils/clist.h
 	$(CC) -c CUtils/clist.c -o CUtils/clist.o $(CFLAGS)
 
-CUtils/cstring.o: CUtils/cstring.c
+CUtils/cstring.o: CUtils/cstring.c C:/Dev-Cpp/include/stdlib.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdio.h C:/Dev-Cpp/include/stdarg.h   C:/Dev-Cpp/include/sys/types.h C:/Dev-Cpp/include/string.h   C:/Dev-Cpp/include/math.h CUtils/cstring.h CUtils/clist.h CUtils/net.h
 	$(CC) -c CUtils/cstring.c -o CUtils/cstring.o $(CFLAGS)
 
-CUtils/ini.o: CUtils/ini.c
+CUtils/ini.o: CUtils/ini.c C:/Dev-Cpp/include/stdlib.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdio.h C:/Dev-Cpp/include/stdarg.h   C:/Dev-Cpp/include/sys/types.h C:/Dev-Cpp/include/string.h CUtils/ini.h   CUtils/attribute.h CUtils/clist.h CUtils/cstring.h
 	$(CC) -c CUtils/ini.c -o CUtils/ini.o $(CFLAGS)
 
-gotcurses.o: gotcurses.c
+gotcurses.o: gotcurses.c C:/Dev-Cpp/include/curses.h   C:/Dev-Cpp/include/stdarg.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdio.h C:/Dev-Cpp/include/_mingw.h   C:/Dev-Cpp/include/sys/types.h C:/Dev-Cpp/include/stdlib.h   C:/Dev-Cpp/include/string.h display_interfaces.h commons.h   strfunctions.h conf.h nicklist.h main.h
 	$(CC) -c gotcurses.c -o gotcurses.o $(CFLAGS)
 
-nicklist.o: nicklist.c
+nicklist.o: nicklist.c C:/Dev-Cpp/include/time.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/string.h C:/Dev-Cpp/include/stdio.h   C:/Dev-Cpp/include/stdarg.h C:/Dev-Cpp/include/sys/types.h   C:/Dev-Cpp/include/stdlib.h queue.h nicklist.h display_interfaces.h   ircserver.h main.h commons.h strfunctions.h
 	$(CC) -c nicklist.c -o nicklist.o $(CFLAGS)
 
-ircserver.o: ircserver.c
+ircserver.o: ircserver.c C:/Dev-Cpp/include/stdio.h   C:/Dev-Cpp/include/_mingw.h C:/Dev-Cpp/include/stddef.h   C:/Dev-Cpp/include/stdarg.h C:/Dev-Cpp/include/sys/types.h   C:/Dev-Cpp/include/stdlib.h C:/Dev-Cpp/include/unistd.h   C:/Dev-Cpp/include/io.h C:/Dev-Cpp/include/stdint.h   C:/Dev-Cpp/include/process.h C:/Dev-Cpp/include/getopt.h   C:/Dev-Cpp/include/errno.h C:/Dev-Cpp/include/string.h   C:/Dev-Cpp/include/signal.h C:/Dev-Cpp/include/fcntl.h   C:/Dev-Cpp/include/time.h ircserver.h nicklist.h display_interfaces.h   strfunctions.h C:/Dev-Cpp/include/winsock2.h   C:/Dev-Cpp/include/ws2tcpip.h
 	$(CC) -c ircserver.c -o ircserver.o $(CFLAGS)
 
 project_private.res: project_private.rc 
