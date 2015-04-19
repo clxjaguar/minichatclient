@@ -8,12 +8,7 @@ unsigned int transliterate_cp850_to_ucs(unsigned char cp850_codepoint);
 unsigned char transliterate_ucs_to_iso88591(unsigned int ucs_codepoint);
 unsigned int transliterate_iso88591_to_ucs(unsigned char iso_codepoint);
 
-char *mconcat2(const char *str1, const char *str2);
-char *mconcat3(const char *str1, const char *str2, const char *str3);
-char *mconcat4(const char *str1, const char *str2, const char *str3, const char *str4);
-char *mconcat5(const char *str1, const char *str2, const char *str3, const char *str4, const char *str5);
-char *mconcat6(const char *str1, const char *str2, const char *str3, const char *str4, const char *str5, const char *str6);
-
+char *mconcat(unsigned int strings_nbr, ...);
 int html_strip_tags(char *txt);
 
 #if defined (WIN32) 
