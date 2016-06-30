@@ -5,7 +5,6 @@
 // linker (avec pdcurses-3.2-1mol.DevPak d'installé dans dev-c++ dans cet exemple).
 
 // Licence: Au cas où ça se révélerait indispensable, la GPL ? ou alors CC-BY-NC ?
-// Garantie: Aucune. Timmy, si quelqu'un crashe ton serveur avec ce truc, c'est pas notre faute ! ^^
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,9 +13,9 @@
 #include <time.h>
 
 #ifdef WIN32
-	#include <winsock2.h>
+	//#include <winsock2.h>
 #else
-	#include <sys/socket.h>
+	//#include <sys/socket.h>
 	#define Sleep(s) usleep(s*1000)
 	#define closesocket(s); close(s);
 #endif
@@ -280,6 +279,7 @@ int main(void) {
 	unsigned int nberr = 0;
 	unsigned int wait_time = 40; // 10s
 	unsigned int wait_time_maxi, wait_time_mini, wait_time_awake;
+	int use_ssl=0;
 
 	tstate oldstate=-1;
 	char *useragent = NULL;
@@ -311,16 +311,17 @@ int main(void) {
 		return -1;
 	}
 
-	ws_init();
-
 	/* reading configuration file */
 	host            =               read_conf_string("host",      host,      0);
 	port            =               read_conf_string("port",      port,      0);
+	use_ssl         =               read_conf_int   ("use_ssl",              0);
 	path            =               read_conf_string("path",      path,      0);
 	useragent       =               read_conf_string("useragent", useragent, 0);
 	wait_time_maxi  = (unsigned int)read_conf_int   ("wait_time_maxi",       15) * (1000/WAITING_TIME_GRANOLOSITY);
 	wait_time_mini  = (unsigned int)read_conf_int   ("wait_time_mini",       5)  * (1000/WAITING_TIME_GRANOLOSITY);
 	wait_time_awake = (unsigned int)read_conf_int   ("wait_time_awake",      3)  * (1000/WAITING_TIME_GRANOLOSITY);
+
+	network_init(use_ssl);
 
 	{
 		char buf2show[200];
@@ -332,7 +333,7 @@ int main(void) {
 		display_debug("Error: Server informations missing. Please edit your mchatclient.conf file !", 0);
 		display_waitforchar("Press any key to quit");
 		fclose(logfile);
-		ws_cleanup();
+		network_cleanup();
 		display_end();
 		return -1;
 	}
@@ -392,7 +393,7 @@ int main(void) {
 		    (state != WAIT_RETRIEVING_THE_LIST_OF_USERS) &&
 		    (state != WAIT_POSTING_A_MESSAGE)) {
 
-			s = maketcpconnexion(host, port);
+			s = maketcpconnexion(host, port, use_ssl);
 			if (!s) {
 				nberr++;
 				if (nberr == 5) {
@@ -424,11 +425,12 @@ int main(void) {
 				// (attention, il ne va fonctionner qu'avec l'user-agent spécifié, faut plus le changer !)
 				{
 					char *req = mconcat(2, path, LOGIN_PAGE);
-					http_get(s, req, host, NULL, NULL, useragent, NULL);
+					http_get(s, use_ssl, req, host, NULL, NULL, useragent, NULL);
 					FREE(req);
 				}
 				k=1;
-				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+				while ((bytes=network_recv(s, use_ssl, buf, sizeof(buf), 0)) > 0) {
+					//display_conversation(buf);
 					if(k) {
 						check_http_response(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
@@ -469,11 +471,11 @@ int main(void) {
 					referer = mconcat(4, "http://", host, path, LOGIN_PAGE);
 					cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
-					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
+					http_post(s, use_ssl, req, host, postdata, referer, cookiesstr, useragent, NULL);
 					FREE(req); FREE(postdata); FREE(referer); FREE(cookiesstr);
 				}
 				k=1;
-				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+				while ((bytes=network_recv(s, use_ssl, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
 						check_http_response(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
@@ -492,11 +494,11 @@ int main(void) {
 					char *referer = mconcat(4, "http://", host, path, LOGIN_PAGE);
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0); // does the malloc
 
-					http_get(s, req, host, referer, cookiesstr, useragent, NULL);
+					http_get(s, use_ssl, req, host, referer, cookiesstr, useragent, NULL);
 					FREE(req); FREE(referer); FREE(cookiesstr);
 				}
-				k=1;
-				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+				k=1; response=0;
+				while ((bytes=network_recv(s, use_ssl, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
 						response = check_http_response(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
@@ -529,14 +531,14 @@ int main(void) {
 					char *referer = mconcat(4, "http://", host, path, MCHAT_PAGE);
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
-					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
+					http_post(s, use_ssl, req, host, postdata, referer, cookiesstr, useragent, NULL);
 					FREE(req); FREE(postdata); FREE(referer); FREE(cookiesstr);
 				}
 				{
 					unsigned int nbmessages = 0, old_wait_time;
 
 					k=1;
-					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+					while ((bytes=network_recv(s, use_ssl, buf, sizeof(buf), 0)) > 0) {
 						if(k) {
 							response = check_http_response(buf, bytes);
 							parsehttpheadersforgettingcookies(cookies, buf, bytes);
@@ -582,12 +584,12 @@ int main(void) {
 					char *referer = mconcat(4, "http://", host, path, MCHAT_PAGE);
 					char *cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
-					http_post(s, req, host, "mode=stats", referer, cookiesstr, useragent, NULL);
+					http_post(s, use_ssl, req, host, "mode=stats", referer, cookiesstr, useragent, NULL);
 					FREE(req); FREE(referer); FREE(cookiesstr);
 				}
 				k=1;
 				{
-					while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+					while ((bytes=network_recv(s, use_ssl, buf, sizeof(buf), 0)) > 0) {
 						if(k) {
 							check_http_response(buf, bytes);
 							parsehttpheadersforgettingcookies(cookies, buf, bytes);
@@ -631,11 +633,11 @@ int main(void) {
 					storecookie(cookies, "mChatShowUserList", "yes");
 					cookiesstr = generate_cookies_string(cookies, NULL, 0);
 
-					http_post(s, req, host, postdata, referer, cookiesstr, useragent, NULL);
+					http_post(s, use_ssl, req, host, postdata, referer, cookiesstr, useragent, NULL);
 					FREE(req); FREE(referer); FREE(postdata); FREE(cookiesstr); FREE(tmp);
 				}
 				k=1;
-				while ((bytes=recv(s, buf, sizeof(buf), 0)) > 0) {
+				while ((bytes=network_recv(s, use_ssl, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
 						response = check_http_response(buf, bytes); // TODO: buf should be zero terminated!
 						//   0 : OK (was 200 in fact)
@@ -706,7 +708,7 @@ int main(void) {
 					const char anim[4] = {'\\', '-', '/', '|'};
 					char buf2show[15];
 					t--;
-					snprintf(buf2show, 15, "\b\b\b\b\b\b%3us %c", (unsigned int)(t/(1000/WAITING_TIME_GRANOLOSITY)), anim[t%4]); 
+					snprintf(buf2show, 15, "\b\b\b\b\b\b%3us %c", (unsigned int)(t/(1000/WAITING_TIME_GRANOLOSITY)), anim[t%4]);
 					display_debug(buf2show, 1);
 				}}
 				else { // temps d'attente termine
@@ -729,7 +731,7 @@ int main(void) {
 				if (!outgoingmsg) { outgoingmsg = irc_driver(); }
 
 				// if we have something to send, we change the state of the state machine.
-				if (outgoingmsg && state>=WAIT_WATCHING_NEW_MESSAGES && state!=WAIT_POSTING_A_MESSAGE) { 
+				if (outgoingmsg && state>=WAIT_WATCHING_NEW_MESSAGES && state!=WAIT_POSTING_A_MESSAGE) {
 					state = POSTING_A_MESSAGE;
 				}
 				oldstate = state; // this is important to know when reset the waiting time.
@@ -747,7 +749,7 @@ int main(void) {
 	irc_destroy();
 	freecookies(cookies);
 	fclose(logfile);
-	ws_cleanup();
+	network_cleanup();
 	FREE(host); FREE(port); FREE(path); FREE(useragent);
 	display_end();
 	return 0;
