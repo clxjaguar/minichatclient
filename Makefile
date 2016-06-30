@@ -3,7 +3,7 @@
 ###
 ### If CROSS is x86, we will cross-compile to target x86 (from AMD64)
 ### I.E.: "make all CROSS=x86"
-### 
+###
 ### If OUT is curses,  we will use curses (ISO transliteration only)
 ### If OUT is cursesw, we will use cursesw (widechar support, able to support UTF-8 terminals). this is default.
 ### If OUT is text,    we will use pure text mode -- stdin/stdout/stderr
@@ -15,6 +15,8 @@
 ifeq ($(CRASH_NO_NICK), 1)
 	CFLAGS += -DCRASH_NO_NICK
 endif
+
+LDFLAGS += -lssl -lcrypto
 
 ### Special code for interface mode (ncurses(w) or pure text)
 ifeq ($(OUT), curses)
