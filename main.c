@@ -1,10 +1,28 @@
-// Ce truc est une sorte de client http afin de servir de passerelle vers le minichat rmcgirr83.org pour phpbb.
-// Rha, Mais pourquoi toujours utiliser les trucs les moins compatibles possibles ? Parce que c'est 'web'.
-//
-// Avec gcc sous windows, il faut passer -lws2_32 et "c:\Dev-Cpp\lib\libcurses.a" au
-// linker (avec pdcurses-3.2-1mol.DevPak d'installé dans dev-c++ dans cet exemple).
+/*
+ Ce truc est une sorte de client http afin de servir de passerelle vers 
+ le minichat rmcgirr83.org pour phpbb. Rha, Mais pourquoi toujours utiliser 
+ les trucs les moins compatibles possibles ? Parce que c'est 'web'.
 
-// Licence: Au cas où ça se révélerait indispensable, la GPL ? ou alors CC-BY-NC ?
+ Avec gcc sous windows, il faut passer au linker :
+ -lws2_32 -lssl -lcrypto -lws2_32 -lcurses "C:\Dev-Cpp\lib\libgdi32.a"
+
+ DevPacks: openssl-0.9.8-1cm.DevPak
+           pdcurses-3.2-1mol.DevPak
+           
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,9 +31,8 @@
 #include <time.h>
 
 #ifdef WIN32
-	//#include <winsock2.h>
+	#include <windows.h>
 #else
-	//#include <sys/socket.h>
 	#define Sleep(s) usleep(s*1000)
 	#define closesocket(s); close(s);
 #endif

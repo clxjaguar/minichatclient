@@ -13,7 +13,7 @@
 // apt-get install libssl-dev
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-const SSL_METHOD *method;
+SSL_METHOD *method;
 SSL_CTX *ctx;
 SSL *ssl;
 
