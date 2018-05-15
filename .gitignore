@@ -1,3 +1,5 @@
 *.o
 mchatclient
+mchatclient.exe
 mchatclient.conf
+output.log
