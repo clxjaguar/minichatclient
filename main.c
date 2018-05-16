@@ -1,6 +1,6 @@
 /*
- Ce truc est une sorte de client http afin de servir de passerelle vers 
- le minichat rmcgirr83.org pour phpbb. Rha, Mais pourquoi toujours utiliser 
+ Ce truc est une sorte de client http afin de servir de passerelle vers
+ le minichat rmcgirr83.org pour phpbb. Rha, Mais pourquoi toujours utiliser
  les trucs les moins compatibles possibles ? Parce que c'est 'web'.
 
  Avec gcc sous windows, il faut passer au linker :
@@ -8,7 +8,7 @@
 
  DevPacks: openssl-0.9.8-1cm.DevPak
            pdcurses-3.2-1mol.DevPak
-           
+
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@
 #define MCHAT_PAGE "mchat.php"
 
 // have to be large enough to contain the http headers
-#define BUFSIZE 800
+#define BUFSIZE 8000
 
 #define FREE(x) if (x) { free(x); x=NULL; }
 #define COPY(x, y) if (x) { free(x); } x = malloc(strlen(y)+1); if (x) { strcpy(x, y); }
@@ -193,7 +193,7 @@ int check_http_response(char *buf, ssize_t bytes){
 			return -1;
 
 		case 200:
-			return 0; // no error
+			return 200; // no error
 
 		case 403:
 			display_debug(" [Do not want]", 1);
@@ -391,12 +391,6 @@ int main(void) {
 		FREE(channel_name);
 	}
 
-	//{ // do a little pause
-	//	unsigned int i;
-	//	for (i=0; i<1200; i+=WAITING_TIME_GRANOLOSITY){ display_driver(); }
-	//}
-
-
 	wait_time = 2500/WAITING_TIME_GRANOLOSITY;
 	state = WAIT_LOADING_LOGIN_PAGE;
 
@@ -449,6 +443,7 @@ int main(void) {
 				while ((bytes=network_recv(s, use_ssl, buf, sizeof(buf), 0)) > 0) {
 					//display_conversation(buf);
 					if(k) {
+						//display_conversation(buf);
 						check_http_response(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
@@ -491,14 +486,15 @@ int main(void) {
 					http_post(s, use_ssl, req, host, postdata, referer, cookiesstr, useragent, NULL);
 					FREE(req); FREE(postdata); FREE(referer); FREE(cookiesstr);
 				}
-				k=1;
+				k=1; response=0;
 				while ((bytes=network_recv(s, use_ssl, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
-						check_http_response(buf, bytes);
+						response = check_http_response(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
 					k=0;
 				}
+				if (!response) { display_debug("No response at auth time. This is not normal.", 0); }
 				wait_time = 1000/WAITING_TIME_GRANOLOSITY;
 				state = WAIT_GET_THE_BACKLOG;
 				break;
@@ -523,6 +519,7 @@ int main(void) {
 					parse_minichat_mess(buf, bytes, &msg, k);
 					k=0;
 				}
+				if (!response) { display_debug("No response. This is not normal.", 0); }
 				if (response == 403){ // error ? retry.
 					wait_time = 5000/WAITING_TIME_GRANOLOSITY;
 					state = WAIT_LOADING_LOGIN_PAGE;
@@ -657,13 +654,13 @@ int main(void) {
 				while ((bytes=network_recv(s, use_ssl, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
 						response = check_http_response(buf, bytes); // TODO: buf should be zero terminated!
-						//   0 : OK (was 200 in fact)
+						// 200 : OK (was 200 in fact)
 						// 400 : Posted another line too fast, wait a bit.
 						// 403 : Happen when i'm logged in for too long...
 						// 501 : When sending strange characters like ISO-8859-1 accents and not UTF-8!
 						//  -1 : No error code. Do not try to read the first line of buf.
 
-						if (response) { // got error?
+						if (response!=200) { // got error?
 							if (outgoingmsgretry++<2){ // retrying...
 								if (response == 400) {
 									irc_message("RETRYING_TO_SEND", "minichatclient.sourceforge.net", buf);
