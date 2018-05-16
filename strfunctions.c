@@ -710,7 +710,7 @@ unsigned int transliterate_iso88591_to_ucs(unsigned char iso_codepoint){
 	// (<51c6f8bb$0$2577$426a34cc@news.free.fr>)
 */
 
-#if defined (WIN32) 
+#if defined (WIN32)
 char *stpcpy(char *d, const char *s) {
 	while((*d++ = *s++));
 	return d-1;
@@ -722,18 +722,18 @@ char *mconcat(unsigned int strings_nbr, ...){
 	char *dest, *p;
 	unsigned int i;
 	va_list argp;
-	
-	// determine the cumulated length of the strings 
+
+	// determine the cumulated length of the strings
 	// (starting from one for the 'end of string')
 	size_t bytes = 1;
-	va_start(argp, strings_nbr);	
+	va_start(argp, strings_nbr);
 	for(i=0; i<strings_nbr; i++){ bytes+=strlen(va_arg(argp, char *)); }
 	va_end(argp);
-	
+
 	// allocating a memory block of that size (so don't forget to free!)
 	dest = malloc(bytes);
 	if (!dest){ return NULL; }
-	
+
 	// now concatenating all the strings into one and we're done!
 	va_start(argp, strings_nbr); p = dest;
 	for(i=0; i<strings_nbr; i++){ p = stpcpy(p, va_arg(argp, char *)); }
@@ -750,7 +750,7 @@ int html_strip_tags(char *txt){
 		else if (!intag) {
 			*(o++)=*i;
 		}
-		i++;	
+		i++;
 	}
 	*o='\0';
 	return 0;
