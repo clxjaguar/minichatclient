@@ -264,7 +264,6 @@ int install_sighandlers(void){
 	signal(SIGUSR1, sigkilled);
 	signal(SIGTERM, sigkilled);
 	signal(SIGINT, sigkilled);
-	//signal(SIGSEGV, sigkilled); //segfault!
 	signal(SIGQUIT, sigkilled);
 	signal(SIGABRT, sigkilled);
 	return 0;
@@ -310,8 +309,6 @@ int main(void) {
 	display_init();
 	install_sighandlers();
 	nicklist_init();
-	//exit_requested = 0;
-	//poll_requested = 0;
 
 	display_conversation(
 	  "********************************************\n"
@@ -441,9 +438,7 @@ int main(void) {
 				}
 				k=1;
 				while ((bytes=network_recv(s, use_ssl, buf, sizeof(buf), 0)) > 0) {
-					//display_conversation(buf);
 					if(k) {
-						//display_conversation(buf);
 						check_http_response(buf, bytes);
 						parsehttpheadersforgettingcookies(cookies, buf, bytes);
 					}
@@ -654,7 +649,7 @@ int main(void) {
 				while ((bytes=network_recv(s, use_ssl, buf, sizeof(buf), 0)) > 0) {
 					if(k) {
 						response = check_http_response(buf, bytes); // TODO: buf should be zero terminated!
-						// 200 : OK (was 200 in fact)
+						// 200 : OK
 						// 400 : Posted another line too fast, wait a bit.
 						// 403 : Happen when i'm logged in for too long...
 						// 501 : When sending strange characters like ISO-8859-1 accents and not UTF-8!
