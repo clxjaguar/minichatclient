@@ -42,6 +42,7 @@
 #include "cookies.h"
 #include "network.h"
 #include "parsehtml.h"
+#include "botmsgsreplacement.h"
 #include "conf.h"
 #include "nicklist.h" //nicklist_msg_update(), nicklist_init(), nicklist_destroy()
 #include "commons.h"
@@ -336,6 +337,7 @@ int main(void) {
 	wait_time_awake = (unsigned int)read_conf_int   ("wait_time_awake",      3)  * (1000/WAITING_TIME_GRANOLOSITY);
 
 	network_init(use_ssl);
+	botmsgsreplacement_init();
 
 	{
 		char buf2show[200];
@@ -756,6 +758,7 @@ int main(void) {
 	parse_minichat_mess(NULL, 0, &msg, 1);
 	nicklist_destroy();
 	irc_destroy();
+	botmsgsreplacement_destroy();
 	freecookies(cookies);
 	fclose(logfile);
 	network_cleanup();
