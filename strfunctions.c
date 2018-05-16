@@ -741,6 +741,13 @@ char *mconcat(unsigned int strings_nbr, ...){
 	return dest;
 }
 
+char *supersede(char **p_old, char *p_new, int opts) {
+	if (!p_new) { return *p_old; }
+	if (opts&FREE_OLD_POINTER && p_old != NULL && *p_old != NULL) { free(*p_old); }
+	if (!(opts&DONT_REPLACE_OLD_POINTER)) { *p_old = p_new; }
+	return p_new;
+}
+
 int html_strip_tags(char *txt){
 	int intag=0; char *i, *o;
 	i=txt; o=txt;

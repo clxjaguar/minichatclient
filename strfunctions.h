@@ -11,6 +11,10 @@ unsigned int transliterate_iso88591_to_ucs(unsigned char iso_codepoint);
 char *mconcat(unsigned int strings_nbr, ...);
 int html_strip_tags(char *txt);
 
-#if defined (WIN32) 
+#if defined (WIN32)
 char *stpcpy(char *d, const char *s);
 #endif
+
+#define FREE_OLD_POINTER 1
+#define DONT_REPLACE_OLD_POINTER 2
+char *supersede(char **p_old, char *p_new, int opts);
