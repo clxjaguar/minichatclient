@@ -96,7 +96,6 @@ void ssl_print_certificate(SSL *pssl){
 	}
 
 	// Extract various certificate information
-	//certname = X509_NAME_new();
 	certname = X509_get_subject_name(cert);
 	X509_NAME_oneline(certname, buf, 1000);
 	display_debug(buf, 1);
@@ -140,6 +139,12 @@ int maketcpconnexion(const char* hostname, const char *service, int use_ssl){
 		}
 		freeaddrinfo(res);
 		if (!use_ssl) { return sockfd6; }
+
+		// Reset ssl to allow another connection. All settings (method, ciphers, BIOs) are kept.
+		// If forgotten, using SSL_read() or SSL_write() on news connections may fail!
+		if (!SSL_clear(ssl)) {
+			display_debug("Warning: The SSL_clear() operation could not be performed. ", 0);
+		}
 
 		// Attach the SSL session to the socket descriptor
 		SSL_set_fd(ssl, sockfd6);
@@ -199,19 +204,40 @@ char *get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen){
 
 
 ssize_t network_recv(int s, int use_ssl, void *buf, size_t len, int flags){
+	ssize_t ret;
+	int err;
 	if (!use_ssl) {
 		return recv(s, buf, len, flags);
 	}
-	return SSL_read(ssl, buf, len);
-	return -1;
+	memset(buf, 0, len);
+	ret = SSL_read(ssl, buf, len);
+	if (ret<=0) {
+		err = SSL_get_error(ssl, ret);
+		if (err != SSL_ERROR_ZERO_RETURN) {
+			display_debug("network_recv() failed!", 0);
+		}
+	}
+	return ret;
 }
 
 ssize_t network_send(int s, int use_ssl, const void *buf, size_t len, int flags){
+	ssize_t ret;
+	int err;
+	if(len<=0) { display_debug("network_send() with len=0!", 0); }
 	if (!use_ssl) {
 		return send(s, buf, len, flags);
 	}
-	return SSL_write(ssl, buf, len);
-	return -1;
+	ret = SSL_write(ssl, buf, len);
+	if (ret<=0) {
+		err = SSL_get_error(ssl, ret);
+		if (err == SSL_ERROR_ZERO_RETURN) {
+			display_debug("network_send() : connection terminated by the server", 0);
+		}
+		else {
+			display_debug("network_send() failed!", 0);
+		}
+	}
+	return ret;
 }
 
 
@@ -219,7 +245,7 @@ int sendstr(int s, int use_ssl, const char* buf){
 #ifdef DEBUG
 	fprintf(stderr, "%s", buf);
 #endif
-	network_send(s, use_ssl, buf, strlen(buf), 0);
+	if (strlen(buf)) { network_send(s, use_ssl, buf, strlen(buf), 0); }
 	return 0;
 }
 
@@ -227,14 +253,13 @@ int sendline(int s, int use_ssl, const char* buf){
 #ifdef DEBUG
 	fprintf(stderr, "%s\n", buf);
 #endif
-	network_send(s, use_ssl, buf, strlen(buf), 0);
+	if (strlen(buf)) { network_send(s, use_ssl, buf, strlen(buf), 0); }
 	network_send(s, use_ssl, "\r\n", 2, 0);
 	return 0;
 }
 
 int http_get(int s, int use_ssl, const char* req, const char* host, const char* referer, const char* cookies, const char* useragent, const char* mischeaders){
 	char buf[200];
-	//snprintf(buf, 200, "GET http://%s%s%s", host, req[0]=='/'?"":"/", req);
 	snprintf(buf, 200, "GET %s%s", req[0]=='/'?"":"/", req);
 	display_debug(buf, 0);
 
@@ -250,7 +275,7 @@ int http_get(int s, int use_ssl, const char* req, const char* host, const char* 
 		sendline(s, use_ssl, useragent);
 	}
 	sendline(s, use_ssl, "Connection: close");
-	//sendline(s, use_ssl, "Connection: Keep-Alive");
+
 	if (referer) {
 		sendstr(s, use_ssl, "Referer: ");
 		sendline(s, use_ssl, referer);
@@ -266,7 +291,6 @@ int http_get(int s, int use_ssl, const char* req, const char* host, const char* 
 
 int http_post(int s, int use_ssl, const char* req, const char* host, const char* datas, const char* referer, const char* cookies, const char* useragent, const char* mischeaders){
 	char buf[200];
-	//snprintf(buf, 200, "POST http://%s%s%s|%s", host, req[0]=='/'?"":"/", req, datas);
 	snprintf(buf, 200, "POST %s%s %s", req[0]=='/'?"":"/", req, datas);
 	display_debug(buf, 0);
 
@@ -282,7 +306,7 @@ int http_post(int s, int use_ssl, const char* req, const char* host, const char*
 		sendline(s, use_ssl, useragent);
 	}
 	sendline(s, use_ssl, "Connection: close");
-	//sendline(s, use_ssl, "Connection: Keep-Alive");
+
 	if (referer) {
 		sendstr(s, use_ssl, "Referer: ");
 		sendline(s, use_ssl, referer);
