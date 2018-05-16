@@ -3,7 +3,7 @@
   Author:             cLx - Surtout ne pas toucher si vous voulez pas mettre tout cela en panne !
   Date:               13/04/11
                       15/02/14
-  Description:        Extrait des pages HTML de mchat.php les messages et autres infos associ�es
+  Description:        Extrait des pages HTML de mchat.php les messages et autres infos associées
   Fonction a appeler: parse_minichat_mess(char *input, unsigned int bytes);
   Copyright:          cc-by-nc 2011
 
@@ -21,6 +21,7 @@
 #include "cookies.h"
 #include "main.h"
 #include "strfunctions.h"
+#include "botmsgsreplacement.h"
 
 typedef enum {
 	READY=0,
@@ -45,7 +46,8 @@ typedef enum {
 
 parser_config *config = NULL;
 
-#define FREE(p); if (p != NULL) { free(p); p = NULL; }
+#define FREE(x); if (x != NULL) { free(x); x = NULL; }
+#define COPY(x, y) if (x) { free(x); } x = malloc(strlen(y)+1); if (x) { strcpy(x, y); }
 //#define DEBUG
 
 int parser_freerules(void){
@@ -262,21 +264,21 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 				if (watchfor("</div>", input[i], &j)){
 					o-=(unsigned int)strlen("</div>");
 					buffer[o] = '\0';
-					FREE(msg->message);
+					COPY(msg->message, buffer);
+
+					// replace the eventual bot message and nickname
+					botmsgsreplacement_proceed(msg);
 
 					// si le parseur de niki est activé, on l'utilise
-					tmp = NULL;
-					if (config){ tmp = parse_html_in_message(buffer, config); }
-					if (tmp){
-						msg->message = malloc(strlen(tmp)+1);
-						decode_html_entities_utf8(msg->message, tmp); //strcpy-like
-						free(tmp);
-					}
-					else {
-						msg->message = malloc((o+1));
-						decode_html_entities_utf8(msg->message, buffer); // strcpy-like
+					if (config){
+						supersede(&msg->message, parse_html_in_message(msg->message, config), FREE_OLD_POINTER);
 					}
 
+					// then, replace all the remaining HTML entities
+					tmp = msg->message;
+					msg->message = malloc(strlen(msg->message)+1);
+					decode_html_entities_utf8(msg->message, tmp); //strcpy-like
+					FREE(tmp);
 					minichat_message(msg);
 					state = READY;
 				}
@@ -331,7 +333,7 @@ unsigned int parse_minichat_mess(char input[], signed int bytes, message_t *msg,
 					nicklist_topic(tmp);
 					free(tmp);
 
-					// ok, if we don't do that the nicklist will never be showed 
+					// ok, if we don't do that the nicklist will never be showed
 					// empty when is no more users in the chat
 					nicklist_recup_start();
 					nicklist_recup_end();

@@ -39,7 +39,7 @@ endif
 # Executable name, main source file, sources files
 EXECUTABLE=mchatclient
 MSOURCES=main.c
-SOURCES=conf.c parsehtml.c nicklist.c cookies.c entities.c network.c parser.c strfunctions.c ircserver.c CUtils/libcutils.c $(IFACE)
+SOURCES=conf.c parsehtml.c nicklist.c cookies.c entities.c network.c parser.c strfunctions.c ircserver.c botmsgsreplacement.c CUtils/libcutils.c $(IFACE)
 TEST_SOURCES=cookies-test.c iface-test.c parser-test.c
 ###
 
@@ -101,6 +101,7 @@ gottext.o: gottext.c display_interfaces.h commons.h
 gotnull.o: gotnull.c display_interfaces.h commons.h
 parser.o: parser.c parser.h CUtils/libcutils.o
 ircserver.o: ircserver.c ircserver.h display_interfaces.h nicklist.h strfunctions.h
+botmsgsreplacement.o: botmsgsreplacement.c botmsgsreplacement.h commons.h display_interfaces.h strfunctions.h
 CUtils/libcutils.o: CUtils/libcutils.c CUtils/libcutils.h CUtils/attribute.h CUtils/attribute.c CUtils/clist.h CUtils/clist.c CUtils/ini.h CUtils/ini.c CUtils/net.h CUtils/net.c CUtils/cstring.h CUtils/cstring.c
 
 %.o: %.c
