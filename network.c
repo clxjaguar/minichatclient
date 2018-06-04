@@ -210,7 +210,7 @@ ssize_t network_recv(int s, int use_ssl, void *buf, size_t len, int flags){
 		return recv(s, buf, len, flags);
 	}
 	memset(buf, 0, len);
-	ret = SSL_read(ssl, buf, len);
+	ret = SSL_read(ssl, buf, (int)len);
 	if (ret<=0) {
 		err = SSL_get_error(ssl, ret);
 		if (err != SSL_ERROR_ZERO_RETURN) {
@@ -227,7 +227,7 @@ ssize_t network_send(int s, int use_ssl, const void *buf, size_t len, int flags)
 	if (!use_ssl) {
 		return send(s, buf, len, flags);
 	}
-	ret = SSL_write(ssl, buf, len);
+	ret = SSL_write(ssl, buf, (int)len);
 	if (ret<=0) {
 		err = SSL_get_error(ssl, ret);
 		if (err == SSL_ERROR_ZERO_RETURN) {
