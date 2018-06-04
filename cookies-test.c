@@ -12,7 +12,11 @@
 #include <string.h>
 #include "cookies.h"
 
-int main(void)
+#ifndef MAXCOOKIES
+#define MAXCOOKIES 10
+#endif
+
+int main() {
 	cookie_t cookies[MAXCOOKIES];
 	memset(cookies, 0, sizeof(cookies));
 
